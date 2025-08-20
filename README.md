@@ -2,6 +2,31 @@
 
 Transform any PDF into well-organized markdown files that work perfectly with Claude and other AI assistants. This MCP server intelligently splits documents by chapters, preserves tables and images, and creates a navigable structure that fits within context windows.
 
+## Why This Matters for AI Assistants
+
+When you share a PDF with Claude or other LLMs, several challenges arise that this tool solves:
+
+**🔍 PDFs are Hard to Process**: PDFs contain complex formatting, embedded fonts, and layout information that makes text extraction unreliable. Claude can't easily parse tables, detect document structure, or extract meaningful content from raw PDF text.
+
+**📏 Context Window Limitations**: A 100-page PDF typically exceeds Claude's context window limits. Even if it fits, processing such large documents leads to:
+- Reduced accuracy in responses
+- Inability to focus on specific sections
+- Higher costs and slower processing
+- Loss of important details in long documents
+
+**🎯 Machine-Readable Structure**: Markdown is Claude's native format - it's designed to understand and work with structured markdown content. Converting PDFs to clean markdown means:
+- **Better comprehension**: Claude can understand headers, lists, tables, and document hierarchy
+- **Accurate code extraction**: Programming examples and technical content are properly formatted
+- **Reliable references**: Claude can cite specific sections and maintain context across conversations
+
+**📚 Chapter-Based Analysis**: By splitting documents into logical chapters, you can:
+- Ask Claude to focus on specific sections without overwhelming context
+- Process large documents incrementally 
+- Maintain conversation context while exploring different parts
+- Get more precise and relevant responses
+
+**💡 The Result**: Instead of saying *"I can't read this PDF"* or getting confused responses from garbled text, Claude can provide accurate analysis, answer detailed questions, and help with complex tasks using properly structured content.
+
 ## What This Does
 
 🔄 **PDF → Markdown**: Converts PDFs into clean, structured markdown files  
