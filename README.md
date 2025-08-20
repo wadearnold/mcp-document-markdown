@@ -1,4 +1,4 @@
-# MCP PDF Converter
+# MCP PDF to Markdown Converter
 
 Transform any PDF into well-organized markdown files that work perfectly with AI assistants. This MCP server intelligently splits documents by chapters, preserves tables and images, and creates a navigable structure that fits within context windows.
 
