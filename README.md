@@ -54,12 +54,40 @@ Copy the configuration from [`examples/claude-code-config.json`](examples/claude
 }
 ```
 
+**⚠️ Important**: Replace `"/path/to/mcp-pdf-markdown"` with the actual path where you cloned this repository:
+- **macOS/Linux Example**: `"/Users/yourname/Documents/mcp-pdf-markdown"`
+- **Windows Example**: `"C:\\Users\\yourname\\Documents\\mcp-pdf-markdown"`
+
+The `cwd` (current working directory) tells Claude Code where to find the Go project files so it can run `go run .` from the correct location.
+
 #### For Docker
-Copy the configuration from [`examples/docker-config.json`](examples/docker-config.json) and run:
+First, build the Docker image and create the required directories:
 
 ```bash
+# Build the image
 docker build -t mcp-pdf-server .
+
+# Create directories for PDF files and output
+mkdir -p pdfs docs
 ```
+
+Then copy the configuration from [`examples/docker-config.json`](examples/docker-config.json):
+
+```json
+{
+  "mcpServers": {
+    "pdf-converter": {
+      "command": "docker",
+      "args": ["run", "--rm", "-i", "-v", "./pdfs:/app/input", "-v", "./docs:/app/docs", "mcp-pdf-server"],
+      "env": {
+        "OUTPUT_DIR": "/app/docs"
+      }
+    }
+  }
+}
+```
+
+**How it works**: Place PDFs in the `./pdfs/` directory, and converted markdown files will appear in `./docs/`.
 
 See the [`examples/README.md`](examples/README.md) for detailed setup instructions.
 

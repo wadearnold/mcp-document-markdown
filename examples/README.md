@@ -75,7 +75,7 @@ For running the server in Docker:
   "mcpServers": {
     "pdf-converter": {
       "command": "docker",
-      "args": ["run", "--rm", "-i", "-v", "./input:/app/input", "-v", "./docs:/app/docs", "mcp-pdf-server"],
+      "args": ["run", "--rm", "-i", "-v", "./pdfs:/app/input", "-v", "./docs:/app/docs", "mcp-pdf-server"],
       "env": {
         "OUTPUT_DIR": "/app/docs"
       }
@@ -85,9 +85,16 @@ For running the server in Docker:
 ```
 
 **Setup Instructions:**
-1. Build the Docker image: `make docker-build`
-2. Create `input` and `docs` directories in your working directory
+1. Build the Docker image: `make docker-build` or `docker build -t mcp-pdf-server .`
+2. Create directories for your PDFs and output: `mkdir -p pdfs docs`
 3. Add the configuration to your MCP settings
+4. Place PDFs in the `./pdfs/` directory
+5. Converted markdown files will appear in `./docs/`
+
+**How it works:**
+- `./pdfs:/app/input` - Maps your local `pdfs` directory to the container's input
+- `./docs:/app/docs` - Maps your local `docs` directory to the container's output
+- Files are processed inside the container but results appear in your local filesystem
 
 ## Environment Variables
 

@@ -5,7 +5,7 @@ services:
     build: .
     container_name: mcp-pdf-converter
     volumes:
-      - ./input:/app/input
+      - ./pdfs:/app/input
       - ./docs:/app/docs
     environment:
       - OUTPUT_DIR=/app/docs

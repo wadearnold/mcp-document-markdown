@@ -2,7 +2,7 @@
   "mcpServers": {
     "pdf-converter": {
       "command": "docker",
-      "args": ["run", "--rm", "-i", "-v", "./input:/app/input", "-v", "./docs:/app/docs", "mcp-pdf-server"],
+      "args": ["run", "--rm", "-i", "-v", "./pdfs:/app/input", "-v", "./docs:/app/docs", "mcp-pdf-server"],
       "env": {
         "OUTPUT_DIR": "/app/docs"
       }
