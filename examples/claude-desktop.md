@@ -13,7 +13,7 @@ This guide shows how to configure the MCP PDF Converter with Claude Desktop.
 
 2. Copy the binary to your PATH:
    ```bash
-   cp bin/mcp-pdf-server /usr/local/bin/
+   cp bin/mcp-pdf-markdown /usr/local/bin/
    ```
 
 ## Configuration
@@ -23,8 +23,8 @@ Add this configuration to your Claude Desktop config file:
 ```json
 {
   "mcpServers": {
-    "pdf-converter": {
-      "command": "/usr/local/bin/mcp-pdf-server",
+    "pdf-markdown": {
+      "command": "/usr/local/bin/mcp-pdf-markdown",
       "env": {
         "OUTPUT_DIR": "./docs",
         "PYTHON_PATH": "python3",
@@ -67,8 +67,8 @@ Convert /path/to/report.pdf and save to ./project-docs/
 ## Troubleshooting
 
 **Server not starting?**
-- Verify the binary exists: `ls -la /usr/local/bin/mcp-pdf-server`
-- Check permissions: `chmod +x /usr/local/bin/mcp-pdf-server`
+- Verify the binary exists: `ls -la /usr/local/bin/mcp-pdf-markdown`
+- Check permissions: `chmod +x /usr/local/bin/mcp-pdf-markdown`
 
 **Python errors?**
 - Verify Python dependencies: `python3 -c "import pypdf, pdfplumber, fitz"`
@@ -80,7 +80,7 @@ Convert /path/to/report.pdf and save to ./project-docs/
 
 ## How It Works
 
-- Claude Desktop automatically starts the `mcp-pdf-server` binary when needed
+- Claude Desktop automatically starts the `mcp-pdf-markdown` binary when needed
 - Files are saved relative to your current working directory
 - You can override the output directory in your prompts
 - The server shuts down automatically when not in use

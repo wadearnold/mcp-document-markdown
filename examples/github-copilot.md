@@ -15,7 +15,7 @@ This guide shows how to configure the MCP PDF Converter with GitHub Copilot.
 
 2. Copy the binary to your PATH:
    ```bash
-   cp bin/mcp-pdf-server /usr/local/bin/
+   cp bin/mcp-pdf-markdown /usr/local/bin/
    ```
 
 ## Configuration
@@ -29,8 +29,8 @@ If using VS Code with GitHub Copilot, add this to your settings:
 ```json
 {
   "mcp.servers": {
-    "pdf-converter": {
-      "command": "/usr/local/bin/mcp-pdf-server",
+    "pdf-markdown": {
+      "command": "/usr/local/bin/mcp-pdf-markdown",
       "env": {
         "OUTPUT_DIR": "./docs"
       }
@@ -46,8 +46,8 @@ Create `.vscode/settings.json` in your project:
 ```json
 {
   "mcp.servers": {
-    "pdf-converter": {
-      "command": "/usr/local/bin/mcp-pdf-server",
+    "pdf-markdown": {
+      "command": "/usr/local/bin/mcp-pdf-markdown",
       "env": {
         "OUTPUT_DIR": "./docs",
         "DEBUG": "false"
@@ -86,7 +86,7 @@ If GitHub Copilot doesn't directly support MCP, you can use the server as a CLI 
 
 ```bash
 # Convert PDF directly
-echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"pdf_path": "./document.pdf"}}}' | /usr/local/bin/mcp-pdf-server
+echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"pdf_path": "./document.pdf"}}}' | /usr/local/bin/mcp-pdf-markdown
 
 # Then use Copilot to work with the generated markdown files
 ```
@@ -99,9 +99,9 @@ echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"
 - Try restarting VS Code after configuration changes
 
 **Server not responding?**
-- Test server directly: `echo '{"method": "tools/list"}' | /usr/local/bin/mcp-pdf-server`
+- Test server directly: `echo '{"method": "tools/list"}' | /usr/local/bin/mcp-pdf-markdown`
 - Check server logs for errors
-- Verify binary permissions: `ls -la /usr/local/bin/mcp-pdf-server`
+- Verify binary permissions: `ls -la /usr/local/bin/mcp-pdf-markdown`
 
 **Python dependency errors?**
 - Reinstall dependencies: `cd /path/to/mcp-pdf-markdown && make setup`

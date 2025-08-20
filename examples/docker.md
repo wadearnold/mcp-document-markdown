@@ -13,7 +13,7 @@ This guide shows how to run the MCP PDF Converter in Docker with any MCP-compati
 
 ```bash
 cd /path/to/mcp-pdf-markdown
-docker build -t mcp-pdf-server .
+docker build -t mcp-pdf-markdown .
 ```
 
 Or using Make:
@@ -30,7 +30,7 @@ mkdir -p pdfs docs
 ### 3. Test the Container
 
 ```bash
-echo '{"method": "tools/list"}' | docker run --rm -i mcp-pdf-server
+echo '{"method": "tools/list"}' | docker run --rm -i mcp-pdf-markdown
 ```
 
 ## Configuration
@@ -40,9 +40,9 @@ Add this configuration to your MCP client:
 ```json
 {
   "mcpServers": {
-    "pdf-converter": {
+    "pdf-markdown": {
       "command": "docker",
-      "args": ["run", "--rm", "-i", "-v", "./pdfs:/app/input", "-v", "./docs:/app/docs", "mcp-pdf-server"],
+      "args": ["run", "--rm", "-i", "-v", "./pdfs:/app/input", "-v", "./docs:/app/docs", "mcp-pdf-markdown"],
       "env": {
         "OUTPUT_DIR": "/app/docs"
       }
@@ -82,9 +82,9 @@ Create a `docker-compose.yml`:
 ```yaml
 version: '3.8'
 services:
-  mcp-pdf-server:
+  mcp-pdf-markdown:
     build: .
-    container_name: mcp-pdf-converter
+    container_name: mcp-pdf-markdown-converter
     volumes:
       - ./pdfs:/app/input
       - ./docs:/app/docs
@@ -111,13 +111,13 @@ docker-compose up -d
 For large PDFs, increase container memory:
 
 ```bash
-docker run --rm -i -m 4g -v ./pdfs:/app/input -v ./docs:/app/docs mcp-pdf-server
+docker run --rm -i -m 4g -v ./pdfs:/app/input -v ./docs:/app/docs mcp-pdf-markdown
 ```
 
 Or in docker-compose.yml:
 ```yaml
 services:
-  mcp-pdf-server:
+  mcp-pdf-markdown:
     # ... other config
     mem_limit: 4g
 ```
@@ -126,8 +126,8 @@ services:
 
 **Container fails to start?**
 - Check Docker is running: `docker info`
-- Verify image exists: `docker images | grep mcp-pdf-server`
-- Rebuild image: `docker build --no-cache -t mcp-pdf-server .`
+- Verify image exists: `docker images | grep mcp-pdf-markdown`
+- Rebuild image: `docker build --no-cache -t mcp-pdf-markdown .`
 
 **Volume mount issues?**
 - Use absolute paths: `-v /full/path/to/pdfs:/app/input`

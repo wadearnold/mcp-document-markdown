@@ -16,19 +16,25 @@ This guide shows how to configure the MCP PDF Converter with Claude Code CLI.
 
 ### Method 1: Using Claude Code CLI (Recommended)
 
-Navigate to your MCP server directory and add it:
+First, get the full absolute path to your binary:
 
 ```bash
 cd /path/to/mcp-pdf-markdown
-claude mcp add pdf-converter -- ./bin/mcp-pdf-server
+pwd  # This shows your full path, e.g., /Users/username/Documents/mcp-pdf-markdown
 ```
 
-**⚠️ Important**: Replace `/path/to/mcp-pdf-markdown` with the actual path where you cloned this repository.
+Then add the MCP server using the full absolute path:
+
+```bash
+claude mcp add pdf-markdown -- /Users/username/Documents/mcp-pdf-markdown/bin/mcp-pdf-markdown
+```
+
+**⚠️ Important**: You **must use the full absolute path** to the binary. Relative paths like `./bin/mcp-pdf-markdown` will fail because Claude Code runs from a different directory.
 
 ### With Environment Variables
 
 ```bash
-claude mcp add pdf-converter --env OUTPUT_DIR=./docs -- ./bin/mcp-pdf-server
+claude mcp add pdf-markdown --env OUTPUT_DIR=./docs -- /path/to/mcp-pdf-markdown/bin/mcp-pdf-markdown
 ```
 
 ### Method 2: Manual Configuration
@@ -38,8 +44,8 @@ Create or edit your MCP configuration file with:
 ```json
 {
   "mcpServers": {
-    "pdf-converter": {
-      "command": "/absolute/path/to/mcp-pdf-markdown/bin/mcp-pdf-server",
+    "pdf-markdown": {
+      "command": "/path/to/mcp-pdf-markdown/bin/mcp-pdf-markdown",
       "env": {
         "OUTPUT_DIR": "./docs"
       }
@@ -55,10 +61,10 @@ Create or edit your MCP configuration file with:
 claude mcp list
 
 # Get server details
-claude mcp get pdf-converter
+claude mcp get pdf-markdown
 
 # Remove the server
-claude mcp remove pdf-converter
+claude mcp remove pdf-markdown
 ```
 
 ## Configuration Scopes
@@ -85,7 +91,7 @@ Convert ./reports/quarterly.pdf and save to ./analysis/
 
 ## How It Works
 
-- Claude Code automatically starts the `mcp-pdf-server` binary when needed
+- Claude Code automatically starts the `mcp-pdf-markdown` binary when needed
 - Files are saved relative to your current working directory (defaults to `./docs`)
 - You can override the output directory in prompts: *"Convert PDF to ./my-project/docs/"*
 - Multiple projects can use the same MCP server with different output locations
@@ -93,11 +99,12 @@ Convert ./reports/quarterly.pdf and save to ./analysis/
 ## Troubleshooting
 
 **Server not found?**
-- Verify the binary path: `ls -la /path/to/mcp-pdf-markdown/bin/mcp-pdf-server`
-- Use absolute paths in configuration
+- Verify the binary exists: `ls -la /path/to/mcp-pdf-markdown/bin/mcp-pdf-markdown`
+- **Always use absolute paths** - relative paths like `./bin/mcp-pdf-markdown` will fail
+- Check the exact path with `pwd` when in the repository directory
 
 **Permission errors?**
-- Make binary executable: `chmod +x ./bin/mcp-pdf-server`
+- Make binary executable: `chmod +x /path/to/mcp-pdf-markdown/bin/mcp-pdf-markdown`
 - Check file permissions in the repository directory
 
 **Python dependency errors?**

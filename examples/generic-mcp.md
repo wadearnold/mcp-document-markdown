@@ -25,7 +25,7 @@ The Model Context Protocol is an open standard that allows AI tools to connect t
 
 2. For system-wide access, copy to PATH:
    ```bash
-   cp bin/mcp-pdf-server /usr/local/bin/
+   cp bin/mcp-pdf-markdown /usr/local/bin/
    ```
 
 ## Basic Configuration
@@ -35,8 +35,8 @@ Most MCP clients use a JSON configuration format similar to:
 ```json
 {
   "mcpServers": {
-    "pdf-converter": {
-      "command": "/path/to/mcp-pdf-server",
+    "pdf-markdown": {
+      "command": "/path/to/mcp-pdf-markdown",
       "env": {
         "OUTPUT_DIR": "./docs",
         "DEBUG": "false"
@@ -53,15 +53,14 @@ Most MCP clients use a JSON configuration format similar to:
 **Using built binary:**
 ```json
 {
-  "command": "/usr/local/bin/mcp-pdf-server"
+  "command": "/usr/local/bin/mcp-pdf-markdown"
 }
 ```
 
-**Using relative path:**
+**Using absolute path with working directory:**
 ```json
 {
-  "command": "./bin/mcp-pdf-server",
-  "cwd": "/path/to/mcp-pdf-markdown"
+  "command": "/path/to/mcp-pdf-markdown/bin/mcp-pdf-markdown"
 }
 ```
 
@@ -147,7 +146,7 @@ This server uses **stdio transport**:
 
 1. **Test server directly:**
    ```bash
-   echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | ./bin/mcp-pdf-server
+   echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | /path/to/mcp-pdf-markdown/bin/mcp-pdf-markdown
    ```
 
 2. **Expected response:**

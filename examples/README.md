@@ -60,7 +60,7 @@ Check the individual client guides for detailed troubleshooting steps specific t
 
 - Check the specific client guide for troubleshooting
 - Refer to the [generic MCP guide](generic-mcp.md) for protocol details
-- Test the server directly: `echo '{"method": "tools/list"}' | ./bin/mcp-pdf-server`
+- Test the server directly: `echo '{"method": "tools/list"}' | /path/to/mcp-pdf-markdown/bin/mcp-pdf-markdown`
 - Open an issue on GitHub if you encounter problems
 
 ## Contributing

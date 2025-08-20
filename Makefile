@@ -5,7 +5,7 @@ all: build
 
 # Build the Go binary (embeds Python scripts from python/ directory)
 build: check-python
-	go build -o bin/mcp-pdf-server main.go python_embed.go python_loader.go
+	go build -o bin/mcp-pdf-markdown main.go python_embed.go python_loader.go
 
 # Build the test client
 build-test:
@@ -13,7 +13,7 @@ build-test:
 
 # Run the server
 run: build venv
-	./bin/mcp-pdf-server
+	./bin/mcp-pdf-markdown
 
 # Run the server in development mode (for testing Python changes without rebuilding)
 dev: check-python venv
@@ -43,7 +43,7 @@ install-python-deps: venv
 
 # Build Docker image
 docker-build:
-	docker build -t mcp-pdf-server .
+	docker build -t mcp-pdf-markdown .
 
 # Run with Docker Compose
 docker-run:
@@ -60,14 +60,14 @@ clean:
 test: build
 	@echo "Testing PDF conversion..."
 	@if [ -f "test.pdf" ]; then \
-		./bin/mcp-pdf-server test test.pdf ./test_output; \
+		./bin/mcp-pdf-markdown test test.pdf ./test_output; \
 	else \
 		echo "Please add a test.pdf file to test conversion"; \
 	fi
 
 # Install everything needed for development
 setup: deps install-python-deps
-	@echo "Setup complete! You can now run 'make run' to start the server"
+	@echo "Setup complete! You can now run 'make build' to build the MCP server binary"
 
 # Check if Python scripts exist for embedding
 check-python:

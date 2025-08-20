@@ -130,7 +130,7 @@ func (s *MCPServer) handleInitialize(req InitializeRequest) (*InitializeResponse
 			Name    string `json:"name"`
 			Version string `json:"version"`
 		}{
-			Name:    "pdf-converter-mcp",
+			Name:    "mcp-pdf-markdown",
 			Version: "1.0.0",
 		},
 	}, nil
@@ -504,7 +504,7 @@ func main() {
 		jsonrpc2.HandlerWithError(server.Handle),
 	)
 
-	log.Println("PDF Converter MCP Server started")
+	log.Println("MCP PDF-to-Markdown Converter started")
 	<-conn.DisconnectNotify()
 	log.Println("Server disconnected")
 }

@@ -147,12 +147,12 @@ make build    # Build the server
 ```bash
 go mod download
 pip install pypdf pdfplumber pymupdf pandas pillow tabulate markdown
-go build -o bin/mcp-pdf-server main.go python_scripts.go
+go build -o bin/mcp-pdf-markdown main.go python_embed.go python_loader.go
 ```
 
 #### Option 3: Docker Build
 ```bash
-docker build -t mcp-pdf-server .
+docker build -t mcp-pdf-markdown .
 # or
 make docker-build
 ```
@@ -161,7 +161,7 @@ make docker-build
 ```bash
 make test     # Run basic tests
 # or test with a specific PDF
-./bin/mcp-pdf-server test sample.pdf ./test_output
+./bin/mcp-pdf-markdown test sample.pdf ./test_output
 ```
 
 ## Development
@@ -234,7 +234,7 @@ make build
 make dev
 
 # Build and test production binary
-make build && ./bin/mcp-pdf-server
+make build && ./bin/mcp-pdf-markdown
 
 # Run interactive test client
 make build-test && ./bin/test-client interactive
@@ -281,7 +281,7 @@ make setup         # Reinstall Python dependencies
 
 **Permission denied?**
 ```bash
-chmod +x bin/mcp-pdf-server
+chmod +x bin/mcp-pdf-markdown
 ```
 
 **Memory issues with large PDFs?**
@@ -291,7 +291,7 @@ chmod +x bin/mcp-pdf-server
 
 ### Debug Mode
 ```bash
-DEBUG=true ./bin/mcp-pdf-server
+DEBUG=true ./bin/mcp-pdf-markdown
 ```
 
 ## License

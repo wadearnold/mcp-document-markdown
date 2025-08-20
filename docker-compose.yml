@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  mcp-pdf-server:
+  mcp-pdf-markdown:
     build: .
-    container_name: mcp-pdf-converter
+    container_name: mcp-pdf-markdown-converter
     volumes:
       - ./pdfs:/app/input
       - ./docs:/app/docs

@@ -16,7 +16,7 @@ This guide shows how to configure the MCP PDF Converter with Cursor, the AI-powe
 
 3. Copy the binary to your PATH:
    ```bash
-   cp bin/mcp-pdf-server /usr/local/bin/
+   cp bin/mcp-pdf-markdown /usr/local/bin/
    ```
 
 ## Configuration
@@ -28,8 +28,8 @@ Add this configuration to your Cursor settings (`Cmd/Ctrl + ,` → Search "mcp")
 ```json
 {
   "mcp.servers": {
-    "pdf-converter": {
-      "command": "/usr/local/bin/mcp-pdf-server",
+    "pdf-markdown": {
+      "command": "/usr/local/bin/mcp-pdf-markdown",
       "env": {
         "OUTPUT_DIR": "./docs",
         "DEBUG": "false"
@@ -46,8 +46,8 @@ Create `.cursor/settings.json` in your project root:
 ```json
 {
   "mcp.servers": {
-    "pdf-converter": {
-      "command": "/usr/local/bin/mcp-pdf-server",
+    "pdf-markdown": {
+      "command": "/usr/local/bin/mcp-pdf-markdown",
       "env": {
         "OUTPUT_DIR": "./docs",
         "PYTHON_PATH": "python3",
@@ -65,8 +65,8 @@ For project-specific setup, create `.vscode/settings.json` (Cursor uses VS Code 
 ```json
 {
   "mcp.servers": {
-    "pdf-converter": {
-      "command": "/usr/local/bin/mcp-pdf-server",
+    "pdf-markdown": {
+      "command": "/usr/local/bin/mcp-pdf-markdown",
       "env": {
         "OUTPUT_DIR": "./docs"
       }
@@ -128,8 +128,8 @@ After conversion, Cursor will show the generated markdown files in your file exp
 - Try both user and workspace settings
 
 **Server not found?**
-- Verify binary exists: `ls -la /usr/local/bin/mcp-pdf-server`
-- Make binary executable: `chmod +x /usr/local/bin/mcp-pdf-server`
+- Verify binary exists: `ls -la /usr/local/bin/mcp-pdf-markdown`
+- Make binary executable: `chmod +x /usr/local/bin/mcp-pdf-markdown`
 - Use absolute paths in configuration
 
 ### Runtime Issues
@@ -137,7 +137,7 @@ After conversion, Cursor will show the generated markdown files in your file exp
 **Python errors?**
 - Check dependencies: `cd /path/to/mcp-pdf-markdown && make setup`
 - Verify Python path: `which python3`
-- Test server: `echo '{"method": "tools/list"}' | /usr/local/bin/mcp-pdf-server`
+- Test server: `echo '{"method": "tools/list"}' | /usr/local/bin/mcp-pdf-markdown`
 
 **Permission errors?**
 - Check file permissions in output directory
@@ -166,7 +166,7 @@ If native MCP support isn't available in your Cursor version:
 ### CLI Workflow
 ```bash
 # Convert PDF using the server
-echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"pdf_path": "./document.pdf"}}}' | /usr/local/bin/mcp-pdf-server
+echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"pdf_path": "./document.pdf"}}}' | /usr/local/bin/mcp-pdf-markdown
 
 # Then use Cursor to work with generated markdown files
 ```
@@ -180,7 +180,7 @@ Create a script that Cursor can execute:
 PDF_PATH="$1"
 OUTPUT_DIR="${2:-./docs}"
 
-echo "{\"method\": \"tools/call\", \"params\": {\"name\": \"convert_pdf\", \"arguments\": {\"pdf_path\": \"$PDF_PATH\", \"output_dir\": \"$OUTPUT_DIR\"}}}" | /usr/local/bin/mcp-pdf-server
+echo "{\"method\": \"tools/call\", \"params\": {\"name\": \"convert_pdf\", \"arguments\": {\"pdf_path\": \"$PDF_PATH\", \"output_dir\": \"$OUTPUT_DIR\"}}}" | /usr/local/bin/mcp-pdf-markdown
 ```
 
 Then in Cursor:
@@ -195,8 +195,8 @@ Then in Cursor:
 ```json
 {
   "mcp.servers": {
-    "pdf-converter": {
-      "command": "/usr/local/bin/mcp-pdf-server",
+    "pdf-markdown": {
+      "command": "/usr/local/bin/mcp-pdf-markdown",
       "env": {
         "OUTPUT_DIR": "./converted-docs",
         "DEBUG": "true"
@@ -212,9 +212,8 @@ Then in Cursor:
 ```json
 {
   "mcp.servers": {
-    "pdf-converter": {
-      "command": "./bin/mcp-pdf-server",
-      "cwd": "/path/to/mcp-pdf-markdown",
+    "pdf-markdown": {
+      "command": "/path/to/mcp-pdf-markdown/bin/mcp-pdf-markdown",
       "env": {
         "DEBUG": "true"
       }
@@ -227,8 +226,8 @@ Then in Cursor:
 ```json
 {
   "mcp.servers": {
-    "pdf-converter": {
-      "command": "/usr/local/bin/mcp-pdf-server",
+    "pdf-markdown": {
+      "command": "/usr/local/bin/mcp-pdf-markdown",
       "env": {
         "DEBUG": "false"
       }
