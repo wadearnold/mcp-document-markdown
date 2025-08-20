@@ -1,100 +1,22 @@
-# MCP PDF Converter Configuration Examples
+# MCP Client Configuration Guides
 
-This directory contains example configurations for using the MCP PDF Converter server with different Claude clients.
+This directory contains step-by-step configuration guides for using the MCP PDF Converter server with various AI tools that support the Model Context Protocol (MCP).
 
-## Claude Code Configuration
+## Available Clients
 
-**File:** `claude-code-config.json`
+- **[Claude Desktop](claude-desktop.md)** - Anthropic's desktop application
+- **[Claude Code](claude-code.md)** - Anthropic's CLI tool  
+- **[GitHub Copilot](github-copilot.md)** - GitHub's AI coding assistant
+- **[Cursor](cursor.md)** - AI-powered code editor
+- **[Docker Deployment](docker.md)** - Container-based setup for any MCP client
+- **[Generic MCP Client](generic-mcp.md)** - Configuration guide for other MCP-compatible tools
 
-For Claude Code CLI, add this to your MCP configuration:
+## Quick Start
 
-```json
-{
-  "mcpServers": {
-    "pdf-converter": {
-      "command": "go",
-      "args": ["run", "."],
-      "cwd": "/path/to/mcp-pdf-markdown",
-      "env": {
-        "OUTPUT_DIR": "./docs",
-        "PYTHON_PATH": "python3",
-        "DEBUG": "false"
-      }
-    }
-  }
-}
-```
-
-**Setup Instructions:**
-1. Clone this repository to your local machine
-2. Update the `cwd` path to point to your repository location
-3. Run `make setup` in the repository directory to install dependencies
-4. Add the configuration to your Claude Code MCP settings
-
-## Claude Desktop Configuration
-
-**File:** `claude-desktop-config.json`
-
-For Claude Desktop app, add this to your configuration file:
-
-```json
-{
-  "mcpServers": {
-    "pdf-converter": {
-      "command": "/usr/local/bin/mcp-pdf-server",
-      "env": {
-        "OUTPUT_DIR": "/Users/username/Documents/converted_pdfs",
-        "PYTHON_PATH": "python3",
-        "MAX_FILE_SIZE": "100",
-        "DEBUG": "false"
-      }
-    }
-  }
-}
-```
-
-**Setup Instructions:**
-1. Build the server: `make build`
-2. Copy the binary to your PATH: `cp bin/mcp-pdf-server /usr/local/bin/`
-3. Update the `OUTPUT_DIR` to your preferred location
-4. Replace `username` with your actual username
-5. Add the configuration to Claude Desktop's MCP settings
-
-**Configuration File Locations:**
-- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-
-## Docker Configuration
-
-**File:** `docker-config.json`
-
-For running the server in Docker:
-
-```json
-{
-  "mcpServers": {
-    "pdf-converter": {
-      "command": "docker",
-      "args": ["run", "--rm", "-i", "-v", "./pdfs:/app/input", "-v", "./docs:/app/docs", "mcp-pdf-server"],
-      "env": {
-        "OUTPUT_DIR": "/app/docs"
-      }
-    }
-  }
-}
-```
-
-**Setup Instructions:**
-1. Build the Docker image: `make docker-build` or `docker build -t mcp-pdf-server .`
-2. Create directories for your PDFs and output: `mkdir -p pdfs docs`
-3. Add the configuration to your MCP settings
-4. Place PDFs in the `./pdfs/` directory
-5. Converted markdown files will appear in `./docs/`
-
-**How it works:**
-- `./pdfs:/app/input` - Maps your local `pdfs` directory to the container's input
-- `./docs:/app/docs` - Maps your local `docs` directory to the container's output
-- Files are processed inside the container but results appear in your local filesystem
+1. **Build the server**: Follow the build instructions in the main [README.md](../README.md)
+2. **Choose your client**: Select the appropriate guide from the list above
+3. **Follow the setup**: Each guide provides complete setup instructions
+4. **Start converting**: Use natural language prompts to convert PDFs
 
 ## Environment Variables
 
@@ -105,9 +27,9 @@ All configurations support these environment variables:
 - **`MAX_FILE_SIZE`**: Maximum PDF size in MB (default: `100`)
 - **`DEBUG`**: Enable debug logging (`true`/`false`, default: `false`)
 
-## Usage Examples
+## Common Usage Examples
 
-Once configured, you can use the PDF converter in your Claude conversations:
+Once configured with any MCP client, you can use prompts like:
 
 ```
 Convert the PDF at /path/to/document.pdf and create a summary of each chapter
@@ -123,9 +45,24 @@ Convert /path/to/report.pdf to markdown with tables preserved and save to ./my-d
 
 ## Troubleshooting
 
-1. **Command not found**: Ensure the binary path is correct and executable
+### Universal Issues
+
+1. **Server not found**: Ensure the binary exists and is executable
 2. **Python errors**: Verify Python dependencies are installed (`make setup`)
 3. **Permission denied**: Check file permissions and directory access
-4. **Docker issues**: Ensure Docker is running and image is built
+4. **Configuration not loading**: Restart your AI tool after adding configuration
 
-For more detailed troubleshooting, see the main [README.md](../README.md#troubleshooting).
+### Client-Specific Issues
+
+Check the individual client guides for detailed troubleshooting steps specific to your AI tool.
+
+## Need Help?
+
+- Check the specific client guide for troubleshooting
+- Refer to the [generic MCP guide](generic-mcp.md) for protocol details
+- Test the server directly: `echo '{"method": "tools/list"}' | ./bin/mcp-pdf-server`
+- Open an issue on GitHub if you encounter problems
+
+## Contributing
+
+If you've successfully configured this server with an MCP client not listed here, please contribute a configuration guide! Follow the format of existing guides and submit a pull request.

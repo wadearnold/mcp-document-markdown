@@ -1,31 +1,31 @@
 # MCP PDF Converter
 
-Transform any PDF into well-organized markdown files that work perfectly with Claude and other AI assistants. This MCP server intelligently splits documents by chapters, preserves tables and images, and creates a navigable structure that fits within context windows.
+Transform any PDF into well-organized markdown files that work perfectly with AI assistants. This MCP server intelligently splits documents by chapters, preserves tables and images, and creates a navigable structure that fits within context windows.
 
 ## Why This Matters for AI Assistants
 
-When you share a PDF with Claude or other LLMs, several challenges arise that this tool solves:
+When you share a PDF with AI assistants, several challenges arise that this tool solves:
 
-**🔍 PDFs are Hard to Process**: PDFs contain complex formatting, embedded fonts, and layout information that makes text extraction unreliable. Claude can't easily parse tables, detect document structure, or extract meaningful content from raw PDF text.
+**🔍 PDFs are Hard to Process**: PDFs contain complex formatting, embedded fonts, and layout information that makes text extraction unreliable. AI assistants can't easily parse tables, detect document structure, or extract meaningful content from raw PDF text.
 
-**📏 Context Window Limitations**: A 100-page PDF typically exceeds Claude's context window limits. Even if it fits, processing such large documents leads to:
+**📏 Context Window Limitations**: A 100-page PDF typically exceeds most AI models' context window limits. Even if it fits, processing such large documents leads to:
 - Reduced accuracy in responses
 - Inability to focus on specific sections
 - Higher costs and slower processing
 - Loss of important details in long documents
 
-**🎯 Machine-Readable Structure**: Markdown is Claude's native format - it's designed to understand and work with structured markdown content. Converting PDFs to clean markdown means:
-- **Better comprehension**: Claude can understand headers, lists, tables, and document hierarchy
+**🎯 Machine-Readable Structure**: Markdown is the preferred format for most AI systems - they're designed to understand and work with structured markdown content. Converting PDFs to clean markdown means:
+- **Better comprehension**: AI assistants can understand headers, lists, tables, and document hierarchy
 - **Accurate code extraction**: Programming examples and technical content are properly formatted
-- **Reliable references**: Claude can cite specific sections and maintain context across conversations
+- **Reliable references**: AI assistants can cite specific sections and maintain context across conversations
 
 **📚 Chapter-Based Analysis**: By splitting documents into logical chapters, you can:
-- Ask Claude to focus on specific sections without overwhelming context
+- Ask AI assistants to focus on specific sections without overwhelming context
 - Process large documents incrementally 
 - Maintain conversation context while exploring different parts
 - Get more precise and relevant responses
 
-**💡 The Result**: Instead of saying *"I can't read this PDF"* or getting confused responses from garbled text, Claude can provide accurate analysis, answer detailed questions, and help with complex tasks using properly structured content.
+**💡 The Result**: Instead of getting *"I can't read this PDF"* or confused responses from garbled text, AI assistants can provide accurate analysis, answer detailed questions, and help with complex tasks using properly structured content.
 
 ## What This Does
 
@@ -33,7 +33,7 @@ When you share a PDF with Claude or other LLMs, several challenges arise that th
 📚 **Smart Chapter Splitting**: Automatically detects and splits documents by chapters  
 📊 **Table Preservation**: Maintains table formatting using multiple extraction methods  
 🖼️ **Image Extraction**: Extracts and references images from PDFs  
-🧩 **MCP Integration**: Works seamlessly with Claude Desktop, Claude Code, and other MCP clients  
+🧩 **MCP Integration**: Works seamlessly with any AI tool that supports the Model Context Protocol  
 
 ## Usage Examples
 
@@ -69,106 +69,44 @@ Convert /path/to/financial-data.pdf and analyze the quarterly revenue tables
 Convert /path/to/api-documentation.pdf, then help me write code that uses those APIs
 ```
 
-**The Power**: After conversion, Claude can provide detailed analysis, answer specific questions, extract code examples, and work with complex data - all because the content is now in a structured, machine-readable format that fits within context windows.
+**The Power**: After conversion, AI assistants can provide detailed analysis, answer specific questions, extract code examples, and work with complex data - all because the content is now in a structured, machine-readable format that fits within context windows.
 
 ## Quick Start
 
-### 1. Add MCP Server Configuration
-
-Choose your preferred method:
-
-#### For Claude Desktop
-Copy the configuration from [`examples/claude-desktop-config.json`](examples/claude-desktop-config.json):
-
-```json
-{
-  "mcpServers": {
-    "pdf-converter": {
-      "command": "/usr/local/bin/mcp-pdf-server",
-      "env": {
-        "OUTPUT_DIR": "/Users/username/Documents/converted_pdfs"
-      }
-    }
-  }
-}
-```
-
-Add this to your Claude Desktop config file:
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-
-#### For Claude Code
-Copy the configuration from [`examples/claude-code-config.json`](examples/claude-code-config.json):
-
-```json
-{
-  "mcpServers": {
-    "pdf-converter": {
-      "command": "go",
-      "args": ["run", "."],
-      "cwd": "/path/to/mcp-pdf-markdown",
-      "env": {
-        "OUTPUT_DIR": "./docs"
-      }
-    }
-  }
-}
-```
-
-**⚠️ Important**: Replace `"/path/to/mcp-pdf-markdown"` with the actual path where you cloned this repository:
-- **macOS/Linux Example**: `"/Users/yourname/Documents/mcp-pdf-markdown"`
-- **Windows Example**: `"C:\\Users\\yourname\\Documents\\mcp-pdf-markdown"`
-
-The `cwd` (current working directory) tells Claude Code where to find the Go project files so it can run `go run .` from the correct location.
-
-#### For Docker
-First, build the Docker image and create the required directories:
-
-```bash
-# Build the image
-docker build -t mcp-pdf-server .
-
-# Create directories for PDF files and output
-mkdir -p pdfs docs
-```
-
-Then copy the configuration from [`examples/docker-config.json`](examples/docker-config.json):
-
-```json
-{
-  "mcpServers": {
-    "pdf-converter": {
-      "command": "docker",
-      "args": ["run", "--rm", "-i", "-v", "./pdfs:/app/input", "-v", "./docs:/app/docs", "mcp-pdf-server"],
-      "env": {
-        "OUTPUT_DIR": "/app/docs"
-      }
-    }
-  }
-}
-```
-
-**How it works**: Place PDFs in the `./pdfs/` directory, and converted markdown files will appear in `./docs/`.
-
-See the [`examples/README.md`](examples/README.md) for detailed setup instructions.
-
-### 2. Install and Build
+### 1. Install and Build the MCP Server
 
 ```bash
 git clone https://github.com/wadearnold/mcp-pdf-markdown.git
 cd mcp-pdf-markdown
 make setup    # Installs Go and Python dependencies
-make build    # Builds the server
+make build    # Builds the server binary
 ```
 
-For Claude Desktop, copy the binary to your PATH:
-```bash
-cp bin/mcp-pdf-server /usr/local/bin/
-```
+### 2. Configure Your MCP Client
+
+This server works with any AI tool that supports the Model Context Protocol (MCP). Choose your client:
+
+**Supported MCP Clients:**
+- 🔵 **[Claude Desktop](examples/claude-desktop.md)** - Anthropic's desktop application
+- ⌨️ **[Claude Code](examples/claude-code.md)** - Anthropic's CLI tool  
+- 🐙 **[GitHub Copilot](examples/github-copilot.md)** - GitHub's AI coding assistant
+- 🎯 **[Cursor](examples/cursor.md)** - AI-powered code editor
+- 🐳 **[Docker Deployment](examples/docker.md)** - Container-based setup
+- ⚙️ **[Other MCP Clients](examples/generic-mcp.md)** - Generic configuration guide
+
+Each guide provides step-by-step instructions for configuring the MCP server with that specific client.
 
 ### 3. Start Converting PDFs
 
-Once configured, you're ready to convert PDFs and work with the structured content!
+Once configured, you can use natural language prompts to convert PDFs and work with the structured content. The server provides these tools:
+
+- **`convert_pdf`**: Convert PDFs to structured markdown files
+- **`analyze_pdf_structure`**: Analyze PDF structure without converting
+
+**Example usage in any MCP client:**
+```
+Convert the PDF at /path/to/document.pdf to markdown with chapter splitting
+```
 
 ## What You Get
 
