@@ -1,6 +1,6 @@
 # Docker Configuration
 
-This guide shows how to run the MCP PDF Converter in Docker with any MCP-compatible AI tool.
+This guide shows how to run the MCP PDF-to-Markdown converter in Docker with any MCP-compatible AI tool.
 
 ## Prerequisites
 
@@ -21,17 +21,13 @@ Or using Make:
 make docker-build
 ```
 
-### 2. Create Required Directories
+### 2. Test the Container
 
 ```bash
-mkdir -p pdfs docs
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | docker run --rm -i mcp-pdf-markdown
 ```
 
-### 3. Test the Container
-
-```bash
-echo '{"method": "tools/list"}' | docker run --rm -i mcp-pdf-markdown
-```
+You should see a JSON response listing the available tools.
 
 ## Configuration
 
@@ -42,85 +38,65 @@ Add this configuration to your MCP client:
   "mcpServers": {
     "pdf-markdown": {
       "command": "docker",
-      "args": ["run", "--rm", "-i", "-v", "./pdfs:/app/input", "-v", "./docs:/app/docs", "mcp-pdf-markdown"],
+      "args": ["run", "--rm", "-i", "mcp-pdf-markdown"],
       "env": {
-        "OUTPUT_DIR": "/app/docs"
+        "OUTPUT_DIR": "./docs"
       }
     }
   }
 }
 ```
 
-## Directory Structure
+**Note**: The `OUTPUT_DIR` is relative to where your MCP client is running (not inside the container).
+
+## How It Works
+
+The MCP server running in Docker works exactly like the local binary:
+
+1. **Your MCP client** (Claude Code, Claude Desktop, etc.) starts the Docker container
+2. **You provide PDF paths** in your prompts to the AI assistant
+3. **The MCP server** receives the PDF path via JSON-RPC, processes the file, and returns markdown
+4. **Results are returned** as JSON-RPC responses to your AI client
+
+**No volume mounts needed** - the server accesses files through the paths you provide in prompts.
+
+## Usage Examples
+
+Once configured, use the same prompts as with the local binary:
 
 ```
-your-project/
-├── pdfs/           # Place PDF files here
-├── docs/           # Converted markdown appears here
-└── other-files...
-```
-
-## Usage Workflow
-
-1. **Place PDFs**: Copy PDF files to the `./pdfs/` directory
-2. **Convert**: Use your MCP client to convert PDFs
-3. **Access Results**: Find converted markdown files in `./docs/`
-
-**Example prompts:**
-```
-Convert the PDF at /app/input/manual.pdf to markdown
+Convert the PDF at /Users/username/Documents/manual.pdf to markdown
 ```
 
 ```
-Analyze all PDFs in the input directory and create summaries
+Analyze the structure of ./reports/quarterly-report.pdf
 ```
 
-## Docker Compose (Alternative)
-
-Create a `docker-compose.yml`:
-
-```yaml
-version: '3.8'
-services:
-  mcp-pdf-markdown:
-    build: .
-    container_name: mcp-pdf-markdown-converter
-    volumes:
-      - ./pdfs:/app/input
-      - ./docs:/app/docs
-    environment:
-      - OUTPUT_DIR=/app/docs
-    stdin_open: true
-    tty: true
 ```
-
-Run with:
-```bash
-docker-compose up -d
+Convert /path/to/research-paper.pdf and save the results to ./project-docs/
 ```
-
-## Environment Variables
-
-- **`OUTPUT_DIR`**: Container output directory (default: `/app/docs`)
-- **`PYTHON_PATH`**: Python interpreter path (default: `python3`)
-- **`MAX_FILE_SIZE`**: Maximum PDF size in MB (default: `100`)
-- **`DEBUG`**: Enable debug logging (default: `false`)
 
 ## Memory Configuration
 
 For large PDFs, increase container memory:
 
-```bash
-docker run --rm -i -m 4g -v ./pdfs:/app/input -v ./docs:/app/docs mcp-pdf-markdown
+```json
+{
+  "mcpServers": {
+    "pdf-markdown": {
+      "command": "docker",
+      "args": ["run", "--rm", "-i", "-m", "4g", "mcp-pdf-markdown"]
+    }
+  }
+}
 ```
 
-Or in docker-compose.yml:
-```yaml
-services:
-  mcp-pdf-markdown:
-    # ... other config
-    mem_limit: 4g
-```
+## Environment Variables
+
+- **`OUTPUT_DIR`**: Where to save converted files relative to your MCP client (default: `./docs`)
+- **`PYTHON_PATH`**: Python interpreter path inside container (default: `python3`)
+- **`MAX_FILE_SIZE`**: Maximum PDF size in MB (default: `100`)
+- **`DEBUG`**: Enable debug logging (default: `false`)
 
 ## Troubleshooting
 
@@ -129,15 +105,53 @@ services:
 - Verify image exists: `docker images | grep mcp-pdf-markdown`
 - Rebuild image: `docker build --no-cache -t mcp-pdf-markdown .`
 
-**Volume mount issues?**
-- Use absolute paths: `-v /full/path/to/pdfs:/app/input`
-- Check directory permissions: `ls -la pdfs docs`
-- Create directories first: `mkdir -p pdfs docs`
+**MCP client can't connect?**
+- Test container manually: `echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | docker run --rm -i mcp-pdf-markdown`
+- Check container logs for errors
+- Ensure Docker daemon is accessible to your MCP client
+
+**File access errors?**
+- Ensure PDF paths in your prompts are accessible from your host machine
+- Use absolute paths for PDFs: `/full/path/to/document.pdf`
+- Check file permissions on the PDF files
 
 **Out of memory errors?**
-- Increase memory limit: `docker run -m 4g ...`
+- Increase memory limit: add `-m 4g` to Docker args
 - Process smaller PDFs or split large ones
 
 **Python dependency errors?**
 - Rebuild the Docker image to reinstall dependencies
 - Check Dockerfile for correct Python packages
+
+## Advantages of Docker Deployment
+
+- **Isolated environment**: Dependencies contained in the image
+- **Consistent execution**: Same Python environment across different systems  
+- **Easy deployment**: No need to install Python dependencies on host
+- **Memory management**: Can set specific memory limits for PDF processing
+
+## Alternative: Docker Compose
+
+If you prefer Docker Compose for easier management:
+
+```yaml
+version: '3.8'
+services:
+  mcp-pdf-markdown:
+    build: .
+    container_name: mcp-pdf-markdown-converter
+    stdin_open: true
+    tty: true
+    mem_limit: 4g
+```
+
+Then configure your MCP client to use:
+```bash
+docker-compose run --rm mcp-pdf-markdown
+```
+
+## Need Help?
+
+- Test the container directly first
+- Check that your MCP client supports Docker-based servers
+- Refer to the [generic MCP configuration guide](generic-mcp.md) for protocol details
