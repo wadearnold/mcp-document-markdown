@@ -35,6 +35,42 @@ When you share a PDF with Claude or other LLMs, several challenges arise that th
 🖼️ **Image Extraction**: Extracts and references images from PDFs  
 🧩 **MCP Integration**: Works seamlessly with Claude Desktop, Claude Code, and other MCP clients  
 
+## Usage Examples
+
+Once configured, you can use natural language prompts to convert PDFs and then interact with the structured content:
+
+### Convert and Analyze
+```
+Convert the PDF at /path/to/technical-manual.pdf to markdown, then summarize each chapter
+```
+
+### Work with Specific Sections  
+```
+Convert /path/to/research-paper.pdf and help me understand the methodology section
+```
+
+### Extract and Work with Code
+```
+Convert /path/to/programming-guide.pdf and show me all the Python code examples
+```
+
+### Process Large Documents
+```
+Convert /path/to/100-page-report.pdf with chapter splitting, then create an executive summary
+```
+
+### Table Analysis
+```
+Convert /path/to/financial-data.pdf and analyze the quarterly revenue tables
+```
+
+### Multi-Step Workflows
+```
+Convert /path/to/api-documentation.pdf, then help me write code that uses those APIs
+```
+
+**The Power**: After conversion, Claude can provide detailed analysis, answer specific questions, extract code examples, and work with complex data - all because the content is now in a structured, machine-readable format that fits within context windows.
+
 ## Quick Start
 
 ### 1. Add MCP Server Configuration
@@ -132,34 +168,7 @@ cp bin/mcp-pdf-server /usr/local/bin/
 
 ### 3. Start Converting PDFs
 
-Once configured, you can use natural language prompts in your Claude conversation:
-
-## Usage Examples
-
-### Basic Conversion
-```
-Convert the PDF at /path/to/document.pdf to markdown
-```
-
-### With Custom Output Directory
-```
-Convert /path/to/manual.pdf and save the markdown files to ./my-docs/
-```
-
-### Analyze Before Converting
-```
-Analyze the structure of /path/to/report.pdf and tell me how many chapters it has
-```
-
-### Advanced Options
-```
-Convert /path/to/book.pdf with chapter splitting enabled, preserve all tables, and extract images
-```
-
-### Batch Processing
-```
-Convert all PDFs in /path/to/pdfs/ directory and organize them by filename
-```
+Once configured, you're ready to convert PDFs and work with the structured content!
 
 ## What You Get
 
