@@ -65,9 +65,24 @@ type ToolContent struct {
 
 // NewMCPServer creates a new MCP server instance
 func NewMCPServer() *MCPServer {
+	pythonPath := os.Getenv("PYTHON_PATH")
+	if pythonPath == "" {
+		// Default to virtual environment python if it exists
+		if _, err := os.Stat("./venv/bin/python"); err == nil {
+			pythonPath = "./venv/bin/python"
+		} else {
+			pythonPath = "python3"
+		}
+	}
+	
+	outputDir := os.Getenv("OUTPUT_DIR")
+	if outputDir == "" {
+		outputDir = "./docs"
+	}
+	
 	return &MCPServer{
-		pythonPath: "python3",
-		outputDir:  "./converted_docs",
+		pythonPath: pythonPath,
+		outputDir:  outputDir,
 	}
 }
 
@@ -465,13 +480,15 @@ func main() {
 	server := NewMCPServer()
 
 	// Set up JSON-RPC connection
+	// Create a combined ReadWriteCloser
+	rwc := &stdioReadWriteCloser{
+		reader: &stdinReader{os.Stdin},
+		writer: &stdoutWriter{os.Stdout},
+	}
+	
 	conn := jsonrpc2.NewConn(
 		context.Background(),
-		jsonrpc2.NewBufferedStream(
-			&stdinReader{os.Stdin},
-			&stdoutWriter{os.Stdout},
-			&jsonrpc2.VarintObjectCodec{},
-		),
+		jsonrpc2.NewBufferedStream(rwc, &jsonrpc2.VarintObjectCodec{}),
 		jsonrpc2.HandlerWithError(server.Handle),
 	)
 
@@ -488,3 +505,20 @@ func (r stdinReader) Close() error { return nil }
 type stdoutWriter struct{ *os.File }
 func (w stdoutWriter) Write(p []byte) (int, error) { return w.File.Write(p) }
 func (w stdoutWriter) Close() error { return nil }
+
+type stdioReadWriteCloser struct {
+	reader *stdinReader
+	writer *stdoutWriter
+}
+
+func (rwc *stdioReadWriteCloser) Read(p []byte) (int, error) {
+	return rwc.reader.Read(p)
+}
+
+func (rwc *stdioReadWriteCloser) Write(p []byte) (int, error) {
+	return rwc.writer.Write(p)
+}
+
+func (rwc *stdioReadWriteCloser) Close() error {
+	return nil
+}

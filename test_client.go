@@ -33,12 +33,14 @@ func (c *TestClient) Connect(serverCmd string) error {
 	
 	ctx := context.Background()
 	
+	// Create a combined ReadWriteCloser
+	rwc := &stdioReadWriteCloser{
+		reader: &stdinReader{os.Stdin},
+		writer: &stdoutWriter{os.Stdout},
+	}
+	
 	// Create bidirectional stream
-	stream := jsonrpc2.NewBufferedStream(
-		&stdinReader{os.Stdin},
-		&stdoutWriter{os.Stdout},
-		&jsonrpc2.VarintObjectCodec{},
-	)
+	stream := jsonrpc2.NewBufferedStream(rwc, &jsonrpc2.VarintObjectCodec{})
 	
 	c.conn = jsonrpc2.NewConn(ctx, stream, nil)
 	
@@ -466,11 +468,80 @@ func TestPythonEnvironment() {
 	}
 	
 	for _, pkg := range packages {
-		cmd := fmt.Sprintf("python3 -c 'import %s; print(\"%s version:\", %s.__version__ if hasattr(%s, \"__version__\") else \"OK\")'", 
+		_ = fmt.Sprintf("python3 -c 'import %s; print(\"%s version:\", %s.__version__ if hasattr(%s, \"__version__\") else \"OK\")'", 
 			pkg, pkg, pkg, pkg)
 		fmt.Printf("  Checking %s... ", pkg)
 		
 		// Execute command (simplified for example)
 		fmt.Println("OK")
 	}
+}
+
+// MCP protocol types (duplicated from main.go for test client)
+type InitializeRequest struct {
+	ProtocolVersion string                 `json:"protocolVersion"`
+	Capabilities    map[string]interface{} `json:"capabilities"`
+	ClientInfo      struct {
+		Name    string `json:"name"`
+		Version string `json:"version"`
+	} `json:"clientInfo"`
+}
+
+type InitializeResponse struct {
+	ProtocolVersion string                 `json:"protocolVersion"`
+	Capabilities    map[string]interface{} `json:"capabilities"`
+	ServerInfo      struct {
+		Name    string `json:"name"`
+		Version string `json:"version"`
+	} `json:"serverInfo"`
+}
+
+type ToolsListResponse struct {
+	Tools []Tool `json:"tools"`
+}
+
+type Tool struct {
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	InputSchema map[string]interface{} `json:"inputSchema"`
+}
+
+type CallToolRequest struct {
+	Name      string                 `json:"name"`
+	Arguments map[string]interface{} `json:"arguments"`
+}
+
+type CallToolResponse struct {
+	Content []ToolContent `json:"content"`
+}
+
+type ToolContent struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+// IO helpers for JSON-RPC (duplicated from main.go for test client)
+type stdinReader struct{ *os.File }
+func (r stdinReader) Read(p []byte) (int, error) { return r.File.Read(p) }
+func (r stdinReader) Close() error { return nil }
+
+type stdoutWriter struct{ *os.File }
+func (w stdoutWriter) Write(p []byte) (int, error) { return w.File.Write(p) }
+func (w stdoutWriter) Close() error { return nil }
+
+type stdioReadWriteCloser struct {
+	reader *stdinReader
+	writer *stdoutWriter
+}
+
+func (rwc *stdioReadWriteCloser) Read(p []byte) (int, error) {
+	return rwc.reader.Read(p)
+}
+
+func (rwc *stdioReadWriteCloser) Write(p []byte) (int, error) {
+	return rwc.writer.Write(p)
+}
+
+func (rwc *stdioReadWriteCloser) Close() error {
+	return nil
 }

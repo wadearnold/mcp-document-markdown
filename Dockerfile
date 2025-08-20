@@ -31,6 +31,6 @@ WORKDIR /app
 COPY --from=builder /build/mcp-server .
 
 # Create directories
-RUN mkdir -p /app/input /app/output
+RUN mkdir -p /app/input /app/docs
 
 ENTRYPOINT ["./mcp-server"]

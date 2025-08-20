@@ -6,8 +6,8 @@ services:
     container_name: mcp-pdf-converter
     volumes:
       - ./input:/app/input
-      - ./output:/app/output
+      - ./docs:/app/docs
     environment:
-      - OUTPUT_DIR=/app/output
+      - OUTPUT_DIR=/app/docs
     stdin_open: true
     tty: true

@@ -109,7 +109,7 @@ Add to your MCP client configuration (e.g., for Claude Desktop):
     "pdf-converter": {
       "command": "/path/to/mcp-pdf-server",
       "env": {
-        "OUTPUT_DIR": "./converted_docs"
+        "OUTPUT_DIR": "./docs"
       }
     }
   }
@@ -136,7 +136,7 @@ Converts a PDF file to organized markdown files.
     "name": "convert_pdf",
     "arguments": {
       "pdf_path": "/path/to/document.pdf",
-      "output_dir": "./output",
+      "output_dir": "./docs",
       "split_by_chapters": true,
       "preserve_tables": true,
       "extract_images": true
@@ -292,7 +292,7 @@ make test
 ### Environment Variables
 
 - `PYTHON_PATH`: Python interpreter path (default: `python3`)
-- `OUTPUT_DIR`: Default output directory (default: `./converted_docs`)
+- `OUTPUT_DIR`: Default output directory (default: `./docs`)
 - `MAX_FILE_SIZE`: Maximum PDF size in MB (default: `100`)
 - `DEBUG`: Enable debug logging (default: `false`)
 
