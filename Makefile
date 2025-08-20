@@ -3,9 +3,9 @@
 # Default target
 all: build
 
-# Build the Go binary
-build:
-	go build -o bin/mcp-pdf-server main.go python_scripts.go
+# Build the Go binary (embeds Python scripts from python/ directory)
+build: check-python
+	go build -o bin/mcp-pdf-server main.go python_embed.go python_loader.go
 
 # Build the test client
 build-test:
@@ -14,6 +14,10 @@ build-test:
 # Run the server
 run: build venv
 	./bin/mcp-pdf-server
+
+# Run the server in development mode (for testing Python changes without rebuilding)
+dev: check-python venv
+	PYTHON_SCRIPTS_DIR=./python go run main.go python_embed.go python_loader.go
 
 # Run the test client
 run-test: build-test
@@ -64,6 +68,22 @@ test: build
 # Install everything needed for development
 setup: deps install-python-deps
 	@echo "Setup complete! You can now run 'make run' to start the server"
+
+# Check if Python scripts exist for embedding
+check-python:
+	@if [ ! -f "python/pdf_converter.py" ] || [ ! -f "python/pdf_analyzer.py" ]; then \
+		echo "Error: Python scripts not found in python/ directory"; \
+		echo "Run 'make extract-python' to extract from python_scripts.go"; \
+		exit 1; \
+	fi
+
+# Extract Python scripts from python_scripts.go (for migration)
+extract-python:
+	@echo "Extracting Python scripts from python_scripts.go..."
+	@mkdir -p python
+	@sed -n '7,311p' python_scripts.go > python/pdf_converter.py
+	@sed -n '316,430p' python_scripts.go > python/pdf_analyzer.py
+	@echo "Python scripts extracted to python/ directory"
 
 # Check if all dependencies are installed
 check-deps: venv

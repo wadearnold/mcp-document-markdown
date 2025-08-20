@@ -284,9 +284,15 @@ func (s *MCPServer) analyzePDFStructure(args map[string]interface{}) (*CallToolR
 		return nil, fmt.Errorf("pdf_path is required")
 	}
 
+	// Get Python scripts (embedded or from files in dev mode)
+	_, analyzeScript, err := getPythonScripts()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load Python scripts: %v", err)
+	}
+	
 	// Run Python script to analyze PDF structure
 	cmd := exec.Command(s.pythonPath, "-", pdfPath)
-	cmd.Stdin = strings.NewReader(pythonAnalyzeScript)
+	cmd.Stdin = strings.NewReader(analyzeScript)
 	
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -305,6 +311,12 @@ func (s *MCPServer) analyzePDFStructure(args map[string]interface{}) (*CallToolR
 
 // runPythonConverter executes the Python PDF conversion script
 func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables, extractImages bool) (string, error) {
+	// Get Python scripts (embedded or from files in dev mode)
+	convertScript, _, err := getPythonScripts()
+	if err != nil {
+		return "", fmt.Errorf("failed to load Python scripts: %v", err)
+	}
+	
 	args := []string{"-", pdfPath, outputDir}
 	if preserveTables {
 		args = append(args, "--preserve-tables")
@@ -314,7 +326,7 @@ func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables
 	}
 
 	cmd := exec.Command(s.pythonPath, args...)
-	cmd.Stdin = strings.NewReader(pythonConvertScript)
+	cmd.Stdin = strings.NewReader(convertScript)
 	
 	output, err := cmd.CombinedOutput()
 	if err != nil {

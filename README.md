@@ -170,9 +170,13 @@ make test     # Run basic tests
 ```
 mcp-pdf-markdown/
 ├── main.go                 # MCP server implementation
-├── python_scripts.go       # Embedded PDF processing scripts
-├── test_client.go          # Test client for development
-├── examples/               # Configuration examples
+├── python_embed.go         # Embeds Python scripts at compile time
+├── python_loader.go        # Development mode Python loader
+├── python/                 # Python scripts (editable)
+│   ├── pdf_converter.py    # PDF to markdown conversion
+│   ├── pdf_analyzer.py     # PDF structure analysis
+│   └── README.md          # Python development guide
+├── examples/               # Client configuration guides
 ├── Makefile               # Build automation
 └── README.md              # This file
 ```
@@ -182,29 +186,67 @@ mcp-pdf-markdown/
 git clone https://github.com/wadearnold/mcp-pdf-markdown.git
 cd mcp-pdf-markdown
 make setup                  # Install dependencies
-make run                    # Run server in development mode
+make build                  # Build the server
 ```
+
+### Python Script Development
+
+The Python scripts are now in separate files for easy editing and optimization:
+
+#### Development Workflow
+```bash
+# 1. Edit Python scripts with your favorite editor
+vim python/pdf_converter.py
+
+# 2. Test changes without rebuilding (loads Python from files)
+make dev
+
+# 3. Build final binary when satisfied (embeds Python scripts)
+make build
+```
+
+#### Key Commands
+- **`make dev`** - Run server in development mode (loads Python from `python/` directory)
+- **`make build`** - Build production binary (embeds Python scripts)
+- **`make run`** - Run the built server
+- **`make clean`** - Clean build artifacts
+
+#### How It Works
+- **Development Mode**: Set `PYTHON_SCRIPTS_DIR=./python` to load scripts from files
+- **Production Mode**: Python scripts are embedded into the Go binary at compile time
+- **Benefits**: Edit Python with syntax highlighting, test without rebuilding, single binary distribution
 
 ### Making Changes
 
-1. **PDF Processing**: Modify the Python scripts in `python_scripts.go`
+1. **Python PDF Processing**: Edit files in `python/` directory
+   - `pdf_converter.py` - Main conversion logic
+   - `pdf_analyzer.py` - PDF analysis logic
+   
 2. **MCP Protocol**: Edit the server logic in `main.go`
-3. **Chapter Detection**: Customize patterns in the `splitIntoChapters()` function
+
+3. **Chapter Detection**: Customize patterns in `splitIntoChapters()` function in `main.go`
+
 4. **Testing**: Use `test_client.go` for interactive testing
 
 ### Testing Your Changes
 ```bash
-make build-test            # Build test client
-./bin/test-client interactive    # Interactive testing
+# Test Python changes in development mode
+make dev
+
+# Build and test production binary
+make build && ./bin/mcp-pdf-server
+
+# Run interactive test client
+make build-test && ./bin/test-client interactive
 ```
 
 ### Adding New Features
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/new-feature`
-3. Make your changes
-4. Add tests if applicable
-5. Run `make test` to ensure everything works
+3. Make your changes (Python in `python/`, Go in main files)
+4. Test thoroughly in development mode
+5. Build and test production binary
 6. Submit a pull request
 
 ## Configuration Options
@@ -252,39 +294,6 @@ chmod +x bin/mcp-pdf-server
 DEBUG=true ./bin/mcp-pdf-server
 ```
 
-## Architecture
-
-The server uses a hybrid approach:
-- **Go**: Handles MCP protocol and server logic
-- **Python**: Processes PDFs using multiple libraries (PyMuPDF, pdfplumber, pypdf)
-- **Smart Fallbacks**: Multiple extraction methods ensure content is never lost
-
-```
-Claude ◄─── MCP Protocol ───► Go Server ───► Python Scripts ───► PDF Libraries
-```
-
-## Best Practices
-
-### For Best Results
-- Use PDFs with proper text layers (not scanned images)
-- Documents with bookmarks/outlines work better for chapter detection
-- Simple table layouts convert more accurately
-
-### For Claude Integration
-- Each chapter file fits within typical context windows
-- Use the table of contents file for navigation
-- Files include metadata for better AI understanding
-
 ## License
 
-MIT License - See [LICENSE](LICENSE) file for details.
-
-## Support
-
-- 🐛 **Issues**: [GitHub Issues](https://github.com/wadearnold/mcp-pdf-markdown/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/wadearnold/mcp-pdf-markdown/discussions)
-- 📖 **Examples**: Check the [`examples/`](examples/) directory for more configuration options
-
----
-
-Built for the MCP ecosystem with ❤️
+Apache License 2.0 - See [LICENSE](LICENSE) file for details.
