@@ -100,6 +100,7 @@ func NewMCPServer() *MCPServer {
 
 // Handle processes incoming JSON-RPC requests
 func (s *MCPServer) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (interface{}, error) {
+	log.Printf("Received request: method=%s, id=%v", req.Method, req.ID)
 	switch req.Method {
 	case "initialize":
 		var params InitializeRequest
@@ -475,10 +476,9 @@ func (s *MCPServer) checkDependencies() error {
 	}
 
 	// Check required Python packages  
-	requiredPackages := []string{"pypdf", "pdfplumber", "markdown", "pandas", "PIL"}
-	checkScript := fmt.Sprintf(`
+	checkScript := `
 import sys
-packages = %v
+packages = ["pypdf", "pdfplumber", "markdown", "pandas", "PIL"]
 missing = []
 for pkg in packages:
     try:
@@ -489,7 +489,7 @@ if missing:
     print("Missing packages: " + ", ".join(missing))
     sys.exit(1)
 print("All dependencies installed")
-`, requiredPackages)
+`
 
 	cmd = exec.Command(s.pythonPath, "-c", checkScript)
 	output, err := cmd.CombinedOutput()
@@ -512,7 +512,7 @@ func main() {
 	
 	conn := jsonrpc2.NewConn(
 		context.Background(),
-		jsonrpc2.NewBufferedStream(rwc, jsonrpc2.VSCodeObjectCodec{}),
+		jsonrpc2.NewPlainObjectStream(rwc),
 		jsonrpc2.HandlerWithError(server.Handle),
 	)
 
