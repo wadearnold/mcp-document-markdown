@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "pdf-converter": {
+      "command": "/usr/local/bin/mcp-pdf-server",
+      "env": {
+        "OUTPUT_DIR": "/Users/username/Documents/converted_pdfs",
+        "PYTHON_PATH": "python3",
+        "MAX_FILE_SIZE": "100",
+        "DEBUG": "false"
+      }
+    }
+  }
+}
