@@ -500,10 +500,11 @@ func main() {
 	
 	conn := jsonrpc2.NewConn(
 		context.Background(),
-		jsonrpc2.NewBufferedStream(rwc, &jsonrpc2.VarintObjectCodec{}),
+		jsonrpc2.NewBufferedStream(rwc, jsonrpc2.VSCodeObjectCodec{}),
 		jsonrpc2.HandlerWithError(server.Handle),
 	)
 
+	log.SetOutput(os.Stderr) // Ensure logs go to stderr, not stdout
 	log.Println("MCP PDF-to-Markdown Converter started")
 	<-conn.DisconnectNotify()
 	log.Println("Server disconnected")
