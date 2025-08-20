@@ -67,10 +67,22 @@ type ToolContent struct {
 func NewMCPServer() *MCPServer {
 	pythonPath := os.Getenv("PYTHON_PATH")
 	if pythonPath == "" {
-		// Default to virtual environment python if it exists
-		if _, err := os.Stat("./venv/bin/python"); err == nil {
-			pythonPath = "./venv/bin/python"
-		} else {
+		// Try to find the best Python installation
+		candidates := []string{
+			"./venv/bin/python",  // Local venv (if running from project dir)
+			"/Users/wadearnold/Documents/GitHub/wadearnold/mcp-pdf-markdown/venv/bin/python", // Absolute path to our venv
+			"python3",            // System Python as fallback
+		}
+		
+		for _, candidate := range candidates {
+			if _, err := os.Stat(candidate); err == nil {
+				pythonPath = candidate
+				break
+			}
+		}
+		
+		// Final fallback
+		if pythonPath == "" {
 			pythonPath = "python3"
 		}
 	}
@@ -462,8 +474,8 @@ func (s *MCPServer) checkDependencies() error {
 		return fmt.Errorf("Python not found: %v", err)
 	}
 
-	// Check required Python packages
-	requiredPackages := []string{"pypdf", "pdfplumber", "markdown", "pandas", "pillow"}
+	// Check required Python packages  
+	requiredPackages := []string{"pypdf", "pdfplumber", "markdown", "pandas", "PIL"}
 	checkScript := fmt.Sprintf(`
 import sys
 packages = %v
