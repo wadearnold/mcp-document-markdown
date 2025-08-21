@@ -1,4 +1,4 @@
-.PHONY: build run test clean deps install-python-deps setup docker-build docker-run venv
+.PHONY: build run test clean deps install-python-deps setup venv
 
 # Default target
 all: build
@@ -41,13 +41,6 @@ install-python-deps: venv
 	@./venv/bin/pip install --upgrade pip
 	@./venv/bin/pip install -r requirements.txt || echo "Warning: Some optional packages may have failed to install"
 
-# Build Docker image
-docker-build:
-	docker build -t mcp-pdf-markdown .
-
-# Run with Docker Compose
-docker-run:
-	docker-compose up
 
 # Clean build artifacts
 clean:
@@ -109,6 +102,4 @@ help:
 	@echo "  make setup          - Install all dependencies"
 	@echo "  make check-deps     - Check if dependencies are installed"
 	@echo "  make clean          - Clean build artifacts"
-	@echo "  make docker-build   - Build Docker image"
-	@echo "  make docker-run     - Run with Docker"
 	@echo "  make help           - Show this help message"
