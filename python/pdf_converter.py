@@ -26,7 +26,7 @@ except ImportError:
     print("Warning: tiktoken not available. Using approximation for token counting.", file=sys.stderr)
 
 class PDFToMarkdownConverter:
-    def __init__(self, pdf_path, output_dir, preserve_tables=True, extract_images=True, enable_chunking=True, structured_tables=True, build_search_index=True, generate_concept_map=True):
+    def __init__(self, pdf_path, output_dir, preserve_tables=True, extract_images=True, enable_chunking=True, structured_tables=True, build_search_index=True, generate_concept_map=True, resolve_cross_references=True):
         self.pdf_path = pdf_path
         self.output_dir = Path(output_dir)
         self.preserve_tables = preserve_tables
@@ -35,6 +35,7 @@ class PDFToMarkdownConverter:
         self.structured_tables = structured_tables
         self.build_search_index = build_search_index
         self.generate_concept_map = generate_concept_map
+        self.resolve_cross_references = resolve_cross_references
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.images_dir = self.output_dir / "images"
         if self.extract_images:
@@ -102,6 +103,10 @@ class PDFToMarkdownConverter:
         # Generate concept map and glossary of technical terms
         if self.generate_concept_map:
             self.generate_concept_map_and_glossary(sections)
+        
+        # Resolve cross-references and convert to markdown links
+        if self.resolve_cross_references:
+            self.resolve_and_link_cross_references(sections)
         
         # Return success message
         return f"Converted PDF to organized sections in {self.output_dir}"
@@ -4241,6 +4246,560 @@ Total Categories: {len(all_categories)}
         category_files.append(str(index_path))
         return category_files
     
+    def resolve_and_link_cross_references(self, sections):
+        """Detect and resolve cross-references, converting them to markdown links"""
+        # Create cross-references directory
+        xrefs_dir = self.output_dir / "cross-references"
+        xrefs_dir.mkdir(exist_ok=True)
+        
+        # Build comprehensive reference mapping
+        reference_map = self.build_reference_mapping(sections)
+        
+        # Detect and categorize cross-references
+        cross_references = self.detect_cross_references(sections, reference_map)
+        
+        # Resolve references to markdown links
+        resolved_references = self.resolve_references_to_links(cross_references, reference_map)
+        
+        # Update section files with resolved links
+        updated_sections = self.update_sections_with_links(sections, resolved_references)
+        
+        # Generate cross-reference documentation
+        self.generate_cross_reference_documentation(xrefs_dir, resolved_references, reference_map)
+        
+        return len(resolved_references)
+    
+    def build_reference_mapping(self, sections):
+        """Build comprehensive mapping of referenceable content"""
+        reference_map = {
+            'sections': {},
+            'headers': {},
+            'figures': {},
+            'tables': {},
+            'pages': {},
+            'equations': {},
+            'code_blocks': {},
+            'appendices': {},
+            'footnotes': {},
+            'external_docs': {},
+            'api_endpoints': {}
+        }
+        
+        # Map sections by title, slug, and aliases
+        for i, section in enumerate(sections):
+            section_title = section.get('title', f'Section {i+1}')
+            section_slug = section.get('slug', f'section-{i+1}')
+            section_file = f"{section_slug}.md"
+            content = section.get('content', '')
+            
+            # Primary section mapping
+            reference_map['sections'][section_title.lower()] = {
+                'title': section_title,
+                'slug': section_slug,
+                'file': section_file,
+                'section_number': i + 1,
+                'type': section.get('section_type', 'general'),
+                'aliases': self.extract_section_aliases(section_title, content)
+            }
+            
+            # Extract page numbers from content
+            page_refs = re.findall(r'Page (\d+)', content, re.IGNORECASE)
+            for page_num in page_refs:
+                reference_map['pages'][page_num] = {
+                    'page': page_num,
+                    'section': section_title,
+                    'file': section_file,
+                    'slug': section_slug
+                }
+            
+            # Extract headers within sections
+            headers = re.findall(r'^(#{1,6})\s+(.+)$', content, re.MULTILINE)
+            for level, header_text in headers:
+                header_slug = self.slugify(header_text)
+                reference_map['headers'][header_text.lower()] = {
+                    'text': header_text,
+                    'level': len(level),
+                    'slug': header_slug,
+                    'section': section_title,
+                    'file': section_file,
+                    'anchor': f"#{header_slug}"
+                }
+            
+            # Extract figure references
+            figures = re.findall(r'(?:Figure|Fig\.?)\s*(\d+(?:\.\d+)?)[:\s]*([^.\n]*)', content, re.IGNORECASE)
+            for fig_num, fig_caption in figures:
+                reference_map['figures'][fig_num] = {
+                    'number': fig_num,
+                    'caption': fig_caption.strip(),
+                    'section': section_title,
+                    'file': section_file,
+                    'slug': f"figure-{fig_num.replace('.', '-')}"
+                }
+            
+            # Extract table references
+            tables = re.findall(r'(?:Table)\s*(\d+(?:\.\d+)?)[:\s]*([^.\n]*)', content, re.IGNORECASE)
+            for table_num, table_caption in tables:
+                reference_map['tables'][table_num] = {
+                    'number': table_num,
+                    'caption': table_caption.strip(),
+                    'section': section_title,
+                    'file': section_file,
+                    'slug': f"table-{table_num.replace('.', '-')}"
+                }
+            
+            # Extract equation references
+            equations = re.findall(r'(?:Equation|Eq\.?)\s*(\d+(?:\.\d+)?)', content, re.IGNORECASE)
+            for eq_num in equations:
+                reference_map['equations'][eq_num] = {
+                    'number': eq_num,
+                    'section': section_title,
+                    'file': section_file,
+                    'slug': f"equation-{eq_num.replace('.', '-')}"
+                }
+            
+            # Extract code block references
+            code_blocks = re.findall(r'(?:Listing|Code)\s*(\d+(?:\.\d+)?)[:\s]*([^.\n]*)', content, re.IGNORECASE)
+            for code_num, code_caption in code_blocks:
+                reference_map['code_blocks'][code_num] = {
+                    'number': code_num,
+                    'caption': code_caption.strip(),
+                    'section': section_title,
+                    'file': section_file,
+                    'slug': f"code-{code_num.replace('.', '-')}"
+                }
+            
+            # Extract appendix references
+            if 'appendix' in section_title.lower() or section.get('section_type') == 'appendix':
+                appendix_match = re.search(r'appendix\s*([a-z]|\d+)', section_title, re.IGNORECASE)
+                if appendix_match:
+                    appendix_id = appendix_match.group(1).upper()
+                    reference_map['appendices'][appendix_id] = {
+                        'id': appendix_id,
+                        'title': section_title,
+                        'file': section_file,
+                        'slug': section_slug
+                    }
+            
+            # Extract API endpoint references if it's an API section
+            if section.get('section_type') == 'api_endpoint':
+                api_pattern = r'(GET|POST|PUT|DELETE|PATCH)\s+([/\w\-\{\}]+)'
+                api_matches = re.findall(api_pattern, content, re.IGNORECASE)
+                for method, path in api_matches:
+                    endpoint_key = f"{method.upper()} {path}"
+                    reference_map['api_endpoints'][endpoint_key.lower()] = {
+                        'method': method.upper(),
+                        'path': path,
+                        'section': section_title,
+                        'file': section_file,
+                        'slug': section_slug
+                    }
+        
+        return reference_map
+    
+    def detect_cross_references(self, sections, reference_map):
+        """Detect various types of cross-references in content"""
+        cross_references = {
+            'section_refs': [],
+            'page_refs': [],
+            'figure_refs': [],
+            'table_refs': [],
+            'equation_refs': [],
+            'code_refs': [],
+            'appendix_refs': [],
+            'header_refs': [],
+            'api_refs': [],
+            'see_also_refs': [],
+            'above_below_refs': []
+        }
+        
+        # Define detection patterns
+        patterns = {
+            'section_refs': [
+                r'(?:see|refer to|described in|detailed in|as shown in)\s+(?:section|chapter)\s+([^.,\n]+)',
+                r'(?:section|chapter)\s+(\d+(?:\.\d+)?)',
+                r'(?:in|from)\s+(?:the\s+)?([^,.\n]+ section)',
+            ],
+            'page_refs': [
+                r'(?:page|p\.)\s*(\d+)',
+                r'(?:on page|see page)\s+(\d+)',
+                r'(?:\(p\.\s*(\d+)\))',
+            ],
+            'figure_refs': [
+                r'(?:figure|fig\.?)\s*(\d+(?:\.\d+)?)',
+                r'(?:see|shown in|as in)\s+(?:figure|fig\.?)\s*(\d+(?:\.\d+)?)',
+                r'(?:\((?:figure|fig\.?)\s*(\d+(?:\.\d+)?)\))',
+            ],
+            'table_refs': [
+                r'(?:table)\s*(\d+(?:\.\d+)?)',
+                r'(?:see|shown in|as in)\s+(?:table)\s*(\d+(?:\.\d+)?)',
+                r'(?:\(table\s*(\d+(?:\.\d+)?)\))',
+            ],
+            'equation_refs': [
+                r'(?:equation|eq\.?)\s*(\d+(?:\.\d+)?)',
+                r'(?:\((?:equation|eq\.?)\s*(\d+(?:\.\d+)?)\))',
+            ],
+            'code_refs': [
+                r'(?:listing|code)\s*(\d+(?:\.\d+)?)',
+                r'(?:see|shown in)\s+(?:listing|code)\s*(\d+(?:\.\d+)?)',
+            ],
+            'appendix_refs': [
+                r'(?:appendix)\s+([a-z]|\d+)',
+                r'(?:see|refer to)\s+(?:appendix)\s+([a-z]|\d+)',
+            ],
+            'api_refs': [
+                r'(?:endpoint|API)\s+(GET|POST|PUT|DELETE|PATCH)\s+([/\w\-\{\}]+)',
+                r'(?:the\s+)?(GET|POST|PUT|DELETE|PATCH)\s+([/\w\-\{\}]+)(?:\s+endpoint)?',
+            ],
+            'see_also_refs': [
+                r'(?:see also|also see|refer to|reference)\s+([^.,\n]+)',
+                r'(?:for more information|more details)\s+(?:see|refer to)\s+([^.,\n]+)',
+            ],
+            'above_below_refs': [
+                r'(?:above|below|earlier|later|previous|next)\s+(?:section|chapter|discussion)',
+                r'(?:as mentioned|discussed)\s+(?:above|below|earlier|later|previously)',
+            ]
+        }
+        
+        # Process each section
+        for section in sections:
+            content = section.get('content', '')
+            section_title = section.get('title', 'Unknown')
+            section_file = f"{section.get('slug', 'unknown')}.md"
+            
+            # Detect each type of reference
+            for ref_type, pattern_list in patterns.items():
+                for pattern in pattern_list:
+                    matches = re.finditer(pattern, content, re.IGNORECASE)
+                    
+                    for match in matches:
+                        # Extract context around the reference
+                        context_start = max(0, match.start() - 50)
+                        context_end = min(len(content), match.end() + 50)
+                        context = content[context_start:context_end].strip()
+                        
+                        reference_info = {
+                            'type': ref_type,
+                            'match_text': match.group(),
+                            'context': context,
+                            'position': match.start(),
+                            'source_section': section_title,
+                            'source_file': section_file,
+                            'groups': match.groups() if match.groups() else []
+                        }
+                        
+                        # Add specific reference details based on type
+                        if ref_type == 'api_refs' and len(match.groups()) >= 2:
+                            reference_info['method'] = match.group(1).upper()
+                            reference_info['path'] = match.group(2)
+                        elif len(match.groups()) >= 1:
+                            reference_info['target'] = match.group(1).strip()
+                        
+                        cross_references[ref_type].append(reference_info)
+        
+        return cross_references
+    
+    def resolve_references_to_links(self, cross_references, reference_map):
+        """Resolve detected references to markdown links"""
+        resolved_references = []
+        
+        for ref_type, refs in cross_references.items():
+            for ref in refs:
+                resolution = self.resolve_single_reference(ref, reference_map, ref_type)
+                if resolution:
+                    resolved_references.append({
+                        'original': ref,
+                        'resolution': resolution,
+                        'type': ref_type,
+                        'link_text': resolution['link_text'],
+                        'link_url': resolution['link_url'],
+                        'description': resolution.get('description', ''),
+                        'confidence': resolution.get('confidence', 0.5)
+                    })
+        
+        return resolved_references
+    
+    def resolve_single_reference(self, ref, reference_map, ref_type):
+        """Resolve a single reference to a markdown link"""
+        if ref_type == 'page_refs':
+            page_num = ref.get('target') or (ref['groups'][0] if ref['groups'] else None)
+            if page_num and page_num in reference_map['pages']:
+                page_info = reference_map['pages'][page_num]
+                return {
+                    'link_text': f"Page {page_num}",
+                    'link_url': f"{page_info['file']}",
+                    'description': f"Links to {page_info['section']}",
+                    'confidence': 0.9
+                }
+        
+        elif ref_type == 'figure_refs':
+            fig_num = ref.get('target') or (ref['groups'][0] if ref['groups'] else None)
+            if fig_num and fig_num in reference_map['figures']:
+                fig_info = reference_map['figures'][fig_num]
+                return {
+                    'link_text': f"Figure {fig_num}",
+                    'link_url': f"{fig_info['file']}#{fig_info['slug']}",
+                    'description': f"Links to {fig_info['caption']}",
+                    'confidence': 0.9
+                }
+        
+        elif ref_type == 'table_refs':
+            table_num = ref.get('target') or (ref['groups'][0] if ref['groups'] else None)
+            if table_num and table_num in reference_map['tables']:
+                table_info = reference_map['tables'][table_num]
+                return {
+                    'link_text': f"Table {table_num}",
+                    'link_url': f"{table_info['file']}#{table_info['slug']}",
+                    'description': f"Links to {table_info['caption']}",
+                    'confidence': 0.9
+                }
+        
+        elif ref_type == 'equation_refs':
+            eq_num = ref.get('target') or (ref['groups'][0] if ref['groups'] else None)
+            if eq_num and eq_num in reference_map['equations']:
+                eq_info = reference_map['equations'][eq_num]
+                return {
+                    'link_text': f"Equation {eq_num}",
+                    'link_url': f"{eq_info['file']}#{eq_info['slug']}",
+                    'description': f"Links to equation in {eq_info['section']}",
+                    'confidence': 0.9
+                }
+        
+        elif ref_type == 'code_refs':
+            code_num = ref.get('target') or (ref['groups'][0] if ref['groups'] else None)
+            if code_num and code_num in reference_map['code_blocks']:
+                code_info = reference_map['code_blocks'][code_num]
+                return {
+                    'link_text': f"Code {code_num}",
+                    'link_url': f"{code_info['file']}#{code_info['slug']}",
+                    'description': f"Links to {code_info['caption']}",
+                    'confidence': 0.9
+                }
+        
+        elif ref_type == 'appendix_refs':
+            appendix_id = ref.get('target') or (ref['groups'][0] if ref['groups'] else None)
+            if appendix_id and appendix_id.upper() in reference_map['appendices']:
+                appendix_info = reference_map['appendices'][appendix_id.upper()]
+                return {
+                    'link_text': f"Appendix {appendix_id.upper()}",
+                    'link_url': f"{appendix_info['file']}",
+                    'description': f"Links to {appendix_info['title']}",
+                    'confidence': 0.9
+                }
+        
+        elif ref_type == 'api_refs':
+            if 'method' in ref and 'path' in ref:
+                endpoint_key = f"{ref['method']} {ref['path']}".lower()
+                if endpoint_key in reference_map['api_endpoints']:
+                    api_info = reference_map['api_endpoints'][endpoint_key]
+                    return {
+                        'link_text': f"{api_info['method']} {api_info['path']}",
+                        'link_url': f"{api_info['file']}",
+                        'description': f"Links to API endpoint documentation",
+                        'confidence': 0.95
+                    }
+        
+        elif ref_type == 'section_refs':
+            target = ref.get('target', '').lower()
+            # Try exact match first
+            if target in reference_map['sections']:
+                section_info = reference_map['sections'][target]
+                return {
+                    'link_text': section_info['title'],
+                    'link_url': f"{section_info['file']}",
+                    'description': f"Links to {section_info['title']}",
+                    'confidence': 0.95
+                }
+            
+            # Try fuzzy matching for section titles
+            for section_key, section_info in reference_map['sections'].items():
+                if target in section_key or any(alias.lower() in target for alias in section_info['aliases']):
+                    return {
+                        'link_text': section_info['title'],
+                        'link_url': f"{section_info['file']}",
+                        'description': f"Links to {section_info['title']}",
+                        'confidence': 0.7
+                    }
+        
+        elif ref_type == 'header_refs':
+            target = ref.get('target', '').lower()
+            if target in reference_map['headers']:
+                header_info = reference_map['headers'][target]
+                return {
+                    'link_text': header_info['text'],
+                    'link_url': f"{header_info['file']}{header_info['anchor']}",
+                    'description': f"Links to section header",
+                    'confidence': 0.8
+                }
+        
+        return None
+    
+    def update_sections_with_links(self, sections, resolved_references):
+        """Update section files with resolved markdown links"""
+        updates_by_file = {}
+        
+        # Group updates by file
+        for resolved_ref in resolved_references:
+            source_file = resolved_ref['original']['source_file']
+            if source_file not in updates_by_file:
+                updates_by_file[source_file] = []
+            updates_by_file[source_file].append(resolved_ref)
+        
+        # Apply updates to each file
+        updated_sections = []
+        for section in sections:
+            section_file = f"{section.get('slug', 'unknown')}.md"
+            file_path = self.output_dir / "sections" / section_file
+            
+            if section_file in updates_by_file and file_path.exists():
+                # Read current content
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Apply link replacements
+                updated_content = content
+                updates = updates_by_file[section_file]
+                
+                # Sort by position (reverse order to maintain positions)
+                updates.sort(key=lambda x: x['original']['position'], reverse=True)
+                
+                for update in updates:
+                    original_text = update['original']['match_text']
+                    link_text = update['link_text']
+                    link_url = update['link_url']
+                    confidence = update['confidence']
+                    
+                    # Only replace high-confidence matches
+                    if confidence >= 0.7:
+                        markdown_link = f"[{link_text}]({link_url})"
+                        updated_content = updated_content.replace(original_text, markdown_link, 1)
+                
+                # Write updated content back
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(updated_content)
+                
+                # Update section data
+                section['content'] = updated_content
+                updated_sections.append(section_file)
+        
+        return updated_sections
+    
+    def generate_cross_reference_documentation(self, xrefs_dir, resolved_references, reference_map):
+        """Generate comprehensive cross-reference documentation"""
+        # Create cross-reference index
+        xref_content = f"""# Cross-Reference Index
+
+Generated: {datetime.now().isoformat()}
+Total References Resolved: {len(resolved_references)}
+
+## Overview
+
+This document catalogs all cross-references found in the PDF and their resolution to markdown links. Cross-references help create a navigable, interconnected document structure that's optimal for LLM understanding.
+
+## Reference Statistics
+
+"""
+        
+        # Calculate statistics
+        ref_types = {}
+        confidence_levels = {'high': 0, 'medium': 0, 'low': 0}
+        
+        for ref in resolved_references:
+            ref_type = ref['type']
+            confidence = ref['confidence']
+            
+            ref_types[ref_type] = ref_types.get(ref_type, 0) + 1
+            
+            if confidence >= 0.8:
+                confidence_levels['high'] += 1
+            elif confidence >= 0.6:
+                confidence_levels['medium'] += 1
+            else:
+                confidence_levels['low'] += 1
+        
+        # Add statistics to content
+        for ref_type, count in sorted(ref_types.items()):
+            type_name = ref_type.replace('_', ' ').title()
+            xref_content += f"- **{type_name}**: {count} references\n"
+        
+        xref_content += f"\n**Confidence Distribution:**\n"
+        xref_content += f"- High Confidence (≥80%): {confidence_levels['high']} references\n"
+        xref_content += f"- Medium Confidence (≥60%): {confidence_levels['medium']} references\n"
+        xref_content += f"- Low Confidence (<60%): {confidence_levels['low']} references\n\n"
+        
+        # Add detailed reference listings
+        for ref_type, count in sorted(ref_types.items()):
+            if count == 0:
+                continue
+                
+            type_name = ref_type.replace('_', ' ').title()
+            xref_content += f"## {type_name} ({count})\n\n"
+            
+            type_refs = [ref for ref in resolved_references if ref['type'] == ref_type]
+            type_refs.sort(key=lambda x: x['confidence'], reverse=True)
+            
+            for ref in type_refs:
+                original_text = ref['original']['match_text']
+                link_text = ref['link_text']
+                link_url = ref['link_url']
+                description = ref['description']
+                confidence = ref['confidence']
+                source_section = ref['original']['source_section']
+                
+                xref_content += f"**{original_text}** → [{link_text}]({link_url})\n"
+                xref_content += f"  - *Source*: {source_section}\n"
+                xref_content += f"  - *Description*: {description}\n"
+                xref_content += f"  - *Confidence*: {confidence:.1%}\n\n"
+        
+        # Save cross-reference index
+        index_path = xrefs_dir / "index.md"
+        with open(index_path, 'w', encoding='utf-8') as f:
+            f.write(xref_content)
+        
+        # Save machine-readable reference data
+        xref_data = {
+            'metadata': {
+                'generated_at': datetime.now().isoformat(),
+                'total_references': len(resolved_references),
+                'reference_types': ref_types,
+                'confidence_distribution': confidence_levels
+            },
+            'resolved_references': resolved_references,
+            'reference_map': reference_map
+        }
+        
+        data_path = xrefs_dir / "cross-references.json"
+        with open(data_path, 'w', encoding='utf-8') as f:
+            json.dump(xref_data, f, indent=2, ensure_ascii=False, default=str)
+        
+        return str(index_path)
+    
+    # Helper methods for cross-reference resolution
+    def extract_section_aliases(self, title, content):
+        """Extract alternative names/aliases for a section"""
+        aliases = []
+        
+        # Extract common alias patterns
+        alias_patterns = [
+            r'(?:also known as|aka|referred to as)\s+([^.,\n]+)',
+            r'(?:\(([^)]+)\))',  # Parenthetical aliases
+        ]
+        
+        for pattern in alias_patterns:
+            matches = re.findall(pattern, content[:500], re.IGNORECASE)  # Check first 500 chars
+            aliases.extend([match.strip() for match in matches if len(match.strip()) > 2])
+        
+        return aliases[:5]  # Limit to 5 aliases
+    
+    def slugify(self, text):
+        """Convert text to a URL-friendly slug"""
+        # Remove special characters and convert to lowercase
+        slug = re.sub(r'[^\w\s-]', '', text.lower())
+        # Replace spaces with hyphens
+        slug = re.sub(r'[\s_-]+', '-', slug)
+        # Remove leading/trailing hyphens
+        slug = slug.strip('-')
+        return slug
+    
     def create_api_index(self, endpoint_files):
         """Create an index file listing all API endpoints"""
         index_content = f"""# API Endpoints Index
@@ -4397,6 +4956,8 @@ def main():
                       help='Build comprehensive search index with terms, endpoints, and error codes (default: True)')
     parser.add_argument('--generate-concept-map', action='store_true', default=True,
                       help='Generate concept map and glossary with technical terms and relationships (default: True)')
+    parser.add_argument('--resolve-cross-references', action='store_true', default=True,
+                      help='Detect and resolve cross-references to create navigable markdown links (default: True)')
     
     args = parser.parse_args()
     
@@ -4408,7 +4969,8 @@ def main():
         args.enable_chunking,
         args.structured_tables,
         args.build_search_index,
-        args.generate_concept_map
+        args.generate_concept_map,
+        args.resolve_cross_references
     )
     
     output_file = converter.convert()

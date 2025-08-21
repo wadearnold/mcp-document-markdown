@@ -128,6 +128,7 @@ Convert /path/to/document.pdf with enable_chunking set to false
 - `structured_tables` (default: true): Convert tables to structured JSON format with data type detection
 - `build_search_index` (default: true): Build comprehensive search index with terms, endpoints, and error codes
 - `generate_concept_map` (default: true): Generate concept map and glossary with technical terms and relationships
+- `resolve_cross_references` (default: true): Detect and resolve cross-references to create navigable markdown links
 
 ## What You Get
 
@@ -173,6 +174,9 @@ docs/
 │       ├── api-concepts-glossary.md        # API terminology
 │       ├── security-concepts-glossary.md   # Security terms
 │       └── [category]-glossary.md          # Other domain glossaries
+├── cross-references/               # Cross-reference resolution
+│   ├── index.md                    # Navigation and cross-reference documentation
+│   └── cross-references.json       # Machine-readable reference mapping
 ├── complete/
 │   └── full-document.md           # Complete document
 ├── images/                        # Extracted images
@@ -294,6 +298,9 @@ Convert the PDF at /path/to/document.pdf with build_search_index set to false
 
 # Disable concept map generation
 Convert the PDF at /path/to/document.pdf with generate_concept_map set to false
+
+# Disable cross-reference resolution
+Convert the PDF at /path/to/document.pdf with resolve_cross_references set to false
 ```
 
 #### Comprehensive Search Index (NEW!)
@@ -414,6 +421,66 @@ Convert the PDF at /path/to/document.pdf to markdown
 
 # Disable concept map generation
 Convert the PDF at /path/to/document.pdf with generate_concept_map set to false
+```
+
+#### Cross-Reference Resolution (NEW!)
+Automatically detect and resolve cross-references to create navigable, interconnected markdown documents:
+
+```
+docs/cross-references/
+├── index.md                    # Navigation and cross-reference documentation
+└── cross-references.json       # Machine-readable reference mapping
+```
+
+**Advanced Reference Detection:**
+- **Page References**: "page 15", "see page 42", "(p. 23)" → Links to relevant sections
+- **Figure References**: "Figure 3.1", "as shown in Figure 5" → Direct links with anchors
+- **Table References**: "Table 2", "refer to Table 4.3" → Structured table navigation
+- **Section References**: "see Section 2.1", "detailed in Chapter 5" → Cross-section linking
+- **Equation References**: "Equation 7", "(Eq. 3.2)" → Mathematical content links
+- **Code References**: "Listing 1", "Code Block 4" → Programming example navigation
+- **Appendix References**: "Appendix A", "see Appendix C" → Supplementary content links
+- **API References**: "GET /users", "POST /auth/login" → API endpoint documentation
+- **Contextual References**: "above", "below", "previously mentioned" → Smart contextual linking
+
+**Reference Resolution Features:**
+```json
+{
+  "resolved_references": [
+    {
+      "original_text": "Figure 3.1",
+      "link_text": "Figure 3.1",
+      "link_url": "api-authentication.md#figure-3-1",
+      "description": "Links to OAuth Flow Diagram",
+      "confidence": 0.95,
+      "source_section": "Authentication Methods"
+    }
+  ]
+}
+```
+
+**Smart Link Generation:**
+- **High-Confidence Linking**: Only references with ≥70% confidence are converted to avoid false positives
+- **Contextual Accuracy**: Uses surrounding text and document structure for precise targeting
+- **Anchor Generation**: Creates meaningful URL anchors for figures, tables, and sections
+- **Fuzzy Matching**: Handles variations in reference styles and formatting
+- **Alias Recognition**: Recognizes alternative names and acronyms for sections and concepts
+
+**Navigation Benefits:**
+- **Document Connectivity**: Transform isolated PDF sections into interconnected web of knowledge
+- **LLM Navigation**: Enable AI models to follow logical document flow and relationships
+- **Interactive Reading**: Create clickable references for improved user experience
+- **Knowledge Mapping**: Build semantic connections between related content areas
+- **Context Preservation**: Maintain document structure while enabling non-linear exploration
+
+**Control Options:**
+Cross-reference resolution is enabled by default but can be controlled:
+```
+# Enable cross-reference resolution (default behavior)
+Convert the PDF at /path/to/document.pdf to markdown
+
+# Disable cross-reference resolution
+Convert the PDF at /path/to/document.pdf with resolve_cross_references set to false
 ```
 
 #### Structured Table Conversion (NEW!)
