@@ -40,6 +40,8 @@ install-python-deps: venv
 	@echo "Installing Python packages..."
 	@./venv/bin/pip install --upgrade pip
 	@./venv/bin/pip install pypdf pdfplumber pymupdf pandas pillow tabulate markdown
+	@echo "Installing optional tiktoken for accurate token counting..."
+	@./venv/bin/pip install tiktoken || echo "Warning: tiktoken installation failed, will use approximation"
 
 # Build Docker image
 docker-build:

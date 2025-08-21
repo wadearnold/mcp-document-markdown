@@ -115,24 +115,64 @@ Convert the PDF at /path/to/document.pdf to markdown with chapter splitting
 
 ## What You Get
 
-The converter creates organized markdown files:
+The converter creates organized markdown files with LLM-optimized metadata:
 
 ```
 docs/
-├── 00_table_of_contents.md    # Navigation file with links
-├── 01_introduction.md          # Chapter 1
-├── 02_getting_started.md       # Chapter 2  
-├── 03_advanced_topics.md       # Chapter 3
-└── images/                     # Extracted images
-    ├── page_1_img_0.png
-    └── page_5_img_2.png
+├── sections/                       # Organized content sections
+│   ├── 01-introduction.md         # With token counts & LLM fit
+│   ├── 02-authentication.md       # Semantic type detection
+│   └── 03-api-endpoints.md        # Smart chunking
+├── complete/
+│   └── full-document.md           # Complete document
+├── images/                        # Extracted images
+│   ├── page_1_img_0.png
+│   └── page_5_img_2.png
+├── index.md                       # Navigation & TOC
+├── summary.md                     # Document summary
+├── metadata.json                  # Comprehensive metrics
+└── llm-compatibility-report.md    # LLM processing guide
 ```
+
+### 🎯 Token Counting & LLM Optimization (NEW!)
+
+Each section now includes:
+```markdown
+---
+section: API Authentication
+type: security
+tokens: 2847
+words: 1053
+llm_fit: gpt-4
+---
+```
+
+The **metadata.json** provides:
+- Token counts for every section
+- LLM compatibility analysis (GPT-3.5, GPT-4, Claude, etc.)
+- Optimal chunking recommendations
+- Processing strategy suggestions
+
+The **llm-compatibility-report.md** shows:
+- Which sections fit in which LLM context windows
+- Token distribution analysis
+- Specific recommendations for each model
+- Processing strategies based on document structure
+
+### Benefits of Token Metadata
+
+✅ **Context Window Management**: Know exactly what fits in each LLM's context
+✅ **Optimal Processing**: Automatically determine best chunking strategy
+✅ **Cost Estimation**: Calculate API costs based on token counts
+✅ **Batch Planning**: Group sections efficiently for processing
+✅ **Model Selection**: Choose the right LLM for each section size
 
 Each file is optimized for AI context windows and includes:
 - Clean markdown formatting
 - Preserved table structure
 - Referenced images
-- Metadata and cross-links
+- Token counts and metadata
+- LLM compatibility indicators
 
 ## Building the Server
 
@@ -152,6 +192,8 @@ make build    # Build the server
 ```bash
 go mod download
 pip install pypdf pdfplumber pymupdf pandas pillow tabulate markdown
+# Optional: Install tiktoken for accurate token counting (recommended)
+pip install tiktoken
 go build -o bin/mcp-pdf-markdown main.go python_embed.go python_loader.go
 ```
 
@@ -253,6 +295,42 @@ make build-test && ./bin/test-client interactive
 4. Test thoroughly in development mode
 5. Build and test production binary
 6. Submit a pull request
+
+## Using the Metadata
+
+### Programmatic Access
+
+The `metadata.json` file provides comprehensive metrics for automated processing:
+
+```python
+import json
+
+with open('docs/metadata.json') as f:
+    metadata = json.load(f)
+
+# Check which sections fit in GPT-4
+for section in metadata['sections']:
+    if section['tokens'] <= 8192:
+        print(f"Section {section['title']} fits in GPT-4")
+
+# Get processing recommendations
+print(metadata['recommendations']['optimal_chunk_size'])
+print(metadata['recommendations']['processing_strategy'])
+```
+
+### LLM Compatibility Report
+
+The human-readable `llm-compatibility-report.md` provides:
+- Visual compatibility matrix for all major LLMs
+- Token distribution charts
+- Specific processing recommendations
+- Section-by-section analysis
+
+### Token Counting Accuracy
+
+- **With tiktoken**: Exact token counts using OpenAI's tokenizer
+- **Without tiktoken**: Approximation (~4 characters per token)
+- Install tiktoken for best results: `pip install tiktoken`
 
 ## Configuration Options
 

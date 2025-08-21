@@ -268,6 +268,8 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 		hasComplete := false
 		hasSummary := false
 		hasIndex := false
+		hasMetadata := false
+		hasLLMReport := false
 		
 		if _, err := os.Stat(filepath.Join(outputDir, "complete", "full-document.md")); err == nil {
 			hasComplete = true
@@ -277,6 +279,12 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 		}
 		if _, err := os.Stat(filepath.Join(outputDir, "index.md")); err == nil {
 			hasIndex = true
+		}
+		if _, err := os.Stat(filepath.Join(outputDir, "metadata.json")); err == nil {
+			hasMetadata = true
+		}
+		if _, err := os.Stat(filepath.Join(outputDir, "llm-compatibility-report.md")); err == nil {
+			hasLLMReport = true
 		}
 		
 		var extras []string
@@ -288,6 +296,12 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 		}
 		if hasComplete {
 			extras = append(extras, "complete document")
+		}
+		if hasMetadata {
+			extras = append(extras, "metadata.json")
+		}
+		if hasLLMReport {
+			extras = append(extras, "LLM compatibility report")
 		}
 		
 		extrasStr := ""

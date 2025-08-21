@@ -3,6 +3,8 @@ import os
 import argparse
 import re
 from pathlib import Path
+import json
+from datetime import datetime
 
 # Import PDF processing libraries
 import pypdf
@@ -12,6 +14,14 @@ import pandas as pd
 from PIL import Image
 import io
 import base64
+
+# Try to import tiktoken for accurate token counting
+try:
+    import tiktoken
+    TIKTOKEN_AVAILABLE = True
+except ImportError:
+    TIKTOKEN_AVAILABLE = False
+    print("Warning: tiktoken not available. Using approximation for token counting.", file=sys.stderr)
 
 class PDFToMarkdownConverter:
     def __init__(self, pdf_path, output_dir, preserve_tables=True, extract_images=True):
@@ -23,6 +33,15 @@ class PDFToMarkdownConverter:
         self.images_dir = self.output_dir / "images"
         if self.extract_images:
             self.images_dir.mkdir(exist_ok=True)
+        
+        # Initialize token counter
+        self.token_encoder = None
+        if TIKTOKEN_AVAILABLE:
+            try:
+                # Use cl100k_base encoding (used by GPT-4 and Claude)
+                self.token_encoder = tiktoken.get_encoding("cl100k_base")
+            except Exception as e:
+                print(f"Warning: Could not initialize tiktoken: {e}", file=sys.stderr)
         
     def convert(self):
         """Main conversion method combining multiple approaches for best results"""
@@ -52,6 +71,9 @@ class PDFToMarkdownConverter:
         
         # Save organized content (this does all the work)
         self.save_and_organize_content(markdown_content)
+        
+        # Generate metadata file with statistics
+        self.generate_metadata_file()
         
         # Return success message
         return f"Converted PDF to organized sections in {self.output_dir}"
@@ -559,11 +581,17 @@ class PDFToMarkdownConverter:
             filename = f"{i:02d}-{section['slug']}.md"
             filepath = sections_dir / filename
             
-            # Add metadata header
+            # Calculate token count for section
+            token_count = self.count_tokens(section['content'])
+            word_count = len(section['content'].split())
+            
+            # Add metadata header with token and word counts
             section_content = f"""---
 section: {section['title']}
 type: {section.get('type', 'content')}
-tokens: {len(section['content'].split())}
+tokens: {token_count}
+words: {word_count}
+llm_fit: {self.get_best_fit_model(token_count)}
 ---
 
 {section['content']}"""
@@ -760,6 +788,283 @@ This document has been automatically organized into sections for optimal AI assi
         toc_file = self.output_dir / "index.md"
         with open(toc_file, 'w', encoding='utf-8') as f:
             f.write(toc_content)
+
+    def get_best_fit_model(self, token_count):
+        """Determine the best fitting LLM model for a given token count"""
+        if token_count <= 3500:
+            return "gpt-3.5"
+        elif token_count <= 7000:
+            return "gpt-4"
+        elif token_count <= 30000:
+            return "gpt-4-32k"
+        elif token_count <= 95000:
+            return "claude-instant"
+        elif token_count <= 190000:
+            return "claude-3"
+        else:
+            return "requires-splitting"
+    
+    def count_tokens(self, text):
+        """Count tokens in text using tiktoken or approximation"""
+        if self.token_encoder:
+            try:
+                return len(self.token_encoder.encode(text))
+            except Exception:
+                pass
+        
+        # Fallback approximation: ~4 characters per token
+        return len(text) // 4
+    
+    def get_llm_context_info(self, token_count):
+        """Get context window recommendations based on token count"""
+        contexts = {
+            "gpt-3.5": {"limit": 4096, "recommended": 3500},
+            "gpt-4": {"limit": 8192, "recommended": 7000},
+            "gpt-4-32k": {"limit": 32768, "recommended": 30000},
+            "gpt-4-turbo": {"limit": 128000, "recommended": 120000},
+            "claude-instant": {"limit": 100000, "recommended": 95000},
+            "claude-2": {"limit": 100000, "recommended": 95000},
+            "claude-3": {"limit": 200000, "recommended": 190000},
+        }
+        
+        recommendations = []
+        for model, limits in contexts.items():
+            if token_count <= limits["recommended"]:
+                status = "✅ Fits comfortably"
+            elif token_count <= limits["limit"]:
+                status = "⚠️ Near limit"
+            else:
+                status = "❌ Exceeds limit"
+            
+            recommendations.append({
+                "model": model,
+                "status": status,
+                "usage": f"{token_count}/{limits['limit']} tokens ({(token_count/limits['limit']*100):.1f}%)"
+            })
+        
+        return recommendations
+    
+    def generate_metadata_file(self):
+        """Generate comprehensive metadata about the conversion"""
+        metadata = {
+            "generated": datetime.now().isoformat(),
+            "source_pdf": os.path.basename(self.pdf_path),
+            "output_directory": str(self.output_dir),
+            "conversion_settings": {
+                "preserve_tables": self.preserve_tables,
+                "extract_images": self.extract_images
+            },
+            "sections": [],
+            "statistics": {
+                "total_sections": 0,
+                "total_tokens": 0,
+                "total_words": 0,
+                "total_characters": 0,
+                "tables_extracted": 0,
+                "images_extracted": 0
+            },
+            "token_distribution": {
+                "small": 0,  # < 1000 tokens
+                "medium": 0,  # 1000-5000 tokens
+                "large": 0,   # 5000-10000 tokens
+                "xlarge": 0   # > 10000 tokens
+            }
+        }
+        
+        # Analyze sections
+        sections_dir = self.output_dir / "sections"
+        if sections_dir.exists():
+            for section_file in sorted(sections_dir.glob("*.md")):
+                with open(section_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Extract metadata from front matter
+                section_info = {
+                    "filename": section_file.name,
+                    "path": str(section_file.relative_to(self.output_dir))
+                }
+                
+                # Parse front matter if exists
+                if content.startswith("---"):
+                    try:
+                        end_idx = content.index("---", 3)
+                        front_matter = content[3:end_idx].strip()
+                        # Simple parsing of YAML-like front matter
+                        for line in front_matter.split('\n'):
+                            if ':' in line:
+                                key, value = line.split(':', 1)
+                                section_info[key.strip()] = value.strip()
+                        
+                        # Get actual content after front matter
+                        actual_content = content[end_idx+3:].strip()
+                    except ValueError:
+                        actual_content = content
+                else:
+                    actual_content = content
+                
+                # Calculate metrics
+                token_count = self.count_tokens(actual_content)
+                word_count = len(actual_content.split())
+                char_count = len(actual_content)
+                
+                section_info.update({
+                    "tokens": token_count,
+                    "words": word_count,
+                    "characters": char_count,
+                    "llm_compatibility": self.get_llm_context_info(token_count)
+                })
+                
+                # Categorize by size
+                if token_count < 1000:
+                    metadata["token_distribution"]["small"] += 1
+                elif token_count < 5000:
+                    metadata["token_distribution"]["medium"] += 1
+                elif token_count < 10000:
+                    metadata["token_distribution"]["large"] += 1
+                else:
+                    metadata["token_distribution"]["xlarge"] += 1
+                
+                metadata["sections"].append(section_info)
+                metadata["statistics"]["total_tokens"] += token_count
+                metadata["statistics"]["total_words"] += word_count
+                metadata["statistics"]["total_characters"] += char_count
+        
+        metadata["statistics"]["total_sections"] = len(metadata["sections"])
+        
+        # Count tables and images
+        if (self.output_dir / "complete" / "full-document.md").exists():
+            with open(self.output_dir / "complete" / "full-document.md", 'r', encoding='utf-8') as f:
+                full_content = f.read()
+                metadata["statistics"]["tables_extracted"] = full_content.count("**Table ")
+                metadata["statistics"]["images_extracted"] = full_content.count("![Image from page")
+        
+        # Add overall recommendations
+        total_tokens = metadata["statistics"]["total_tokens"]
+        metadata["recommendations"] = {
+            "optimal_chunk_size": self.recommend_chunk_size(total_tokens),
+            "processing_strategy": self.recommend_processing_strategy(metadata),
+            "llm_compatibility_summary": self.get_llm_context_info(total_tokens)
+        }
+        
+        # Save metadata
+        metadata_file = self.output_dir / "metadata.json"
+        with open(metadata_file, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, indent=2)
+        
+        # Also create a markdown summary
+        self.create_metadata_summary(metadata)
+    
+    def recommend_chunk_size(self, total_tokens):
+        """Recommend optimal chunk size based on total tokens"""
+        if total_tokens < 4000:
+            return "single_chunk"
+        elif total_tokens < 30000:
+            return "small_chunks_4k"
+        elif total_tokens < 100000:
+            return "medium_chunks_8k"
+        else:
+            return "large_chunks_32k"
+    
+    def recommend_processing_strategy(self, metadata):
+        """Recommend how to process the document with LLMs"""
+        strategies = []
+        
+        dist = metadata["token_distribution"]
+        total_sections = metadata["statistics"]["total_sections"]
+        
+        if dist["xlarge"] > 0:
+            strategies.append("⚠️ Large sections detected - consider splitting further")
+        
+        if total_sections > 20:
+            strategies.append("📚 Many sections - process in batches or use hierarchical summarization")
+        
+        if metadata["statistics"]["tables_extracted"] > 5:
+            strategies.append("📊 Multiple tables - consider specialized table processing")
+        
+        if dist["small"] > total_sections * 0.5:
+            strategies.append("✅ Many small sections - can process multiple at once")
+        
+        return strategies if strategies else ["✅ Document is well-structured for LLM processing"]
+    
+    def create_metadata_summary(self, metadata):
+        """Create a human-readable metadata summary"""
+        summary = f"""# Document Metadata and LLM Compatibility Report
+
+Generated: {metadata['generated']}
+Source: {metadata['source_pdf']}
+
+## Document Statistics
+
+- **Total Sections**: {metadata['statistics']['total_sections']}
+- **Total Tokens**: {metadata['statistics']['total_tokens']:,}
+- **Total Words**: {metadata['statistics']['total_words']:,}
+- **Tables Extracted**: {metadata['statistics']['tables_extracted']}
+- **Images Extracted**: {metadata['statistics']['images_extracted']}
+
+## Token Distribution
+
+- Small sections (< 1K tokens): {metadata['token_distribution']['small']}
+- Medium sections (1K-5K tokens): {metadata['token_distribution']['medium']}
+- Large sections (5K-10K tokens): {metadata['token_distribution']['large']}
+- Extra large sections (> 10K tokens): {metadata['token_distribution']['xlarge']}
+
+## LLM Compatibility
+
+### Overall Document
+"""
+        
+        for compat in metadata['recommendations']['llm_compatibility_summary']:
+            summary += f"- **{compat['model']}**: {compat['status']} ({compat['usage']})\n"
+        
+        summary += f"""
+
+## Processing Recommendations
+
+**Optimal Chunking Strategy**: {metadata['recommendations']['optimal_chunk_size']}
+
+**Processing Strategies**:
+"""
+        
+        for strategy in metadata['recommendations']['processing_strategy']:
+            summary += f"- {strategy}\n"
+        
+        summary += """
+
+## Section Details
+
+| Section | Tokens | Words | LLM Fit |
+| ------- | ------ | ----- | ------- |
+"""
+        
+        for section in metadata['sections'][:10]:  # Show first 10 sections
+            # Find best fitting model
+            best_fit = "❌ Too large"
+            for compat in section['llm_compatibility']:
+                if "✅" in compat['status']:
+                    best_fit = f"✅ {compat['model']}"
+                    break
+            
+            summary += f"| {section.get('title', section['filename'][:30])} | {section['tokens']:,} | {section['words']:,} | {best_fit} |\n"
+        
+        if len(metadata['sections']) > 10:
+            summary += f"\n*... and {len(metadata['sections']) - 10} more sections*\n"
+        
+        summary += """
+
+## Usage Guide
+
+1. **For GPT-3.5** (4K context): Process small sections individually
+2. **For GPT-4** (8K-32K context): Can handle medium sections or combine small ones
+3. **For Claude** (100K-200K context): Can process multiple large sections or entire document
+4. **For embedding**: Each section is ready for vector database ingestion
+
+---
+*Use metadata.json for programmatic access to all metrics*
+"""
+        
+        summary_file = self.output_dir / "llm-compatibility-report.md"
+        with open(summary_file, 'w', encoding='utf-8') as f:
+            f.write(summary)
 
 def main():
     parser = argparse.ArgumentParser(description='Convert PDF to Markdown')
