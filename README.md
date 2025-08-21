@@ -129,6 +129,7 @@ Convert /path/to/document.pdf with enable_chunking set to false
 - `build_search_index` (default: true): Build comprehensive search index with terms, endpoints, and error codes
 - `generate_concept_map` (default: true): Generate concept map and glossary with technical terms and relationships
 - `resolve_cross_references` (default: true): Detect and resolve cross-references to create navigable markdown links
+- `generate_summaries` (default: true): Generate multi-level summaries for progressive disclosure and context optimization
 
 ## What You Get
 
@@ -177,6 +178,12 @@ docs/
 ├── cross-references/               # Cross-reference resolution
 │   ├── index.md                    # Navigation and cross-reference documentation
 │   └── cross-references.json       # Machine-readable reference mapping
+├── summaries/                      # Multi-level summaries
+│   ├── index.md                    # Progressive disclosure index
+│   ├── executive-summary.md        # Executive summary (~250 words)
+│   ├── detailed-summary.md         # Detailed summary (~1000 words)
+│   ├── complete-summary.md         # Complete summary (full context)
+│   └── summaries-metadata.json     # Machine-readable summary metadata
 ├── complete/
 │   └── full-document.md           # Complete document
 ├── images/                        # Extracted images
@@ -301,6 +308,9 @@ Convert the PDF at /path/to/document.pdf with generate_concept_map set to false
 
 # Disable cross-reference resolution
 Convert the PDF at /path/to/document.pdf with resolve_cross_references set to false
+
+# Disable multi-level summaries
+Convert the PDF at /path/to/document.pdf with generate_summaries set to false
 ```
 
 #### Comprehensive Search Index (NEW!)
@@ -481,6 +491,86 @@ Convert the PDF at /path/to/document.pdf to markdown
 
 # Disable cross-reference resolution
 Convert the PDF at /path/to/document.pdf with resolve_cross_references set to false
+```
+
+#### Multi-Level Summaries (NEW!)
+Generate progressive disclosure summaries optimized for different LLM context windows and use cases:
+
+```
+docs/summaries/
+├── index.md                    # Progressive disclosure index
+├── executive-summary.md        # Executive summary (~250 words)
+├── detailed-summary.md         # Detailed summary (~1000 words)
+├── complete-summary.md         # Complete summary (full context)
+└── summaries-metadata.json     # Machine-readable summary metadata
+```
+
+**Three Summary Levels:**
+- **🚀 Executive Summary (250 words)**: Quick decision making and initial understanding
+- **📋 Detailed Summary (1000 words)**: Comprehensive understanding with key implementation details  
+- **📖 Complete Summary (full context)**: Full context understanding with detailed navigation
+
+**Advanced Document Analysis:**
+- **Document Type Detection**: API documentation, technical manual, research paper, tutorial, legal document
+- **Complexity Assessment**: Low/medium/high complexity scoring based on technical depth
+- **Audience Detection**: Developers, business users, or general users based on content analysis
+- **Priority Scoring**: Intelligent section prioritization for optimal content selection
+- **Topic Extraction**: Key themes and concepts identification with frequency analysis
+
+**Progressive Disclosure Features:**
+```json
+{
+  "summary_levels": {
+    "executive": {
+      "word_count": 247,
+      "target_audience": "executives",
+      "reading_time": "1-2 minutes", 
+      "optimization": "Quick overview for decision making"
+    },
+    "detailed": {
+      "word_count": 987,
+      "sections_covered": 8,
+      "reading_time": "4-6 minutes",
+      "optimization": "Comprehensive understanding with implementation details"
+    },
+    "complete": {
+      "word_count": 2150,
+      "sections_covered": 15,
+      "reading_time": "10-15 minutes",
+      "optimization": "Full context with navigation and statistics"
+    }
+  }
+}
+```
+
+**Context Window Optimization:**
+- **Limited Context (≤2K tokens)**: Use Executive Summary only
+- **Medium Context (2K-5K tokens)**: Use Detailed Summary  
+- **Large Context (≥5K tokens)**: Use Complete Summary
+- **Progressive Analysis**: Start with Executive → Detailed → Complete as needed
+
+**Intelligent Content Selection:**
+- **Priority-Based**: Automatically selects most important sections based on content analysis
+- **Audience-Specific**: Tailors tone and focus based on detected primary audience
+- **Document-Aware**: Adapts summarization strategy based on document type (API docs, tutorials, etc.)
+- **Complexity-Sensitive**: Adjusts detail level based on technical complexity assessment
+- **Token-Conscious**: Precise token counting for optimal LLM context usage
+
+**LLM Integration Benefits:**
+- **Context Management**: Choose appropriate summary level based on available context window
+- **Progressive Learning**: Enable drill-down exploration from high-level to detailed understanding
+- **Decision Support**: Executive summaries enable quick project assessment and scoping
+- **Implementation Planning**: Detailed summaries provide comprehensive technical review
+- **Reference Documentation**: Complete summaries serve as navigable implementation guides
+
+**Control Options:**
+Multi-level summaries are enabled by default but can be controlled:
+```
+# Enable multi-level summaries (default behavior)
+Convert the PDF at /path/to/document.pdf to markdown
+
+# Disable summary generation
+Convert the PDF at /path/to/document.pdf with generate_summaries set to false
 ```
 
 #### Structured Table Conversion (NEW!)

@@ -26,7 +26,7 @@ except ImportError:
     print("Warning: tiktoken not available. Using approximation for token counting.", file=sys.stderr)
 
 class PDFToMarkdownConverter:
-    def __init__(self, pdf_path, output_dir, preserve_tables=True, extract_images=True, enable_chunking=True, structured_tables=True, build_search_index=True, generate_concept_map=True, resolve_cross_references=True):
+    def __init__(self, pdf_path, output_dir, preserve_tables=True, extract_images=True, enable_chunking=True, structured_tables=True, build_search_index=True, generate_concept_map=True, resolve_cross_references=True, generate_summaries=True):
         self.pdf_path = pdf_path
         self.output_dir = Path(output_dir)
         self.preserve_tables = preserve_tables
@@ -36,6 +36,7 @@ class PDFToMarkdownConverter:
         self.build_search_index = build_search_index
         self.generate_concept_map = generate_concept_map
         self.resolve_cross_references = resolve_cross_references
+        self.generate_summaries = generate_summaries
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.images_dir = self.output_dir / "images"
         if self.extract_images:
@@ -107,6 +108,10 @@ class PDFToMarkdownConverter:
         # Resolve cross-references and convert to markdown links
         if self.resolve_cross_references:
             self.resolve_and_link_cross_references(sections)
+        
+        # Generate multi-level summaries for progressive disclosure
+        if self.generate_summaries:
+            self.generate_multi_level_summaries(sections, markdown_content)
         
         # Return success message
         return f"Converted PDF to organized sections in {self.output_dir}"
@@ -4800,6 +4805,801 @@ This document catalogs all cross-references found in the PDF and their resolutio
         slug = slug.strip('-')
         return slug
     
+    def generate_multi_level_summaries(self, sections, full_content):
+        """Generate multi-level summaries for progressive disclosure and context optimization"""
+        # Create summaries directory
+        summaries_dir = self.output_dir / "summaries"
+        summaries_dir.mkdir(exist_ok=True)
+        
+        # Analyze document structure and content
+        document_analysis = self.analyze_document_structure(sections, full_content)
+        
+        # Generate executive summary (250 words)
+        executive_summary = self.generate_executive_summary(sections, document_analysis)
+        
+        # Generate detailed summary (1000 words)
+        detailed_summary = self.generate_detailed_summary(sections, document_analysis)
+        
+        # Generate complete summary (full context with structure)
+        complete_summary = self.generate_complete_summary(sections, document_analysis, full_content)
+        
+        # Create progressive disclosure index
+        disclosure_index = self.create_progressive_disclosure_index(executive_summary, detailed_summary, complete_summary)
+        
+        # Save all summary files
+        self.save_summary_files(summaries_dir, executive_summary, detailed_summary, complete_summary, disclosure_index)
+        
+        return len(sections)
+    
+    def analyze_document_structure(self, sections, full_content):
+        """Analyze document structure for intelligent summarization"""
+        analysis = {
+            'total_sections': len(sections),
+            'total_tokens': self.count_tokens(full_content),
+            'document_type': self.detect_document_type(sections),
+            'key_topics': self.extract_key_topics(sections),
+            'section_priorities': self.calculate_section_priorities(sections),
+            'complexity_level': self.assess_document_complexity(sections),
+            'primary_audience': self.detect_primary_audience(sections),
+            'content_distribution': self.analyze_content_distribution(sections),
+            'technical_depth': self.assess_technical_depth(sections)
+        }
+        
+        return analysis
+    
+    def detect_document_type(self, sections):
+        """Detect the type of document for tailored summarization"""
+        api_indicators = sum(1 for s in sections if s.get('section_type') == 'api_endpoint')
+        auth_indicators = sum(1 for s in sections if 'auth' in s.get('title', '').lower())
+        code_indicators = sum(1 for s in sections if 'code' in s.get('content', '').lower().count('```'))
+        
+        if api_indicators > len(sections) * 0.3:
+            return 'api_documentation'
+        elif code_indicators > len(sections) * 0.4:
+            return 'technical_manual'
+        elif any('research' in s.get('title', '').lower() for s in sections):
+            return 'research_paper'
+        elif any('legal' in s.get('title', '').lower() for s in sections):
+            return 'legal_document'
+        elif any('tutorial' in s.get('title', '').lower() for s in sections):
+            return 'tutorial'
+        else:
+            return 'general_documentation'
+    
+    def extract_key_topics(self, sections):
+        """Extract key topics using frequency analysis and semantic detection"""
+        # Combine all content for analysis
+        all_content = ' '.join(s.get('content', '') for s in sections)
+        
+        # Extract key phrases and topics
+        key_phrases = {}
+        
+        # Technical terms (2-3 words)
+        technical_patterns = [
+            r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2}\b',  # Title case phrases
+            r'\b(?:API|HTTP|JSON|XML|OAuth|JWT|REST|GraphQL|HTTPS?|TCP|UDP|SQL|NoSQL)\b',  # Technical acronyms
+            r'\b\w+(?:ing|tion|ment|ness|ity)\b',  # Process/concept words
+        ]
+        
+        for pattern in technical_patterns:
+            matches = re.findall(pattern, all_content)
+            for match in matches:
+                key_phrases[match.lower()] = key_phrases.get(match.lower(), 0) + 1
+        
+        # Get top topics by frequency
+        sorted_topics = sorted(key_phrases.items(), key=lambda x: x[1], reverse=True)
+        return [topic for topic, count in sorted_topics[:15] if count >= 3]
+    
+    def calculate_section_priorities(self, sections):
+        """Calculate priority scores for sections based on content importance"""
+        priorities = {}
+        
+        for section in sections:
+            title = section.get('title', '')
+            content = section.get('content', '')
+            section_type = section.get('section_type', 'general')
+            
+            # Base priority score
+            priority = 5.0
+            
+            # Boost for important section types
+            type_boosts = {
+                'introduction': 8.0,
+                'overview': 7.5,
+                'getting_started': 8.5,
+                'api_endpoint': 7.0,
+                'authentication': 8.0,
+                'security': 7.5,
+                'examples': 6.5,
+                'troubleshooting': 6.0,
+                'reference': 5.5,
+                'appendix': 3.0
+            }
+            priority = type_boosts.get(section_type, priority)
+            
+            # Boost for important keywords in title
+            important_keywords = ['overview', 'introduction', 'getting started', 'quickstart', 
+                                'authentication', 'security', 'api', 'examples', 'tutorial']
+            for keyword in important_keywords:
+                if keyword in title.lower():
+                    priority += 2.0
+                    break
+            
+            # Boost for content length (longer sections often more important)
+            content_length = len(content)
+            if content_length > 2000:
+                priority += 1.5
+            elif content_length > 1000:
+                priority += 1.0
+            elif content_length < 200:
+                priority -= 1.0
+            
+            # Boost for sections with code examples
+            code_blocks = content.count('```')
+            priority += min(code_blocks * 0.5, 2.0)
+            
+            # Boost for sections with lists (often important info)
+            list_items = content.count('\n- ') + content.count('\n* ')
+            priority += min(list_items * 0.1, 1.5)
+            
+            priorities[section.get('slug', 'unknown')] = round(priority, 2)
+        
+        return priorities
+    
+    def assess_document_complexity(self, sections):
+        """Assess overall document complexity for appropriate summarization"""
+        complexity_indicators = {
+            'technical_terms': 0,
+            'code_blocks': 0,
+            'api_endpoints': 0,
+            'average_section_length': 0,
+            'nested_concepts': 0
+        }
+        
+        total_content_length = 0
+        
+        for section in sections:
+            content = section.get('content', '')
+            total_content_length += len(content)
+            
+            # Count technical terms
+            tech_terms = len(re.findall(r'\b(?:API|HTTP|JSON|XML|OAuth|JWT|REST|GraphQL|HTTPS?|TCP|UDP|SQL|NoSQL|Docker|Kubernetes)\b', content, re.IGNORECASE))
+            complexity_indicators['technical_terms'] += tech_terms
+            
+            # Count code blocks
+            complexity_indicators['code_blocks'] += content.count('```')
+            
+            # Count API endpoints
+            if section.get('section_type') == 'api_endpoint':
+                complexity_indicators['api_endpoints'] += 1
+            
+            # Count nested concepts (headers within sections)
+            complexity_indicators['nested_concepts'] += len(re.findall(r'^#{2,6}\s+', content, re.MULTILINE))
+        
+        complexity_indicators['average_section_length'] = total_content_length / len(sections) if sections else 0
+        
+        # Calculate complexity score
+        complexity_score = 0
+        complexity_score += min(complexity_indicators['technical_terms'] / 10, 3.0)
+        complexity_score += min(complexity_indicators['code_blocks'] / 5, 2.0)
+        complexity_score += min(complexity_indicators['api_endpoints'] / 3, 2.0)
+        complexity_score += min(complexity_indicators['average_section_length'] / 1000, 2.0)
+        complexity_score += min(complexity_indicators['nested_concepts'] / 20, 1.0)
+        
+        if complexity_score < 3.0:
+            return 'low'
+        elif complexity_score < 6.0:
+            return 'medium'
+        else:
+            return 'high'
+    
+    def detect_primary_audience(self, sections):
+        """Detect primary audience for appropriate summarization tone"""
+        developer_indicators = 0
+        business_indicators = 0
+        general_indicators = 0
+        
+        for section in sections:
+            content = section.get('content', '').lower()
+            title = section.get('title', '').lower()
+            
+            # Developer indicators
+            if any(word in content for word in ['code', 'api', 'endpoint', 'function', 'class', 'method', 'variable']):
+                developer_indicators += 1
+            if any(word in title for word in ['api', 'development', 'sdk', 'integration', 'technical']):
+                developer_indicators += 2
+            
+            # Business indicators
+            if any(word in content for word in ['business', 'user', 'customer', 'workflow', 'process', 'benefit']):
+                business_indicators += 1
+            if any(word in title for word in ['overview', 'introduction', 'business', 'user guide']):
+                business_indicators += 2
+            
+            # General indicators
+            if any(word in content for word in ['tutorial', 'guide', 'help', 'support', 'getting started']):
+                general_indicators += 1
+        
+        if developer_indicators > business_indicators and developer_indicators > general_indicators:
+            return 'developers'
+        elif business_indicators > general_indicators:
+            return 'business_users'
+        else:
+            return 'general_users'
+    
+    def analyze_content_distribution(self, sections):
+        """Analyze how content is distributed across sections"""
+        distribution = {
+            'section_types': {},
+            'length_distribution': {},
+            'content_balance': {}
+        }
+        
+        # Section type distribution
+        for section in sections:
+            section_type = section.get('section_type', 'general')
+            distribution['section_types'][section_type] = distribution['section_types'].get(section_type, 0) + 1
+        
+        # Length distribution
+        lengths = [len(section.get('content', '')) for section in sections]
+        if lengths:
+            distribution['length_distribution'] = {
+                'min': min(lengths),
+                'max': max(lengths),
+                'avg': sum(lengths) / len(lengths),
+                'median': sorted(lengths)[len(lengths) // 2]
+            }
+        
+        return distribution
+    
+    def assess_technical_depth(self, sections):
+        """Assess the technical depth of the document"""
+        depth_indicators = 0
+        total_content = 0
+        
+        for section in sections:
+            content = section.get('content', '')
+            total_content += len(content)
+            
+            # Count technical depth indicators
+            depth_indicators += content.count('```')  # Code blocks
+            depth_indicators += len(re.findall(r'\b[A-Z_]{3,}\b', content))  # Constants/enums
+            depth_indicators += len(re.findall(r'\b\w+\(\)', content))  # Function calls
+            depth_indicators += content.count('http')  # API references
+            depth_indicators += len(re.findall(r'\{.*?\}', content))  # JSON/object notation
+        
+        # Calculate depth ratio
+        depth_ratio = depth_indicators / (total_content / 1000) if total_content > 0 else 0
+        
+        if depth_ratio < 2.0:
+            return 'surface'
+        elif depth_ratio < 5.0:
+            return 'moderate'
+        else:
+            return 'deep'
+    
+    def generate_executive_summary(self, sections, analysis):
+        """Generate executive summary (250 words) for quick overview"""
+        target_words = 250
+        
+        # Prioritize sections for executive summary
+        high_priority_sections = []
+        for section in sections:
+            section_slug = section.get('slug', 'unknown')
+            priority = analysis['section_priorities'].get(section_slug, 5.0)
+            if priority >= 7.0:  # High priority threshold
+                high_priority_sections.append(section)
+        
+        # If no high priority sections, take first few sections
+        if not high_priority_sections:
+            high_priority_sections = sections[:3]
+        
+        summary_content = f"""# Executive Summary
+        
+Document Type: {analysis['document_type'].replace('_', ' ').title()}
+Complexity: {analysis['complexity_level'].title()}
+Target Audience: {analysis['primary_audience'].replace('_', ' ').title()}
+Total Sections: {analysis['total_sections']}
+Estimated Reading Time: {analysis['total_tokens'] // 200} minutes
+
+## Overview
+
+"""
+        
+        # Generate concise overview based on document type
+        if analysis['document_type'] == 'api_documentation':
+            summary_content += f"This API documentation provides comprehensive guidance for integrating with the service. "
+        elif analysis['document_type'] == 'technical_manual':
+            summary_content += f"This technical manual covers implementation details and best practices. "
+        elif analysis['document_type'] == 'tutorial':
+            summary_content += f"This tutorial guides users through step-by-step implementation. "
+        else:
+            summary_content += f"This document provides essential information and guidance. "
+        
+        # Add key topics
+        if analysis['key_topics']:
+            key_topics_text = ', '.join(analysis['key_topics'][:5])
+            summary_content += f"Key areas covered include: {key_topics_text}. "
+        
+        # Add critical highlights from high priority sections
+        words_used = len(summary_content.split())
+        remaining_words = target_words - words_used
+        
+        summary_content += "\n## Key Points\n\n"
+        
+        for section in high_priority_sections[:3]:  # Limit to top 3 sections
+            if remaining_words <= 20:
+                break
+                
+            section_title = section.get('title', 'Section')
+            section_content = section.get('content', '')
+            
+            # Extract key sentence from section
+            sentences = re.split(r'[.!?]+', section_content)
+            key_sentence = None
+            
+            # Find sentence with important keywords
+            for sentence in sentences:
+                if len(sentence.split()) > 5 and any(topic in sentence.lower() for topic in analysis['key_topics'][:5]):
+                    key_sentence = sentence.strip()
+                    break
+            
+            if not key_sentence and sentences:
+                # Fallback to first substantial sentence
+                key_sentence = next((s.strip() for s in sentences if len(s.split()) > 10), sentences[0].strip())
+            
+            if key_sentence:
+                # Limit sentence length
+                words_in_sentence = len(key_sentence.split())
+                if words_in_sentence <= remaining_words - 10:
+                    summary_content += f"- **{section_title}**: {key_sentence}\n"
+                    remaining_words -= words_in_sentence + 5
+                else:
+                    # Truncate sentence
+                    truncated = ' '.join(key_sentence.split()[:remaining_words - 10]) + '...'
+                    summary_content += f"- **{section_title}**: {truncated}\n"
+                    break
+        
+        # Add navigation guidance
+        summary_content += f"\n## Next Steps\n\n"
+        if analysis['document_type'] == 'api_documentation':
+            summary_content += "Review authentication requirements, explore endpoint documentation, and check integration examples."
+        elif analysis['document_type'] == 'tutorial':
+            summary_content += "Follow the step-by-step instructions, try the examples, and refer to troubleshooting if needed."
+        else:
+            summary_content += "Explore detailed sections based on your specific needs and use cases."
+        
+        return {
+            'title': 'Executive Summary',
+            'word_count': len(summary_content.split()),
+            'target_audience': analysis['primary_audience'],
+            'reading_time': '1-2 minutes',
+            'content': summary_content,
+            'key_sections_covered': [s.get('title') for s in high_priority_sections],
+            'optimization': 'Quick overview for decision making and initial understanding'
+        }
+    
+    def generate_detailed_summary(self, sections, analysis):
+        """Generate detailed summary (1000 words) for comprehensive understanding"""
+        target_words = 1000
+        
+        # Select sections based on priority and coverage
+        selected_sections = []
+        priority_threshold = 6.0
+        
+        # Get sections above priority threshold
+        for section in sections:
+            section_slug = section.get('slug', 'unknown')
+            priority = analysis['section_priorities'].get(section_slug, 5.0)
+            if priority >= priority_threshold:
+                selected_sections.append((section, priority))
+        
+        # If not enough content, lower threshold
+        if len(selected_sections) < 5:
+            priority_threshold = 5.5
+            selected_sections = [(s, analysis['section_priorities'].get(s.get('slug', 'unknown'), 5.0)) 
+                               for s in sections if analysis['section_priorities'].get(s.get('slug', 'unknown'), 5.0) >= priority_threshold]
+        
+        # Sort by priority
+        selected_sections.sort(key=lambda x: x[1], reverse=True)
+        
+        summary_content = f"""# Detailed Summary
+
+## Document Overview
+
+**Type**: {analysis['document_type'].replace('_', ' ').title()}  
+**Complexity Level**: {analysis['complexity_level'].title()}  
+**Primary Audience**: {analysis['primary_audience'].replace('_', ' ').title()}  
+**Technical Depth**: {analysis['technical_depth'].title()}  
+**Total Content**: {analysis['total_sections']} sections, ~{analysis['total_tokens']} tokens
+
+"""
+        
+        # Add document-specific context
+        if analysis['document_type'] == 'api_documentation':
+            summary_content += """This API documentation provides comprehensive integration guidance with detailed endpoint specifications, authentication methods, and practical examples. """
+        elif analysis['document_type'] == 'technical_manual':
+            summary_content += """This technical manual offers in-depth implementation guidance with code examples, best practices, and troubleshooting information. """
+        
+        # Add key topics section
+        if analysis['key_topics']:
+            summary_content += f"\n**Key Topics Covered**: {', '.join(analysis['key_topics'][:8])}\n\n"
+        
+        # Process selected sections
+        words_used = len(summary_content.split())
+        remaining_words = target_words - words_used
+        words_per_section = remaining_words // min(len(selected_sections), 8)
+        
+        summary_content += "## Content Breakdown\n\n"
+        
+        sections_covered = 0
+        for section, priority in selected_sections[:8]:  # Limit to top 8 sections
+            if remaining_words <= 50:
+                break
+                
+            section_title = section.get('title', 'Section')
+            section_content = section.get('content', '')
+            section_type = section.get('section_type', 'general')
+            
+            summary_content += f"### {section_title}\n"
+            summary_content += f"*Priority: {priority:.1f} | Type: {section_type.replace('_', ' ').title()}*\n\n"
+            
+            # Generate section summary
+            section_summary = self.summarize_section_content(section_content, min(words_per_section, remaining_words - 20))
+            summary_content += section_summary + "\n\n"
+            
+            words_used_in_section = len(section_summary.split())
+            remaining_words -= words_used_in_section + 15  # Account for headers
+            sections_covered += 1
+        
+        # Add implementation guidance
+        summary_content += "## Implementation Guidance\n\n"
+        
+        if analysis['primary_audience'] == 'developers':
+            summary_content += "**For Developers**: Focus on API endpoints, code examples, and integration patterns. Pay attention to authentication requirements and error handling.\n\n"
+        elif analysis['primary_audience'] == 'business_users':
+            summary_content += "**For Business Users**: Review workflow descriptions, feature benefits, and user-facing functionality. Consider implementation timeline and resource requirements.\n\n"
+        else:
+            summary_content += "**Getting Started**: Begin with overview sections, follow step-by-step guides, and reference detailed sections as needed.\n\n"
+        
+        # Add complexity-based recommendations
+        if analysis['complexity_level'] == 'high':
+            summary_content += "**Complexity Note**: This is a technically complex document. Consider reviewing prerequisite knowledge and taking time to understand core concepts before implementation.\n\n"
+        
+        return {
+            'title': 'Detailed Summary',
+            'word_count': len(summary_content.split()),
+            'target_audience': analysis['primary_audience'],
+            'reading_time': '4-6 minutes',
+            'content': summary_content,
+            'sections_covered': sections_covered,
+            'priority_threshold': priority_threshold,
+            'optimization': 'Comprehensive understanding with key implementation details'
+        }
+    
+    def summarize_section_content(self, content, max_words):
+        """Create a focused summary of section content"""
+        if not content or max_words <= 0:
+            return ""
+        
+        # Split into sentences
+        sentences = re.split(r'[.!?]+', content)
+        sentences = [s.strip() for s in sentences if len(s.strip()) > 10]
+        
+        if not sentences:
+            return content[:max_words*5]  # Fallback to character limit
+        
+        # Score sentences for importance
+        scored_sentences = []
+        for sentence in sentences:
+            score = 0
+            
+            # Boost for first and last sentences
+            if sentence == sentences[0]:
+                score += 2
+            if sentence == sentences[-1]:
+                score += 1
+            
+            # Boost for sentences with important keywords
+            important_words = ['important', 'key', 'essential', 'required', 'must', 'should', 'example', 'note']
+            for word in important_words:
+                if word in sentence.lower():
+                    score += 1
+            
+            # Boost for sentences with technical terms
+            tech_terms = ['API', 'endpoint', 'authentication', 'parameter', 'response', 'request', 'method', 'function']
+            for term in tech_terms:
+                if term.lower() in sentence.lower():
+                    score += 0.5
+            
+            # Penalize very long sentences
+            if len(sentence.split()) > 30:
+                score -= 1
+            
+            scored_sentences.append((sentence, score))
+        
+        # Sort by score and build summary
+        scored_sentences.sort(key=lambda x: x[1], reverse=True)
+        
+        summary_parts = []
+        words_used = 0
+        
+        for sentence, score in scored_sentences:
+            sentence_words = len(sentence.split())
+            if words_used + sentence_words <= max_words:
+                summary_parts.append(sentence)
+                words_used += sentence_words
+            elif words_used == 0:  # At least include one sentence
+                # Truncate the sentence
+                words_to_include = max_words - 5
+                truncated = ' '.join(sentence.split()[:words_to_include]) + '...'
+                summary_parts.append(truncated)
+                break
+        
+        return '. '.join(summary_parts) + '.' if summary_parts else ""
+    
+    def generate_complete_summary(self, sections, analysis, full_content):
+        """Generate complete summary with full context and structure"""
+        summary_content = f"""# Complete Document Summary
+
+## Comprehensive Analysis
+
+**Document Classification**: {analysis['document_type'].replace('_', ' ').title()}  
+**Complexity Assessment**: {analysis['complexity_level'].title()} complexity  
+**Primary Audience**: {analysis['primary_audience'].replace('_', ' ').title()}  
+**Technical Depth**: {analysis['technical_depth'].title()} technical detail  
+**Structure**: {analysis['total_sections']} sections  
+**Content Volume**: {analysis['total_tokens']} tokens (~{analysis['total_tokens'] // 200} minutes reading)
+
+## Content Architecture
+
+"""
+        
+        # Add detailed content distribution
+        content_dist = analysis.get('content_distribution', {})
+        if content_dist.get('section_types'):
+            summary_content += "**Section Type Distribution**:\n"
+            for section_type, count in sorted(content_dist['section_types'].items(), key=lambda x: x[1], reverse=True):
+                summary_content += f"- {section_type.replace('_', ' ').title()}: {count} sections\n"
+            summary_content += "\n"
+        
+        # Add key topics with context
+        if analysis['key_topics']:
+            summary_content += "**Primary Topics and Themes**:\n"
+            for i, topic in enumerate(analysis['key_topics'][:10], 1):
+                summary_content += f"{i}. {topic.title()}\n"
+            summary_content += "\n"
+        
+        # Complete section breakdown
+        summary_content += "## Section-by-Section Breakdown\n\n"
+        
+        for i, section in enumerate(sections, 1):
+            section_title = section.get('title', f'Section {i}')
+            section_content = section.get('content', '')
+            section_type = section.get('section_type', 'general')
+            section_slug = section.get('slug', 'unknown')
+            priority = analysis['section_priorities'].get(section_slug, 5.0)
+            
+            # Section header
+            summary_content += f"### {i}. {section_title}\n"
+            summary_content += f"**Type**: {section_type.replace('_', ' ').title()} | **Priority**: {priority:.1f} | **Length**: {len(section_content)} chars\n\n"
+            
+            # Section summary
+            if len(section_content) > 100:
+                section_summary = self.summarize_section_content(section_content, 100)
+                summary_content += f"{section_summary}\n\n"
+            else:
+                summary_content += f"{section_content[:200]}{'...' if len(section_content) > 200 else ''}\n\n"
+            
+            # Add metadata for this section
+            if section_type == 'api_endpoint':
+                api_methods = re.findall(r'\b(GET|POST|PUT|DELETE|PATCH)\b', section_content)
+                if api_methods:
+                    summary_content += f"*API Methods*: {', '.join(set(api_methods))}\n"
+            
+            if section_content.count('```') > 0:
+                summary_content += f"*Contains*: {section_content.count('```')} code examples\n"
+            
+            summary_content += "\n---\n\n"
+        
+        # Add navigation and usage recommendations
+        summary_content += "## Navigation Recommendations\n\n"
+        
+        # High priority sections first
+        high_priority = [(s.get('title'), s.get('slug')) for s in sections 
+                        if analysis['section_priorities'].get(s.get('slug', 'unknown'), 0) >= 7.0]
+        
+        if high_priority:
+            summary_content += "**Start Here** (High Priority Sections):\n"
+            for title, slug in high_priority[:5]:
+                summary_content += f"- [{title}]({slug}.md)\n"
+            summary_content += "\n"
+        
+        # Document-specific recommendations
+        if analysis['document_type'] == 'api_documentation':
+            summary_content += "**API Documentation Path**:\n"
+            summary_content += "1. Review authentication and authorization\n"
+            summary_content += "2. Explore core endpoints\n"
+            summary_content += "3. Study request/response examples\n"
+            summary_content += "4. Check error handling and troubleshooting\n\n"
+        
+        # Add context for different audiences
+        summary_content += "## Audience-Specific Guidance\n\n"
+        
+        if analysis['primary_audience'] == 'developers':
+            summary_content += "**For Developers**:\n- Focus on API endpoints and technical implementation details\n- Pay attention to code examples and integration patterns\n- Review authentication and error handling thoroughly\n\n"
+        
+        if analysis['complexity_level'] == 'high':
+            summary_content += "**Complexity Notice**:\nThis document contains advanced technical concepts. Consider:\n- Reviewing prerequisite knowledge\n- Taking time to understand foundational concepts\n- Using the detailed summary for initial overview\n\n"
+        
+        # Add document statistics
+        summary_content += "## Document Statistics\n\n"
+        summary_content += f"- **Total Sections**: {len(sections)}\n"
+        summary_content += f"- **Average Section Length**: {sum(len(s.get('content', '')) for s in sections) // len(sections) if sections else 0} characters\n"
+        summary_content += f"- **Code Examples**: {sum(s.get('content', '').count('```') for s in sections)} blocks\n"
+        summary_content += f"- **Estimated Implementation Time**: {'2-4 hours' if analysis['complexity_level'] == 'high' else '1-2 hours'}\n"
+        
+        return {
+            'title': 'Complete Summary',
+            'word_count': len(summary_content.split()),
+            'target_audience': 'all_users',
+            'reading_time': '10-15 minutes',
+            'content': summary_content,
+            'sections_covered': len(sections),
+            'includes_navigation': True,
+            'includes_statistics': True,
+            'optimization': 'Full context understanding with detailed navigation and implementation guidance'
+        }
+    
+    def create_progressive_disclosure_index(self, executive_summary, detailed_summary, complete_summary):
+        """Create index for progressive disclosure navigation"""
+        index_content = f"""# Progressive Disclosure Index
+
+## Summary Levels
+
+This document provides three levels of summarization designed for optimal LLM context usage and progressive understanding:
+
+### 🚀 Executive Summary 
+**Target**: Quick decision making and initial understanding  
+**Length**: ~{executive_summary['word_count']} words  
+**Reading Time**: {executive_summary['reading_time']}  
+**Best For**: Initial assessment, project scoping, high-level overview  
+**Context Window**: Fits in smallest LLM contexts (~1K tokens)
+
+**Key Coverage**: {', '.join(executive_summary.get('key_sections_covered', [])[:3])}
+
+[➤ Read Executive Summary](executive-summary.md)
+
+### 📋 Detailed Summary
+**Target**: Comprehensive understanding with key implementation details  
+**Length**: ~{detailed_summary['word_count']} words  
+**Reading Time**: {detailed_summary['reading_time']}  
+**Best For**: Implementation planning, technical review, feature assessment  
+**Context Window**: Fits in medium LLM contexts (~3K tokens)
+
+**Sections Covered**: {detailed_summary.get('sections_covered', 0)} high-priority sections  
+**Priority Threshold**: {detailed_summary.get('priority_threshold', 6.0):.1f}+
+
+[➤ Read Detailed Summary](detailed-summary.md)
+
+### 📖 Complete Summary
+**Target**: Full context understanding with detailed navigation  
+**Length**: ~{complete_summary['word_count']} words  
+**Reading Time**: {complete_summary['reading_time']}  
+**Best For**: Complete implementation, thorough analysis, reference documentation  
+**Context Window**: Fits in large LLM contexts (~6K+ tokens)
+
+**Sections Covered**: All {complete_summary.get('sections_covered', 0)} sections with full structure  
+**Includes**: Navigation recommendations, audience guidance, implementation statistics
+
+[➤ Read Complete Summary](complete-summary.md)
+
+## Usage Recommendations
+
+### For LLM Context Optimization:
+
+1. **Limited Context (≤2K tokens)**: Use Executive Summary only
+2. **Medium Context (2K-5K tokens)**: Use Detailed Summary  
+3. **Large Context (≥5K tokens)**: Use Complete Summary
+4. **Progressive Analysis**: Start with Executive → Detailed → Complete as needed
+
+### For Different Use Cases:
+
+- **Project Planning**: Executive Summary → specific sections
+- **Technical Implementation**: Detailed Summary → relevant detailed sections  
+- **Comprehensive Analysis**: Complete Summary → full document
+- **Quick Reference**: Executive Summary for decisions, Detailed for specifics
+
+### For Different Audiences:
+
+- **Executives/Managers**: Executive Summary
+- **Technical Leads**: Detailed Summary  
+- **Developers/Implementers**: Complete Summary + original sections
+- **Reviewers**: Progressive disclosure based on review depth needed
+
+## Content Optimization Features
+
+✅ **Token counting** for accurate context management  
+✅ **Priority-based selection** of most important content  
+✅ **Audience-specific recommendations** for appropriate detail level  
+✅ **Progressive navigation** enabling drill-down exploration  
+✅ **Context window guidance** for optimal LLM usage  
+✅ **Implementation time estimates** for planning purposes
+
+---
+
+*Generated for optimal LLM processing and human understanding*
+"""
+        
+        return {
+            'title': 'Progressive Disclosure Index',
+            'content': index_content,
+            'summary_levels': 3,
+            'optimization_features': 6,
+            'context_guidance': True
+        }
+    
+    def save_summary_files(self, summaries_dir, executive_summary, detailed_summary, complete_summary, disclosure_index):
+        """Save all summary files with appropriate formatting"""
+        
+        # Save executive summary
+        exec_path = summaries_dir / "executive-summary.md"
+        with open(exec_path, 'w', encoding='utf-8') as f:
+            f.write(executive_summary['content'])
+        
+        # Save detailed summary
+        detailed_path = summaries_dir / "detailed-summary.md"
+        with open(detailed_path, 'w', encoding='utf-8') as f:
+            f.write(detailed_summary['content'])
+        
+        # Save complete summary
+        complete_path = summaries_dir / "complete-summary.md"
+        with open(complete_path, 'w', encoding='utf-8') as f:
+            f.write(complete_summary['content'])
+        
+        # Save progressive disclosure index
+        index_path = summaries_dir / "index.md"
+        with open(index_path, 'w', encoding='utf-8') as f:
+            f.write(disclosure_index['content'])
+        
+        # Save machine-readable summary metadata
+        metadata = {
+            'generated_at': datetime.now().isoformat(),
+            'summary_levels': {
+                'executive': {
+                    'file': 'executive-summary.md',
+                    'word_count': executive_summary['word_count'],
+                    'target_audience': executive_summary['target_audience'],
+                    'reading_time': executive_summary['reading_time'],
+                    'optimization': executive_summary['optimization']
+                },
+                'detailed': {
+                    'file': 'detailed-summary.md',
+                    'word_count': detailed_summary['word_count'],
+                    'sections_covered': detailed_summary['sections_covered'],
+                    'reading_time': detailed_summary['reading_time'],
+                    'optimization': detailed_summary['optimization']
+                },
+                'complete': {
+                    'file': 'complete-summary.md',
+                    'word_count': complete_summary['word_count'],
+                    'sections_covered': complete_summary['sections_covered'],
+                    'reading_time': complete_summary['reading_time'],
+                    'optimization': complete_summary['optimization']
+                }
+            },
+            'progressive_disclosure': {
+                'enabled': True,
+                'levels': 3,
+                'context_optimization': True
+            }
+        }
+        
+        metadata_path = summaries_dir / "summaries-metadata.json"
+        with open(metadata_path, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False)
+        
+        return [str(exec_path), str(detailed_path), str(complete_path), str(index_path)]
+    
     def create_api_index(self, endpoint_files):
         """Create an index file listing all API endpoints"""
         index_content = f"""# API Endpoints Index
@@ -4958,6 +5758,8 @@ def main():
                       help='Generate concept map and glossary with technical terms and relationships (default: True)')
     parser.add_argument('--resolve-cross-references', action='store_true', default=True,
                       help='Detect and resolve cross-references to create navigable markdown links (default: True)')
+    parser.add_argument('--generate-summaries', action='store_true', default=True,
+                      help='Generate multi-level summaries for progressive disclosure and context optimization (default: True)')
     
     args = parser.parse_args()
     
@@ -4970,7 +5772,8 @@ def main():
         args.structured_tables,
         args.build_search_index,
         args.generate_concept_map,
-        args.resolve_cross_references
+        args.resolve_cross_references,
+        args.generate_summaries
     )
     
     output_file = converter.convert()

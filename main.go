@@ -206,6 +206,11 @@ func (s *MCPServer) handleToolsList() (*ToolsListResponse, error) {
 						"description": "Whether to detect and resolve cross-references to create navigable markdown links",
 						"default":     true,
 					},
+					"generate_summaries": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Whether to generate multi-level summaries for progressive disclosure and context optimization",
+						"default":     true,
+					},
 				},
 				"required": []string{"pdf_path"},
 			},
@@ -288,6 +293,11 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 		resolveCrossReferences = crossRefs
 	}
 
+	generateSummaries := true
+	if summaries, ok := args["generate_summaries"].(bool); ok {
+		generateSummaries = summaries
+	}
+
 	// Create output directory
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create output directory: %v", err)
@@ -295,7 +305,7 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 
 	// Convert PDF using Python script (handles all organization automatically)
 	log.Printf("Converting PDF: %s", pdfPath)
-	err := s.runPythonConverter(pdfPath, outputDir, preserveTables, extractImages, enableChunking, structuredTables, buildSearchIndex, generateConceptMap, resolveCrossReferences)
+	err := s.runPythonConverter(pdfPath, outputDir, preserveTables, extractImages, enableChunking, structuredTables, buildSearchIndex, generateConceptMap, resolveCrossReferences, generateSummaries)
 	if err != nil {
 		return nil, fmt.Errorf("PDF conversion failed: %v", err)
 	}
@@ -478,7 +488,7 @@ func (s *MCPServer) analyzePDFStructure(args map[string]interface{}) (*CallToolR
 }
 
 // runPythonConverter executes the Python PDF conversion script
-func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables, extractImages, enableChunking, structuredTables, buildSearchIndex, generateConceptMap, resolveCrossReferences bool) error {
+func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables, extractImages, enableChunking, structuredTables, buildSearchIndex, generateConceptMap, resolveCrossReferences, generateSummaries bool) error {
 	// Get Python scripts (embedded or from files in dev mode)
 	convertScript, _, err := getPythonScripts()
 	if err != nil {
@@ -506,6 +516,9 @@ func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables
 	}
 	if resolveCrossReferences {
 		args = append(args, "--resolve-cross-references")
+	}
+	if generateSummaries {
+		args = append(args, "--generate-summaries")
 	}
 
 	cmd := exec.Command(s.pythonPath, args...)
