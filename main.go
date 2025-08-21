@@ -191,11 +191,6 @@ func (s *MCPServer) handleToolsList() (*ToolsListResponse, error) {
 						"description": "Whether to convert tables to structured JSON format with data type detection",
 						"default":     true,
 					},
-					"build_search_index": map[string]interface{}{
-						"type":        "boolean",
-						"description": "Whether to build comprehensive search index with terms, endpoints, and error codes",
-						"default":     true,
-					},
 					"generate_concept_map": map[string]interface{}{
 						"type":        "boolean",
 						"description": "Whether to generate concept map and glossary with technical terms and relationships",
@@ -319,11 +314,6 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 		structuredTables = structured
 	}
 
-	buildSearchIndex := true
-	if searchIndex, ok := args["build_search_index"].(bool); ok {
-		buildSearchIndex = searchIndex
-	}
-
 	generateConceptMap := true
 	if conceptMap, ok := args["generate_concept_map"].(bool); ok {
 		generateConceptMap = conceptMap
@@ -346,7 +336,7 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 
 	// Convert PDF using Python script (handles all organization automatically)
 	log.Printf("Converting PDF: %s", pdfPath)
-	err := s.runPythonConverter(pdfPath, outputDir, preserveTables, extractImages, enableChunking, structuredTables, buildSearchIndex, generateConceptMap, resolveCrossReferences, generateSummaries)
+	err := s.runPythonConverter(pdfPath, outputDir, preserveTables, extractImages, enableChunking, structuredTables, generateConceptMap, resolveCrossReferences, generateSummaries)
 	if err != nil {
 		return nil, fmt.Errorf("PDF conversion failed: %v", err)
 	}
@@ -619,7 +609,7 @@ Files created:
 }
 
 // runPythonConverter executes the Python PDF conversion script
-func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables, extractImages, enableChunking, structuredTables, buildSearchIndex, generateConceptMap, resolveCrossReferences, generateSummaries bool) error {
+func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables, extractImages, enableChunking, structuredTables, generateConceptMap, resolveCrossReferences, generateSummaries bool) error {
 	// Get Python scripts (embedded or from files in dev mode)
 	convertScript, _, err := getPythonScripts()
 	if err != nil {
@@ -638,9 +628,6 @@ func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables
 	}
 	if structuredTables {
 		args = append(args, "--structured-tables")
-	}
-	if buildSearchIndex {
-		args = append(args, "--build-search-index")
 	}
 	if generateConceptMap {
 		args = append(args, "--generate-concept-map")

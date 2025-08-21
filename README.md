@@ -126,7 +126,6 @@ Convert /path/to/document.pdf with enable_chunking set to false
 - `extract_images` (default: true): Extract and reference images
 - `enable_chunking` (default: true): Enable smart chunking for optimal LLM context usage
 - `structured_tables` (default: true): Convert tables to structured JSON format with data type detection
-- `build_search_index` (default: true): Build comprehensive search index with terms, endpoints, and error codes
 - `generate_concept_map` (default: true): Generate concept map and glossary with technical terms and relationships
 - `resolve_cross_references` (default: true): Detect and resolve cross-references to create navigable markdown links
 - `generate_summaries` (default: true): Generate multi-level summaries for progressive disclosure and context optimization
@@ -157,13 +156,6 @@ docs/
 │   ├── table_01.md                 # Enhanced table with metadata
 │   ├── table_01.json               # Structured JSON for LLM processing
 │   └── table_02.md/.json           # Additional tables
-├── search-index/                   # Comprehensive search database
-│   ├── README.md                   # Search documentation and examples
-│   ├── search-database.json        # Complete searchable database
-│   ├── terms-index.json            # Technical terms with frequency
-│   ├── endpoints-index.json        # API endpoints with parameters
-│   ├── errors-index.json           # Error codes with context
-│   └── concepts-index.json         # Key concepts with relationships
 ├── concepts/                       # Concept map and glossary
 │   ├── glossary.md                 # Human-readable technical glossary
 │   ├── concept-map.md              # Network analysis and documentation
@@ -300,9 +292,6 @@ Convert the PDF at /path/to/document.pdf with enable_chunking set to false
 # Disable structured tables
 Convert the PDF at /path/to/document.pdf with structured_tables set to false
 
-# Disable search index
-Convert the PDF at /path/to/document.pdf with build_search_index set to false
-
 # Disable concept map generation
 Convert the PDF at /path/to/document.pdf with generate_concept_map set to false
 
@@ -312,55 +301,6 @@ Convert the PDF at /path/to/document.pdf with resolve_cross_references set to fa
 # Disable multi-level summaries
 Convert the PDF at /path/to/document.pdf with generate_summaries set to false
 ```
-
-#### Comprehensive Search Index (NEW!)
-Build searchable database of all technical content with intelligent categorization:
-
-```
-docs/search-index/
-├── README.md                   # Search documentation and examples
-├── search-database.json        # Complete searchable database
-├── terms-index.json            # Technical terms with frequency analysis
-├── endpoints-index.json        # API endpoints with parameters
-├── errors-index.json           # Error codes with context
-└── concepts-index.json         # Key concepts with relationships
-```
-
-**Advanced Content Indexing:**
-- **Technical Terms**: API terms, HTTP methods, protocols, security concepts with frequency analysis
-- **API Endpoints**: Complete endpoint catalog with methods, paths, and parameters
-- **Error Codes**: HTTP status codes, error messages, and exception types with context
-- **Key Concepts**: Definitions, acronyms, and technical concepts with relationships
-
-**Search Capabilities:**
-```python
-# Load search database
-import json
-with open('docs/search-index/search-database.json') as f:
-    search_db = json.load(f)
-
-# Find authentication-related terms
-auth_terms = {
-    term: data for term, data in search_db['terms'].items() 
-    if 'auth' in term or 'authentication' in str(data['contexts'])
-}
-
-# Search for specific API endpoints
-post_endpoints = {
-    key: data for key, data in search_db['endpoints'].items()
-    if data['method'] == 'POST'
-}
-
-# Look up error codes
-error_404 = search_db['error_codes'].get('404', {})
-```
-
-**LLM Integration Benefits:**
-- **Smart Search**: Relevance scoring and contextual information for accurate results
-- **Cross-References**: Find related concepts and shared sections across content
-- **Frequency Analysis**: Identify most important terms and concepts in documentation
-- **Error Resolution**: Quick lookup of error codes with descriptions and solutions
-- **API Discovery**: Comprehensive endpoint catalog with parameters and examples
 
 #### Concept Map and Glossary Generation (NEW!)
 Generate comprehensive concept maps and technical glossaries with relationship analysis:
@@ -661,7 +601,6 @@ The **llm-compatibility-report.md** shows:
 ✅ **Structured API Data**: Parameters, request/response formats, and examples extracted
 ✅ **Smart Chunking**: Automatic splitting for optimal context window utilization
 ✅ **Structured Tables**: JSON conversion with data type detection and statistics
-✅ **Comprehensive Search**: Technical terms, endpoints, errors, and concepts with frequency analysis
 ✅ **Workflow Optimization**: Processing notes guide LLMs on what to focus on
 ✅ **Batch API Processing**: Process related endpoints together for efficient integration
 ✅ **Code Generation Ready**: Complete endpoint info for automatic client generation
@@ -1246,135 +1185,6 @@ if all_tables:
     print(f"\nSample data:\n{df.head()}")
 ```
 
-### Working with Search Index
-
-```python
-import json
-
-# Load complete search database
-with open('docs/search-index/search-database.json') as f:
-    search_db = json.load(f)
-
-print(f"Search Database Overview:")
-print(f"- Terms: {search_db['metadata']['total_terms']}")
-print(f"- Endpoints: {search_db['metadata']['total_endpoints']}")
-print(f"- Error Codes: {search_db['metadata']['total_error_codes']}")
-print(f"- Concepts: {search_db['metadata']['total_concepts']}")
-
-# Find most frequent technical terms
-def get_top_terms(category=None, limit=10):
-    terms = search_db['terms']
-    if category:
-        terms = {k: v for k, v in terms.items() if v['category'] == category}
-    
-    sorted_terms = sorted(terms.items(), key=lambda x: x[1]['frequency'], reverse=True)
-    return sorted_terms[:limit]
-
-# Get top API-related terms
-api_terms = get_top_terms('api_terms', 5)
-print(f"\nTop API Terms:")
-for term, data in api_terms:
-    print(f"- {term}: {data['frequency']} occurrences in {len(data['sections'])} sections")
-
-# Search for specific endpoints
-def search_endpoints(method=None, path_contains=None):
-    results = []
-    for key, data in search_db['endpoints'].items():
-        if method and data['method'] != method:
-            continue
-        if path_contains and path_contains.lower() not in data['path'].lower():
-            continue
-        results.append((key, data))
-    return results
-
-# Find all user-related endpoints
-user_endpoints = search_endpoints(path_contains='user')
-print(f"\nUser-related endpoints:")
-for key, data in user_endpoints:
-    print(f"- {data['method']} {data['path']}")
-    if data['parameters']:
-        print(f"  Parameters: {[p['name'] for p in data['parameters']]}")
-
-# Look up error codes with context
-def get_error_info(error_code):
-    error = search_db['error_codes'].get(str(error_code))
-    if error:
-        return {
-            'code': error['code'],
-            'category': error['category'],
-            'frequency': error['frequency'],
-            'descriptions': error['descriptions'][:3],  # First 3 descriptions
-            'sections': [s['title'] for s in error['sections'][:3]]
-        }
-    return None
-
-# Get information about 404 errors
-error_404_info = get_error_info('404')
-if error_404_info:
-    print(f"\nError 404 Information:")
-    print(f"- Found {error_404_info['frequency']} times")
-    print(f"- In sections: {', '.join(error_404_info['sections'])}")
-
-# Find related concepts
-def find_concept_relationships(concept_name):
-    concept = search_db['concepts'].get(concept_name.lower())
-    if concept:
-        print(f"\nConcept: {concept['concept']}")
-        print(f"Category: {concept['category']}")
-        if concept['definitions']:
-            print(f"Definition: {concept['definitions'][0]}")
-        if concept['related_terms']:
-            print("Related concepts:")
-            for related in concept['related_terms'][:3]:
-                print(f"- {related['concept']} (strength: {related['relationship_strength']})")
-
-# Explore authentication concept
-find_concept_relationships('authentication')
-
-# Cross-reference search across all indexes
-def cross_reference_search(term):
-    results = {
-        'terms': [],
-        'endpoints': [],
-        'errors': [],
-        'concepts': []
-    }
-    
-    term_lower = term.lower()
-    
-    # Search terms
-    for t, data in search_db['terms'].items():
-        if term_lower in t.lower():
-            results['terms'].append({'term': t, 'frequency': data['frequency']})
-    
-    # Search endpoints
-    for key, data in search_db['endpoints'].items():
-        if term_lower in data['path'].lower():
-            results['endpoints'].append({'endpoint': key, 'sections': len(data['sections'])})
-    
-    # Search error descriptions
-    for code, data in search_db['error_codes'].items():
-        for desc in data.get('descriptions', []):
-            if term_lower in desc.lower():
-                results['errors'].append({'code': code, 'description': desc})
-                break
-    
-    # Search concepts
-    for concept, data in search_db['concepts'].items():
-        if term_lower in concept.lower():
-            results['concepts'].append({'concept': concept, 'category': data['category']})
-    
-    return results
-
-# Find all references to "token"
-token_refs = cross_reference_search('token')
-print(f"\nCross-reference search for 'token':")
-print(f"- Terms: {len(token_refs['terms'])} matches")
-print(f"- Endpoints: {len(token_refs['endpoints'])} matches")
-print(f"- Errors: {len(token_refs['errors'])} matches")
-print(f"- Concepts: {len(token_refs['concepts'])} matches")
-```
-
 ### API Endpoint Features
 
 Each extracted API endpoint includes:
@@ -1410,7 +1220,6 @@ The `convert_pdf` tool accepts these parameters:
 - **`extract_images`** (default: true): Whether to extract and reference images
 - **`enable_chunking`** (default: true): Whether to enable smart chunking by token limits
 - **`structured_tables`** (default: true): Whether to convert tables to structured JSON format
-- **`build_search_index`** (default: true): Whether to build comprehensive search index
 
 ### Environment Variables
 - **`OUTPUT_DIR`**: Where to save converted files (default: `./docs`)
