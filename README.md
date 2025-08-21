@@ -134,24 +134,41 @@ docs/
 └── llm-compatibility-report.md    # LLM processing guide
 ```
 
-### 🎯 Token Counting & LLM Optimization (NEW!)
+### 🎯 LLM Optimization Features (NEW!)
 
-Each section now includes:
+#### Advanced Semantic Detection
+Each section is automatically classified with intelligent content analysis:
 ```markdown
 ---
-section: API Authentication
-type: security
+title: API Authentication
+section_type: authentication
+processing_priority: critical
 tokens: 2847
-words: 1053
-llm_fit: gpt-4
+optimal_model: gpt-4
+semantic_tags: ["authentication", "http-message"]
+contains_code: true
+api_endpoints_count: 3
+extracted_endpoints: ["POST /auth/token", "GET /auth/verify"]
+llm_processing_notes: ["Extract authentication mechanisms, required headers, and token formats"]
 ---
 ```
 
+#### Intelligent Section Types
+- **api_endpoint**: HTTP methods, URLs, parameters
+- **authentication**: OAuth, JWT, API keys, credentials  
+- **request_response**: Payload structures, headers
+- **data_models**: Schemas, field definitions
+- **error_handling**: Status codes, error messages
+- **code_examples**: Executable examples with language detection
+- **security**: Encryption, certificates, security protocols
+- And 8 more specialized types
+
 The **metadata.json** provides:
-- Token counts for every section
-- LLM compatibility analysis (GPT-3.5, GPT-4, Claude, etc.)
+- Token counts and LLM compatibility analysis
+- Semantic classification and content analysis
+- Processing priority and workflow guidance
+- Extracted API endpoints and technical elements
 - Optimal chunking recommendations
-- Processing strategy suggestions
 
 The **llm-compatibility-report.md** shows:
 - Which sections fit in which LLM context windows
@@ -159,20 +176,24 @@ The **llm-compatibility-report.md** shows:
 - Specific recommendations for each model
 - Processing strategies based on document structure
 
-### Benefits of Token Metadata
+### Benefits for LLM Processing
 
-✅ **Context Window Management**: Know exactly what fits in each LLM's context
-✅ **Optimal Processing**: Automatically determine best chunking strategy
-✅ **Cost Estimation**: Calculate API costs based on token counts
-✅ **Batch Planning**: Group sections efficiently for processing
-✅ **Model Selection**: Choose the right LLM for each section size
+✅ **Semantic Understanding**: LLMs instantly know content type and purpose
+✅ **Processing Priority**: Critical sections (authentication, APIs) identified first  
+✅ **Context Window Management**: Precise token counts and model recommendations
+✅ **Content Analysis**: Automatic detection of code, tables, and API endpoints
+✅ **Workflow Optimization**: Processing notes guide LLMs on what to focus on
+✅ **Batch Planning**: Group sections by type and priority for efficient processing
+✅ **Cost Estimation**: Calculate API costs based on accurate token counts
 
-Each file is optimized for AI context windows and includes:
-- Clean markdown formatting
-- Preserved table structure
-- Referenced images
-- Token counts and metadata
-- LLM compatibility indicators
+Each file is optimized for LLM processing and includes:
+- Clean markdown formatting with semantic structure
+- Preserved table structure  
+- Referenced images with context
+- Comprehensive metadata for intelligent processing
+- Semantic tags and processing guidance
+- API endpoint extraction and classification
+- Processing priority for workflow optimization
 
 ## Building the Server
 
@@ -324,6 +345,32 @@ The human-readable `llm-compatibility-report.md` provides:
 - Token distribution charts
 - Specific processing recommendations
 - Section-by-section analysis
+
+### Using Semantic Metadata for LLM Workflows
+
+```python
+import json
+import yaml
+
+# Load metadata
+with open('docs/metadata.json') as f:
+    metadata = json.load(f)
+
+# Process by priority (critical first)
+critical_sections = [s for s in metadata['sections'] if s.get('processing_priority') == 'critical']
+for section in critical_sections:
+    print(f"Processing {section['title']} - {section['section_type']}")
+    
+# Find all API endpoints
+api_sections = [s for s in metadata['sections'] if s['section_type'] == 'api_endpoint']
+for section in api_sections:
+    endpoints = section.get('extracted_endpoints', [])
+    print(f"Found {len(endpoints)} endpoints in {section['title']}")
+
+# Process sections with code examples
+code_sections = [s for s in metadata['sections'] if s.get('contains_code')]
+print(f"Found {len(code_sections)} sections with executable code")
+```
 
 ### Token Counting Accuracy
 

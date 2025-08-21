@@ -585,13 +585,27 @@ class PDFToMarkdownConverter:
             token_count = self.count_tokens(section['content'])
             word_count = len(section['content'].split())
             
-            # Add metadata header with token and word counts
+            # Extract additional semantic metadata
+            semantic_tags = self.extract_semantic_tags(section['content'])
+            contains_code = self.detect_code_blocks(section['content'])
+            contains_tables = '|' in section['content'] and section['content'].count('|') > 4
+            api_endpoints = self.extract_api_endpoints(section['content'])
+            processing_priority = self.determine_processing_priority(section.get('type', 'content'))
+            
+            # Add comprehensive metadata header optimized for LLM processing
             section_content = f"""---
-section: {section['title']}
-type: {section.get('type', 'content')}
+title: {section['title']}
+section_type: {section.get('type', 'content')}
+processing_priority: {processing_priority}
 tokens: {token_count}
 words: {word_count}
-llm_fit: {self.get_best_fit_model(token_count)}
+optimal_model: {self.get_best_fit_model(token_count)}
+semantic_tags: {semantic_tags}
+contains_code: {contains_code}
+contains_tables: {contains_tables}
+api_endpoints_count: {len(api_endpoints)}
+extracted_endpoints: {api_endpoints if api_endpoints else []}
+llm_processing_notes: {self.get_processing_notes(section.get('type', 'content'), contains_code, contains_tables)}
 ---
 
 {section['content']}"""
@@ -665,7 +679,8 @@ llm_fit: {self.get_best_fit_model(token_count)}
                     
                     # Start new section
                     slug = self.create_slug(header_title)
-                    section_type = self.determine_section_type(header_title)
+                    # Pass current content for better type detection
+                    section_type = self.determine_section_type(header_title, current_section['content'])
                     current_section = {
                         'title': header_title,
                         'content': line + '\n',
@@ -703,22 +718,103 @@ llm_fit: {self.get_best_fit_model(token_count)}
         slug = re.sub(r'[\s_-]+', '-', slug)
         return slug[:50].strip('-')
     
-    def determine_section_type(self, title):
-        """Determine the type of section based on title"""
+    def determine_section_type(self, title, content=None):
+        """Determine the type of section based on title and content analysis"""
         title_lower = title.lower()
         
-        if any(word in title_lower for word in ['api', 'endpoint', 'request', 'response']):
-            return 'api'
-        elif any(word in title_lower for word in ['auth', 'security', 'token', 'credential']):
-            return 'security'
-        elif any(word in title_lower for word in ['error', 'status', 'code']):
-            return 'errors'
-        elif any(word in title_lower for word in ['example', 'sample', 'demo']):
-            return 'examples'
-        elif any(word in title_lower for word in ['intro', 'overview', 'summary']):
-            return 'intro'
-        elif any(word in title_lower for word in ['reference', 'spec', 'schema']):
-            return 'reference'
+        # Enhanced detection with more specific patterns
+        type_patterns = {
+            'api_endpoint': {
+                'title_words': ['endpoint', 'route', 'path', 'api', 'method'],
+                'title_patterns': [r'^(GET|POST|PUT|DELETE|PATCH)', r'/api/', r'/{.*}'],
+                'content_patterns': [r'(GET|POST|PUT|DELETE|PATCH)\s+/', r'curl\s+-X', r'endpoint:']
+            },
+            'authentication': {
+                'title_words': ['auth', 'authentication', 'authorization', 'oauth', 'jwt', 'token', 'credential', 'login', 'sso'],
+                'content_patterns': [r'Bearer\s+', r'API[_\s]?Key', r'client_id', r'client_secret']
+            },
+            'request_response': {
+                'title_words': ['request', 'response', 'payload', 'body', 'header'],
+                'content_patterns': [r'Content-Type:', r'{\s*"', r'application/json']
+            },
+            'error_handling': {
+                'title_words': ['error', 'exception', 'status', 'fault', 'failure', 'troubleshoot'],
+                'content_patterns': [r'\b[4-5]\d{2}\b', r'error_code', r'error_message']
+            },
+            'code_examples': {
+                'title_words': ['example', 'sample', 'demo', 'tutorial', 'quickstart', 'getting started'],
+                'content_patterns': [r'```', r'import\s+', r'function\s+', r'class\s+']
+            },
+            'data_models': {
+                'title_words': ['model', 'schema', 'structure', 'entity', 'object', 'type'],
+                'content_patterns': [r'"type":\s*"', r'required":\s*\[', r'properties":\s*{']
+            },
+            'configuration': {
+                'title_words': ['config', 'configuration', 'setting', 'parameter', 'option', 'environment'],
+                'content_patterns': [r'ENV\[', r'config\.', r'--[a-z-]+']
+            },
+            'testing': {
+                'title_words': ['test', 'testing', 'validation', 'verify', 'assertion'],
+                'content_patterns': [r'assert', r'expect\(', r'test\s+case', r'describe\(']
+            },
+            'security': {
+                'title_words': ['security', 'encryption', 'ssl', 'tls', 'https', 'certificate'],
+                'content_patterns': [r'X-.*-Token', r'HTTPS', r'TLS\s+\d']
+            },
+            'rate_limiting': {
+                'title_words': ['rate', 'limit', 'throttle', 'quota', 'usage'],
+                'content_patterns': [r'X-Rate-Limit', r'requests?\s+per\s+', r'quota']
+            },
+            'webhooks': {
+                'title_words': ['webhook', 'callback', 'notification', 'event'],
+                'content_patterns': [r'webhook_url', r'callback_url', r'event_type']
+            },
+            'pagination': {
+                'title_words': ['pagination', 'paging', 'page', 'limit', 'offset'],
+                'content_patterns': [r'page=\d+', r'limit=\d+', r'next_page', r'cursor']
+            },
+            'versioning': {
+                'title_words': ['version', 'versioning', 'v1', 'v2', 'migration'],
+                'content_patterns': [r'/v\d+/', r'api_version', r'version:\s*\d']
+            },
+            'introduction': {
+                'title_words': ['intro', 'introduction', 'overview', 'summary', 'about', 'welcome'],
+                'content_patterns': [r'This\s+(guide|document|API)', r'Welcome\s+to']
+            },
+            'reference': {
+                'title_words': ['reference', 'specification', 'spec', 'appendix', 'glossary'],
+                'content_patterns': [r'See\s+also:', r'Related:', r'Reference:']
+            }
+        }
+        
+        # Check each type pattern
+        scores = {}
+        for section_type, patterns in type_patterns.items():
+            score = 0
+            
+            # Check title words
+            for word in patterns.get('title_words', []):
+                if word in title_lower:
+                    score += 2  # Title matches are weighted higher
+            
+            # Check title patterns
+            for pattern in patterns.get('title_patterns', []):
+                if re.search(pattern, title, re.IGNORECASE):
+                    score += 3  # Pattern matches are very specific
+            
+            # Check content patterns if content is provided
+            if content:
+                content_lower = content.lower()[:1000]  # Check first 1000 chars for efficiency
+                for pattern in patterns.get('content_patterns', []):
+                    if re.search(pattern, content_lower, re.IGNORECASE):
+                        score += 1
+            
+            if score > 0:
+                scores[section_type] = score
+        
+        # Return the type with highest score, or 'content' as fallback
+        if scores:
+            return max(scores, key=scores.get)
         else:
             return 'content'
     
@@ -744,15 +840,29 @@ This document has been automatically organized into sections for optimal AI assi
                 sections_by_type[section_type] = []
             sections_by_type[section_type].append(section)
         
-        # Write organized TOC
-        type_order = ['intro', 'security', 'api', 'reference', 'examples', 'errors', 'content']
+        # Write organized TOC with enhanced semantic categories
+        type_order = [
+            'introduction', 'authentication', 'api_endpoint', 'request_response', 
+            'data_models', 'code_examples', 'error_handling', 'security',
+            'rate_limiting', 'webhooks', 'pagination', 'versioning', 'testing',
+            'configuration', 'reference', 'content'
+        ]
         type_names = {
-            'intro': 'Introduction & Overview',
-            'security': 'Security & Authentication', 
-            'api': 'API Endpoints',
+            'introduction': 'Introduction and Overview',
+            'authentication': 'Authentication and Authorization',
+            'api_endpoint': 'API Endpoints',
+            'request_response': 'Requests and Responses',
+            'data_models': 'Data Models and Schemas',
+            'code_examples': 'Code Examples and Tutorials',
+            'error_handling': 'Error Handling',
+            'security': 'Security and Encryption',
+            'rate_limiting': 'Rate Limiting and Throttling',
+            'webhooks': 'Webhooks and Events',
+            'pagination': 'Pagination',
+            'versioning': 'Versioning and Migration',
+            'testing': 'Testing and Validation',
+            'configuration': 'Configuration and Settings',
             'reference': 'Reference Documentation',
-            'examples': 'Examples & Samples',
-            'errors': 'Error Handling',
             'content': 'General Content'
         }
         
@@ -789,6 +899,136 @@ This document has been automatically organized into sections for optimal AI assi
         with open(toc_file, 'w', encoding='utf-8') as f:
             f.write(toc_content)
 
+    def extract_semantic_tags(self, content):
+        """Extract semantic tags from content for better LLM understanding"""
+        tags = set()
+        content_lower = content.lower()
+        
+        # Technical domain tags
+        if re.search(r'\b(json|xml|yaml|csv)\b', content_lower):
+            tags.add('data-format')
+        
+        if re.search(r'\b(oauth|jwt|bearer|api[_\s]?key)\b', content_lower):
+            tags.add('authentication')
+        
+        if re.search(r'\b[4-5]\d{2}\b', content):  # HTTP status codes
+            tags.add('http-status')
+        
+        if re.search(r'\bcurl\s+-X\b', content_lower):
+            tags.add('curl-example')
+        
+        if re.search(r'\b(request|response)\s+(body|payload|header)\b', content_lower):
+            tags.add('http-message')
+        
+        if re.search(r'\b(rate[_\s]?limit|throttl|quota)\b', content_lower):
+            tags.add('rate-limiting')
+        
+        if re.search(r'\b(webhook|callback|notification)\b', content_lower):
+            tags.add('event-driven')
+        
+        if re.search(r'\b(encrypt|ssl|tls|certificate)\b', content_lower):
+            tags.add('security')
+        
+        if re.search(r'\b(test|assert|expect|mock)\b', content_lower):
+            tags.add('testing')
+        
+        if re.search(r'\b(version|v\d+|deprecat)\b', content_lower):
+            tags.add('versioning')
+        
+        return list(tags)
+    
+    def detect_code_blocks(self, content):
+        """Detect if content contains code blocks or examples"""
+        code_indicators = [
+            r'```',  # Markdown code blocks
+            r'^\s*{[\s\S]*}$',  # JSON objects
+            r'<[^>]+>',  # XML/HTML tags
+            r'curl\s+-X',  # cURL commands
+            r'(function|class|import|var|const|let)\s+',  # Programming keywords
+            r'^\s*[a-zA-Z_]\w*\s*=',  # Variable assignments
+            r'if\s*\(',  # Control structures
+        ]
+        
+        for pattern in code_indicators:
+            if re.search(pattern, content, re.MULTILINE | re.IGNORECASE):
+                return True
+        
+        return False
+    
+    def extract_api_endpoints(self, content):
+        """Extract API endpoints from content"""
+        endpoints = []
+        
+        # Pattern for HTTP methods with paths
+        endpoint_patterns = [
+            r'(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\s+([^\s\n]+)',
+            r'curl\s+[^"]*(https?://[^\s"]+)',
+            r'endpoint[:\s]+([^\s\n]+)',
+            r'url[:\s]+([^\s\n]+/api[^\s\n]*)',
+        ]
+        
+        for pattern in endpoint_patterns:
+            matches = re.findall(pattern, content, re.IGNORECASE)
+            for match in matches:
+                if isinstance(match, tuple):
+                    if len(match) > 1:
+                        endpoints.append(f"{match[0]} {match[1]}")
+                    else:
+                        endpoints.append(match[0])
+                else:
+                    endpoints.append(match)
+        
+        return list(set(endpoints))  # Remove duplicates
+    
+    def determine_processing_priority(self, section_type):
+        """Determine processing priority for LLM workflows"""
+        priority_map = {
+            'introduction': 'high',  # Start here for context
+            'authentication': 'critical',  # Essential for API usage
+            'api_endpoint': 'critical',  # Core functionality
+            'request_response': 'high',  # Important for implementation
+            'data_models': 'high',  # Needed for data structure
+            'error_handling': 'medium',  # Important for debugging
+            'code_examples': 'high',  # Practical implementation
+            'security': 'medium',  # Important for production
+            'rate_limiting': 'low',  # Operational concern
+            'webhooks': 'medium',  # Feature-specific
+            'pagination': 'low',  # Implementation detail
+            'versioning': 'low',  # Operational concern
+            'testing': 'low',  # Development process
+            'configuration': 'medium',  # Setup requirement
+            'reference': 'low',  # Lookup information
+            'content': 'low'  # General information
+        }
+        return priority_map.get(section_type, 'low')
+    
+    def get_processing_notes(self, section_type, has_code, has_tables):
+        """Generate processing guidance for LLMs"""
+        notes = []
+        
+        # Type-specific notes
+        type_notes = {
+            'api_endpoint': 'Focus on HTTP methods, URLs, parameters, and response formats',
+            'authentication': 'Extract authentication mechanisms, required headers, and token formats',
+            'request_response': 'Parse request/response structures, required fields, and data types',
+            'error_handling': 'Identify error codes, error messages, and resolution steps',
+            'code_examples': 'Code can be executed or adapted; extract language and dependencies',
+            'data_models': 'Extract field definitions, data types, and validation rules',
+            'configuration': 'Note configuration keys, environment variables, and setup steps'
+        }
+        
+        if section_type in type_notes:
+            notes.append(type_notes[section_type])
+        
+        # Content-specific notes
+        if has_code:
+            notes.append('Contains executable code examples')
+        
+        if has_tables:
+            notes.append('Contains structured data in table format')
+        
+        return notes if notes else ['Standard text content for general processing']
+    
     def get_best_fit_model(self, token_count):
         """Determine the best fitting LLM model for a given token count"""
         if token_count <= 3500:
