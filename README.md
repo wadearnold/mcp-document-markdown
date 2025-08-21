@@ -69,6 +69,11 @@ Convert /path/to/financial-data.pdf and analyze the quarterly revenue tables
 Convert /path/to/api-documentation.pdf, then help me write code that uses those APIs
 ```
 
+### Organize for Optimal Context Usage
+```
+Convert the PDF at ./technical-document.pdf to markdown and organize it into sections for optimal context usage. Save the organized sections to my docs directory with proper table of contents and navigation.
+```
+
 **The Power**: After conversion, AI assistants can provide detailed analysis, answer specific questions, extract code examples, and work with complex data - all because the content is now in a structured, machine-readable format that fits within context windows.
 
 ## Quick Start

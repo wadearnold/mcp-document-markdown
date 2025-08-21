@@ -353,6 +353,13 @@ func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables
 		return "", fmt.Errorf("failed to read converted markdown: %v", err)
 	}
 
+	// Clean up temporary file
+	defer func() {
+		if removeErr := os.Remove(mdPath); removeErr != nil {
+			log.Printf("Warning: failed to remove temporary file %s: %v", mdPath, removeErr)
+		}
+	}()
+
 	return string(content), nil
 }
 
