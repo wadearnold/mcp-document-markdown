@@ -46,66 +46,11 @@ Convert the PDF at /path/to/my-documentation.pdf to markdown
 
 Your AI will convert the PDF and create organized reference files it can use to help you.
 
-## Two Ways to Use This
+### 4. Make Your AI Agent Use the Documentation
 
-### 📁 Workflow 1: Direct File Reference
-**Best for**: Having conversations about documents, manual navigation, human-readable files
+After converting PDFs to markdown files, **tell your AI agent to use the new documentation as reference**:
 
-```
-PDF → Organized Markdown → Your AI references specific sections
-```
-
-**Example**: 
-```
-Convert /path/to/api-docs.pdf to markdown, then help me understand the authentication section
-```
-
-**What you get**: Clean markdown files organized by chapter/section that your AI can read and reference.
-
-### 🔍 Workflow 2: Vector Database (RAG)
-**Best for**: Semantic search, knowledge bases, scaling to many documents
-
-```
-PDF → Semantic Chunks → Vector Database → AI searches and retrieves relevant info
-```
-
-**Example**:
-```
-Prepare /path/to/manual.pdf for RAG with vector database format chromadb
-```
-
-**What you get**: Optimized chunks ready for import into vector databases.
-
-#### Vector Database Advantages Over Flat Files:
-- **Semantic Search**: Find information by meaning, not just keywords
-- **Scale**: Handle hundreds of documents efficiently  
-- **Context**: AI gets the most relevant sections automatically
-- **Speed**: Instant retrieval vs browsing through files
-
-#### Setting Up Vector Databases:
-
-**ChromaDB** (Local):
-```
-Prepare my-docs.pdf for RAG with vector database format chromadb
-```
-Then configure [Chroma MCP Server](https://github.com/chroma-core/chroma-mcp) and import the generated chunks.
-
-**Pinecone** (Cloud):
-```
-Prepare my-docs.pdf for RAG with vector database format pinecone  
-```
-Then configure [Pinecone MCP Server](https://docs.pinecone.io/guides/operations/mcp-server) and import the generated data.
-
-**To create embeddings**, tell your AI:
-```
-Generate embeddings for all the chunks in the chromadb_format.json file using OpenAI's text-embedding-ada-002 model and import them into the ChromaDB collection
-```
-
-## Making Your AI Agent Use the Documentation
-
-After converting PDFs, **tell your AI agent to use the new documentation as reference**:
-
-### Copy-Paste Prompt for Your Agent:
+#### Copy-Paste Prompt for Your Agent:
 
 ```
 I've just converted PDF documentation into organized markdown files. Please update your working memory to reference these new docs as the definitive source for this project:
@@ -135,6 +80,90 @@ Please confirm you understand and will use `./docs/` as the primary reference so
 - Replace `[PROJECT/TOPIC NAME]` with your actual project name
 - Update the path if you used a different output directory
 - Add specific sections that are most important for your use case
+
+## Two Workflows for Different Use Cases
+
+Choose the workflow that matches your specific goal:
+
+### 📁 Workflow 1: Reference Documentation (Direct Files)
+**Goal**: Teach your AI assistant about a specific system or project
+
+**Best for:**
+- Creating reference material for a specific system/project
+- When your AI needs to learn domain-specific terminology and concepts
+- Building internal knowledge about APIs, frameworks, or tools
+- Teaching your AI assistant about your project's architecture
+
+```
+PDF → Organized Markdown → Your AI learns the system → Answers questions with context
+```
+
+**Use cases:**
+- API documentation for a service you're building with
+- Technical specifications for a framework you're implementing
+- Internal company documentation your AI needs to understand
+- System architecture docs for a project you're working on
+
+**Example**: 
+```
+Convert /path/to/stripe-api-docs.pdf to markdown, then help me integrate Stripe payments
+```
+
+**Result**: Your AI assistant gains knowledge about the specific system and can help you work with it using the converted documentation as reference material.
+
+### 🔍 Workflow 2: Searchable Knowledge Base (RAG)
+**Goal**: Enable semantic search across large document collections
+
+**Best for:**
+- Semantic search across large document collections
+- Building chatbots or Q&A systems
+- When you need to find information across hundreds of documents
+- Customer support or help desk automation
+
+```
+PDF → Semantic Chunks → Vector Database → AI searches and finds relevant answers
+```
+
+**Use cases:**
+- Company knowledge base with hundreds of policy documents
+- Product documentation for customer support chatbots
+- Research paper collections for academic search
+- Legal document repositories for case research
+
+**Example**:
+```
+Prepare /path/to/employee-handbook.pdf for RAG with vector database format chromadb
+```
+
+**Result**: The PDF content becomes searchable in a vector database, enabling your AI to find and retrieve relevant information automatically when users ask questions.
+
+> **Note**: For RAG workflows, you don't need Step 4 (making your AI agent use the documentation) because the vector database MCP server handles the AI interaction automatically.
+
+#### Vector Database Advantages Over Flat Files:
+- **Semantic Search**: Find information by meaning, not just keywords
+- **Scale**: Handle hundreds of documents efficiently  
+- **Context**: AI gets the most relevant sections automatically
+- **Speed**: Instant retrieval vs browsing through files
+
+#### Setting Up Vector Databases:
+
+**ChromaDB** (Local):
+```
+Prepare my-docs.pdf for RAG with vector database format chromadb
+```
+Then configure [Chroma MCP Server](https://github.com/chroma-core/chroma-mcp) and import the generated chunks.
+
+**Pinecone** (Cloud):
+```
+Prepare my-docs.pdf for RAG with vector database format pinecone  
+```
+Then configure [Pinecone MCP Server](https://docs.pinecone.io/guides/operations/mcp-server) and import the generated data.
+
+**To create embeddings**, tell your AI:
+```
+Generate embeddings for all the chunks in the chromadb_format.json file using OpenAI's text-embedding-ada-002 model and import them into the ChromaDB collection
+```
+
 
 ## What You Actually Get
 
