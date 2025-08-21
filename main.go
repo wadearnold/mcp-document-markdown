@@ -228,11 +228,6 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 		outputDir = dir
 	}
 
-	splitByChapters := true
-	if split, ok := args["split_by_chapters"].(bool); ok {
-		splitByChapters = split
-	}
-
 	preserveTables := true
 	if preserve, ok := args["preserve_tables"].(bool); ok {
 		preserveTables = preserve
@@ -248,36 +243,63 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 		return nil, fmt.Errorf("failed to create output directory: %v", err)
 	}
 
-	// Step 1: Convert PDF to initial markdown using Python script
+	// Convert PDF using Python script (handles all organization automatically)
 	log.Printf("Converting PDF: %s", pdfPath)
-	initialMD, err := s.runPythonConverter(pdfPath, outputDir, preserveTables, extractImages)
+	err := s.runPythonConverter(pdfPath, outputDir, preserveTables, extractImages)
 	if err != nil {
 		return nil, fmt.Errorf("PDF conversion failed: %v", err)
 	}
 
-	// Step 2: Process and split markdown if needed
+	// Check what was created and report back
 	var resultMessage string
-	if splitByChapters {
-		chapters, err := s.splitIntoChapters(initialMD, outputDir)
-		if err != nil {
-			return nil, fmt.Errorf("failed to split chapters: %v", err)
+	
+	// Check for organized sections directory
+	sectionsDir := filepath.Join(outputDir, "sections")
+	if files, err := os.ReadDir(sectionsDir); err == nil && len(files) > 0 {
+		// Count section files (exclude index.md and other metadata files)
+		sectionCount := 0
+		for _, file := range files {
+			if strings.HasSuffix(file.Name(), ".md") && !strings.HasPrefix(file.Name(), "00-") {
+				sectionCount++
+			}
 		}
 		
-		// Create table of contents
-		tocPath := filepath.Join(outputDir, "00_table_of_contents.md")
-		if err := s.createTableOfContents(chapters, tocPath); err != nil {
-			return nil, fmt.Errorf("failed to create table of contents: %v", err)
+		// Check for additional organized content
+		hasComplete := false
+		hasSummary := false
+		hasIndex := false
+		
+		if _, err := os.Stat(filepath.Join(outputDir, "complete", "full-document.md")); err == nil {
+			hasComplete = true
+		}
+		if _, err := os.Stat(filepath.Join(outputDir, "summary.md")); err == nil {
+			hasSummary = true
+		}
+		if _, err := os.Stat(filepath.Join(outputDir, "index.md")); err == nil {
+			hasIndex = true
 		}
 		
-		resultMessage = fmt.Sprintf("Successfully converted PDF to %d chapter files with table of contents in %s", 
-			len(chapters), outputDir)
+		var extras []string
+		if hasIndex {
+			extras = append(extras, "navigation index")
+		}
+		if hasSummary {
+			extras = append(extras, "document summary")
+		}
+		if hasComplete {
+			extras = append(extras, "complete document")
+		}
+		
+		extrasStr := ""
+		if len(extras) > 0 {
+			extrasStr = fmt.Sprintf(" with %s", strings.Join(extras, ", "))
+		}
+		
+		resultMessage = fmt.Sprintf("Successfully converted PDF to %d organized sections%s in %s", 
+			sectionCount, extrasStr, outputDir)
 	} else {
-		// Save as single file
-		outputPath := filepath.Join(outputDir, "converted.md")
-		if err := os.WriteFile(outputPath, []byte(initialMD), 0644); err != nil {
-			return nil, fmt.Errorf("failed to save markdown: %v", err)
-		}
-		resultMessage = fmt.Sprintf("Successfully converted PDF to %s", outputPath)
+		// Fallback to single file
+		resultMessage = fmt.Sprintf("Successfully converted PDF to markdown in %s", outputDir)
 	}
 
 	return &CallToolResponse{
@@ -323,11 +345,11 @@ func (s *MCPServer) analyzePDFStructure(args map[string]interface{}) (*CallToolR
 }
 
 // runPythonConverter executes the Python PDF conversion script
-func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables, extractImages bool) (string, error) {
+func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables, extractImages bool) error {
 	// Get Python scripts (embedded or from files in dev mode)
 	convertScript, _, err := getPythonScripts()
 	if err != nil {
-		return "", fmt.Errorf("failed to load Python scripts: %v", err)
+		return fmt.Errorf("failed to load Python scripts: %v", err)
 	}
 	
 	args := []string{"-", pdfPath, outputDir}
@@ -343,24 +365,18 @@ func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables
 	
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("conversion failed: %v\nOutput: %s", err, output)
+		return fmt.Errorf("conversion failed: %v\nOutput: %s", err, output)
 	}
 
-	// Read the generated markdown file
+	// Clean up temporary file if it exists
 	mdPath := filepath.Join(outputDir, "temp_converted.md")
-	content, err := os.ReadFile(mdPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read converted markdown: %v", err)
-	}
-
-	// Clean up temporary file
-	defer func() {
+	if _, err := os.Stat(mdPath); err == nil {
 		if removeErr := os.Remove(mdPath); removeErr != nil {
 			log.Printf("Warning: failed to remove temporary file %s: %v", mdPath, removeErr)
 		}
-	}()
+	}
 
-	return string(content), nil
+	return nil
 }
 
 // Chapter represents a document chapter

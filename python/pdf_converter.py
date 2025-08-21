@@ -50,15 +50,11 @@ class PDFToMarkdownConverter:
             # Fallback to basic extraction
             markdown_content = self.basic_extraction()
         
-        # Save organized content
+        # Save organized content (this does all the work)
         self.save_and_organize_content(markdown_content)
         
-        # Save temp file for compatibility
-        output_file = self.output_dir / "temp_converted.md"
-        with open(output_file, 'w', encoding='utf-8') as f:
-            f.write(markdown_content)
-        
-        return str(output_file)
+        # Return success message
+        return f"Converted PDF to organized sections in {self.output_dir}"
     
     def extract_with_pymupdf(self):
         """Extract text and images using PyMuPDF"""
@@ -255,10 +251,12 @@ class PDFToMarkdownConverter:
         if line.isupper() and 5 < len(line) < 100 and not re.search(r'[{}()\[\]]', line):
             return True
         
-        # Title case and short
+        # Title case and short (but not common sentence starters)
         if re.match(r'^[A-Z][a-z]+(\s+[A-Z][a-z]*)*$', line) and len(line) < 80:
             words = line.split()
-            if len(words) >= 2 and len(words) <= 8:
+            # More restrictive: must be 2-6 words and not start with common sentence words
+            if (2 <= len(words) <= 6 and 
+                not words[0].lower() in ['this', 'the', 'when', 'where', 'how', 'what', 'why', 'if', 'after', 'before', 'during', 'once', 'while', 'since', 'though', 'although', 'because', 'since']):
                 return True
         
         # API endpoints and technical headers
@@ -303,20 +301,43 @@ class PDFToMarkdownConverter:
     def table_to_markdown(self, table):
         """Convert a table (DataFrame or list) to markdown format"""
         if isinstance(table, pd.DataFrame):
-            return table.to_markdown(index=False)
+            # Use pandas markdown with better formatting
+            if table.empty:
+                return ""
+            # Clean up the dataframe first
+            table = table.fillna('')
+            # Convert to string and clean up cells
+            for col in table.columns:
+                table[col] = table[col].astype(str).str.strip()
+            return table.to_markdown(index=False, tablefmt='pipe')
         else:
             # Convert list table to markdown
             if not table or not table[0]:
                 return ""
             
+            # Clean up the table data
+            cleaned_table = []
+            for row in table:
+                if row:  # Skip empty rows
+                    cleaned_row = [str(cell).strip() if cell else "" for cell in row]
+                    if any(cell for cell in cleaned_row):  # Only keep rows with content
+                        cleaned_table.append(cleaned_row)
+            
+            if not cleaned_table:
+                return ""
+            
             md_lines = []
             # Header
-            md_lines.append("| " + " | ".join(str(cell) for cell in table[0]) + " |")
+            header_row = cleaned_table[0]
+            md_lines.append("| " + " | ".join(header_row) + " |")
             # Separator
-            md_lines.append("|" + "|".join(" --- " for _ in table[0]) + "|")
+            md_lines.append("| " + " | ".join("---" for _ in header_row) + " |")
             # Rows
-            for row in table[1:]:
-                md_lines.append("| " + " | ".join(str(cell) if cell else "" for cell in row) + " |")
+            for row in cleaned_table[1:]:
+                # Ensure row has same number of columns as header
+                padded_row = row + [""] * (len(header_row) - len(row))
+                padded_row = padded_row[:len(header_row)]  # Truncate if too long
+                md_lines.append("| " + " | ".join(padded_row) + " |")
             
             return "\n".join(md_lines)
     
@@ -337,15 +358,21 @@ class PDFToMarkdownConverter:
             # Add page marker (comment)
             markdown_parts.append(f"\n<!-- Page {page_num} -->\n")
             
-            # Add text content
-            markdown_parts.append(page_data['text'])
+            # Add text content - ensure we're getting all of it
+            text_content = page_data['text']
+            if text_content.strip():  # Only add if there's actual content
+                markdown_parts.append(text_content)
             
             # Add tables if any
             if page_num in tables_content:
-                for table in tables_content[page_num]:
-                    markdown_parts.append("\n")
-                    markdown_parts.append(self.table_to_markdown(table))
-                    markdown_parts.append("\n")
+                for i, table in enumerate(tables_content[page_num]):
+                    table_md = self.table_to_markdown(table)
+                    if table_md:  # Only add if table conversion succeeded
+                        markdown_parts.append("\n")
+                        markdown_parts.append(f"**Table {i+1} (Page {page_num}):**")
+                        markdown_parts.append("\n")
+                        markdown_parts.append(table_md)
+                        markdown_parts.append("\n")
             
             # Add image references
             for img_path in page_data['images']:
@@ -424,20 +451,33 @@ class PDFToMarkdownConverter:
             return ''
     
     def is_table_row(self, line):
-        """Detect if line is part of a table"""
-        # Multiple columns separated by spaces
-        if len(line.split()) >= 3 and not line.startswith(('•', '-', '*')):
-            # Check for tabular data patterns
-            words = line.split()
-            if len(words) >= 3:
-                # Numbers or short consistent values
-                return True
+        """Detect if line is part of a table (very conservative - let pdfplumber handle real tables)"""
+        # Only detect very obvious table rows that pdfplumber might miss
+        # Such as pipe-separated or tab-separated data
+        if '|' in line and line.count('|') >= 2:
+            return True
+        
+        # Tab-separated data with multiple tabs
+        if '\t' in line and line.count('\t') >= 2:
+            return True
+            
+        # Otherwise, let pdfplumber handle table extraction
         return False
     
     def format_table_row(self, line):
         """Format a line as a markdown table row"""
-        cells = line.split()
-        return '| ' + ' | '.join(cells) + ' |'
+        if '|' in line:
+            # Already pipe-separated, clean it up
+            cells = [cell.strip() for cell in line.split('|') if cell.strip()]
+            return '| ' + ' | '.join(cells) + ' |'
+        elif '\t' in line:
+            # Tab-separated
+            cells = [cell.strip() for cell in line.split('\t') if cell.strip()]
+            return '| ' + ' | '.join(cells) + ' |'
+        else:
+            # Space-separated (fallback)
+            cells = line.split()
+            return '| ' + ' | '.join(cells) + ' |'
     
     def is_list_item(self, line):
         """Detect if line is a list item"""
@@ -576,23 +616,39 @@ tokens: {len(section['content'].split())}
         current_section = {'title': 'Introduction', 'content': '', 'type': 'intro', 'slug': 'introduction'}
         
         for line in lines:
-            # Detect major section breaks (# Headers)
-            if line.startswith('# ') and len(current_section['content'].strip()) > 100:
-                # Save current section
-                current_section['content'] = current_section['content'].strip()
-                sections.append(current_section)
+            # Detect any header level for section breaks (# ## ### etc.)
+            header_match = re.match(r'^(#{1,3})\s+(.+)', line)
+            
+            if header_match:
+                header_level = len(header_match.group(1))
+                header_title = header_match.group(2).strip()
                 
-                # Start new section
-                title = line[2:].strip()
-                slug = self.create_slug(title)
-                section_type = self.determine_section_type(title)
-                current_section = {
-                    'title': title,
-                    'content': line + '\n',
-                    'type': section_type,
-                    'slug': slug
-                }
+                # For level 1 headers, always start a new section
+                # For level 2-3 headers, start new section if current section has content
+                should_create_new_section = (
+                    header_level == 1 or 
+                    (header_level <= 3 and len(current_section['content'].strip()) > 50)
+                )
+                
+                if should_create_new_section and current_section['content'].strip():
+                    # Save current section
+                    current_section['content'] = current_section['content'].strip()
+                    sections.append(current_section)
+                    
+                    # Start new section
+                    slug = self.create_slug(header_title)
+                    section_type = self.determine_section_type(header_title)
+                    current_section = {
+                        'title': header_title,
+                        'content': line + '\n',
+                        'type': section_type,
+                        'slug': slug
+                    }
+                else:
+                    # Add to current section if not creating new one
+                    current_section['content'] += line + '\n'
             else:
+                # Add all non-header content to current section
                 current_section['content'] += line + '\n'
         
         # Add final section
@@ -600,7 +656,18 @@ tokens: {len(section['content'].split())}
             current_section['content'] = current_section['content'].strip()
             sections.append(current_section)
         
-        return sections
+        # Filter out sections that are too small (less than 10 words)
+        # but preserve all content by merging small sections with previous ones
+        filtered_sections = []
+        for section in sections:
+            word_count = len(section['content'].split())
+            if word_count < 10 and filtered_sections:
+                # Merge with previous section
+                filtered_sections[-1]['content'] += '\n\n' + section['content']
+            else:
+                filtered_sections.append(section)
+        
+        return filtered_sections if filtered_sections else sections
     
     def create_slug(self, title):
         """Create a URL-friendly slug from title"""
