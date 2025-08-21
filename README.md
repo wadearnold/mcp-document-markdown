@@ -123,6 +123,11 @@ docs/
 │   ├── 01-introduction.md         # With token counts & LLM fit
 │   ├── 02-authentication.md       # Semantic type detection
 │   └── 03-api-endpoints.md        # Smart chunking
+├── api-endpoints/                  # Individual API endpoint files
+│   ├── README.md                   # API index and processing guide
+│   ├── 01-post-users-create.md    # POST /users endpoint
+│   ├── 02-get-users-id.md         # GET /users/{id} endpoint
+│   └── 03-delete-users-id.md      # DELETE /users/{id} endpoint
 ├── complete/
 │   └── full-document.md           # Complete document
 ├── images/                        # Extracted images
@@ -153,6 +158,40 @@ llm_processing_notes: ["Extract authentication mechanisms, required headers, and
 ---
 ```
 
+#### API Endpoint Extraction (NEW!)
+Individual files created for each API endpoint with complete documentation:
+```markdown
+---
+title: POST /users/{id}/update
+method: POST
+path: /users/{id}/update
+endpoint_type: api_endpoint
+tokens: 1847
+optimal_model: gpt-4
+has_parameters: true
+has_request_body: true
+authentication_required: true
+---
+
+# POST /users/{id}/update
+
+## Parameters
+| Name | Location | Type | Required |
+|------|----------|------|----------|
+| id   | path     | string | true   |
+
+## Request Body
+```json
+{"name": "John", "email": "john@example.com"}
+```
+
+## Examples
+### CURL
+```curl
+curl -X POST /users/123/update -H "Authorization: Bearer token"
+```
+```
+
 #### Intelligent Section Types
 - **api_endpoint**: HTTP methods, URLs, parameters
 - **authentication**: OAuth, JWT, API keys, credentials  
@@ -179,11 +218,13 @@ The **llm-compatibility-report.md** shows:
 ### Benefits for LLM Processing
 
 ✅ **Semantic Understanding**: LLMs instantly know content type and purpose
+✅ **API Endpoint Focus**: Individual files for each endpoint with complete context
 ✅ **Processing Priority**: Critical sections (authentication, APIs) identified first  
 ✅ **Context Window Management**: Precise token counts and model recommendations
-✅ **Content Analysis**: Automatic detection of code, tables, and API endpoints
+✅ **Structured API Data**: Parameters, request/response formats, and examples extracted
 ✅ **Workflow Optimization**: Processing notes guide LLMs on what to focus on
-✅ **Batch Planning**: Group sections by type and priority for efficient processing
+✅ **Batch API Processing**: Process related endpoints together for efficient integration
+✅ **Code Generation Ready**: Complete endpoint info for automatic client generation
 ✅ **Cost Estimation**: Calculate API costs based on accurate token counts
 
 Each file is optimized for LLM processing and includes:
@@ -370,7 +411,38 @@ for section in api_sections:
 # Process sections with code examples
 code_sections = [s for s in metadata['sections'] if s.get('contains_code')]
 print(f"Found {len(code_sections)} sections with executable code")
+
+# Work with API endpoints
+api_dir = 'docs/api-endpoints'
+if os.path.exists(api_dir):
+    endpoint_files = [f for f in os.listdir(api_dir) if f.endswith('.md') and f != 'README.md']
+    print(f"Found {len(endpoint_files)} API endpoints")
+    
+    # Process endpoints by method
+    for filename in endpoint_files:
+        with open(f"{api_dir}/{filename}") as f:
+            content = f.read()
+            if 'method: POST' in content:
+                print(f"Found POST endpoint: {filename}")
 ```
+
+### API Endpoint Features
+
+Each extracted API endpoint includes:
+
+- **Complete Parameter Documentation**: Path and query parameters with types
+- **Request/Response Examples**: JSON payloads and response formats
+- **Authentication Requirements**: Bearer tokens, API keys, headers
+- **HTTP Status Codes**: Success and error response codes
+- **cURL Examples**: Ready-to-use command line examples
+- **Token Counts**: For context window planning
+- **Source Context**: Original documentation for reference
+
+**API Index File** (`api-endpoints/README.md`) provides:
+- Quick reference table of all endpoints
+- Processing strategies for LLMs
+- Categorization by HTTP method
+- Batch processing recommendations
 
 ### Token Counting Accuracy
 

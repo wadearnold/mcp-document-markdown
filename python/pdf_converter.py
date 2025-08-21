@@ -72,6 +72,9 @@ class PDFToMarkdownConverter:
         # Save organized content (this does all the work)
         self.save_and_organize_content(markdown_content)
         
+        # Extract and create dedicated API endpoint files
+        self.extract_api_endpoints_to_files(markdown_content)
+        
         # Generate metadata file with statistics
         self.generate_metadata_file()
         
@@ -1225,6 +1228,358 @@ This document has been automatically organized into sections for optimal AI assi
             strategies.append("✅ Many small sections - can process multiple at once")
         
         return strategies if strategies else ["✅ Document is well-structured for LLM processing"]
+    
+    def extract_api_endpoints_to_files(self, content):
+        """Extract API endpoints and create dedicated files for each"""
+        endpoints_dir = self.output_dir / "api-endpoints"
+        endpoints_dir.mkdir(exist_ok=True)
+        
+        # Extract all endpoints with their context
+        endpoints = self.find_detailed_endpoints(content)
+        
+        if not endpoints:
+            return
+        
+        endpoint_files = []
+        
+        for i, endpoint in enumerate(endpoints, 1):
+            # Create filename from endpoint
+            filename = self.create_endpoint_filename(endpoint['method'], endpoint['path'])
+            filepath = endpoints_dir / f"{i:02d}-{filename}.md"
+            
+            # Create structured endpoint documentation
+            endpoint_content = self.create_endpoint_documentation(endpoint)
+            
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(endpoint_content)
+            
+            endpoint_files.append({
+                'filename': filepath.name,
+                'method': endpoint['method'],
+                'path': endpoint['path'],
+                'summary': endpoint.get('summary', 'No summary available')
+            })
+        
+        # Create API index file
+        self.create_api_index(endpoint_files)
+        
+        return endpoint_files
+    
+    def find_detailed_endpoints(self, content):
+        """Find API endpoints with detailed context analysis"""
+        endpoints = []
+        lines = content.split('\n')
+        
+        for i, line in enumerate(lines):
+            # Look for HTTP method patterns
+            method_match = re.match(r'^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\s+([^\s\n]+)', line.strip(), re.IGNORECASE)
+            
+            if method_match:
+                method = method_match.group(1).upper()
+                path = method_match.group(2)
+                
+                # Extract context around the endpoint (before and after)
+                context_before = '\n'.join(lines[max(0, i-10):i])
+                context_after = '\n'.join(lines[i+1:min(len(lines), i+20)])
+                
+                endpoint = {
+                    'method': method,
+                    'path': path,
+                    'line_number': i,
+                    'context_before': context_before,
+                    'context_after': context_after,
+                    'full_context': '\n'.join(lines[max(0, i-5):min(len(lines), i+15)])
+                }
+                
+                # Extract additional information
+                endpoint.update(self.analyze_endpoint_context(endpoint))
+                endpoints.append(endpoint)
+        
+        # Remove duplicates based on method and path
+        unique_endpoints = []
+        seen = set()
+        for ep in endpoints:
+            key = f"{ep['method']} {ep['path']}"
+            if key not in seen:
+                seen.add(key)
+                unique_endpoints.append(ep)
+        
+        return unique_endpoints
+    
+    def analyze_endpoint_context(self, endpoint):
+        """Analyze the context around an endpoint to extract detailed information"""
+        full_context = endpoint['full_context']
+        analysis = {
+            'summary': '',
+            'description': '',
+            'parameters': [],
+            'request_body': {},
+            'responses': {},
+            'headers': [],
+            'authentication': '',
+            'examples': []
+        }
+        
+        # Extract summary (look for headers or descriptions near the endpoint)
+        summary_patterns = [
+            r'(?:#+\s*)([^\n]+?)(?:\n|$)',  # Markdown headers
+            r'(?:^|\n)([A-Z][^.\n]+\.)',   # Sentences starting with capital letters
+        ]
+        
+        for pattern in summary_patterns:
+            matches = re.findall(pattern, endpoint['context_before'], re.MULTILINE)
+            if matches:
+                analysis['summary'] = matches[-1].strip()  # Take the last/closest match
+                break
+        
+        # Extract parameters from URL path
+        path_params = re.findall(r'\{([^}]+)\}', endpoint['path'])
+        for param in path_params:
+            analysis['parameters'].append({
+                'name': param,
+                'location': 'path',
+                'type': 'string',  # Default assumption
+                'required': True
+            })
+        
+        # Look for query parameters in context
+        query_patterns = [
+            r'[?&]([a-zA-Z_][a-zA-Z0-9_]*)=',
+            r'parameter[s]?:\s*([a-zA-Z_][a-zA-Z0-9_,\s]*)',
+            r'query:\s*([a-zA-Z_][a-zA-Z0-9_,\s]*)'
+        ]
+        
+        for pattern in query_patterns:
+            matches = re.findall(pattern, full_context, re.IGNORECASE)
+            for match in matches:
+                if isinstance(match, str):
+                    params = [p.strip() for p in match.split(',')]
+                    for param in params:
+                        if param and param not in [p['name'] for p in analysis['parameters']]:
+                            analysis['parameters'].append({
+                                'name': param,
+                                'location': 'query',
+                                'type': 'string',
+                                'required': False
+                            })
+        
+        # Extract request body information (JSON patterns)
+        json_patterns = [
+            r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}',  # Simple JSON objects
+            r'```json\s*\n(.*?)\n```',           # Code blocks
+        ]
+        
+        for pattern in json_patterns:
+            matches = re.findall(pattern, full_context, re.DOTALL | re.IGNORECASE)
+            if matches:
+                try:
+                    # Try to parse as JSON to validate
+                    json.loads(matches[0])
+                    analysis['request_body'] = {
+                        'content_type': 'application/json',
+                        'example': matches[0],
+                        'schema': 'See example for structure'
+                    }
+                    break
+                except:
+                    # If not valid JSON, still include as example
+                    analysis['request_body'] = {
+                        'content_type': 'application/json',
+                        'example': matches[0],
+                        'schema': 'Example may need validation'
+                    }
+                    break
+        
+        # Extract response information (status codes)
+        status_codes = re.findall(r'\b(2\d{2}|3\d{2}|4\d{2}|5\d{2})\b', full_context)
+        for code in set(status_codes):  # Remove duplicates
+            analysis['responses'][code] = {
+                'description': self.get_status_code_description(code)
+            }
+        
+        # Extract authentication information
+        auth_patterns = [
+            r'Bearer\s+token',
+            r'API[_\s]?Key',
+            r'Authorization:\s*([^\n]+)',
+            r'auth[a-z]*:\s*([^\n]+)'
+        ]
+        
+        for pattern in auth_patterns:
+            matches = re.findall(pattern, full_context, re.IGNORECASE)
+            if matches:
+                analysis['authentication'] = matches[0] if isinstance(matches[0], str) else 'Required'
+                break
+        
+        # Extract cURL examples
+        curl_pattern = r'curl\s+[^`\n]*(?:`[^`]*`[^`\n]*)*'
+        curl_matches = re.findall(curl_pattern, full_context, re.IGNORECASE | re.MULTILINE)
+        for curl in curl_matches:
+            analysis['examples'].append({
+                'language': 'curl',
+                'code': curl.strip()
+            })
+        
+        return analysis
+    
+    def create_endpoint_filename(self, method, path):
+        """Create a safe filename for an endpoint"""
+        # Clean the path
+        clean_path = re.sub(r'[^\w\-_/]', '', path)
+        clean_path = clean_path.replace('/', '-').strip('-')
+        
+        # Combine method and path
+        filename = f"{method.lower()}-{clean_path}"
+        
+        # Ensure it's not too long
+        return filename[:50].strip('-')
+    
+    def create_endpoint_documentation(self, endpoint):
+        """Create comprehensive documentation for a single endpoint"""
+        method = endpoint['method']
+        path = endpoint['path']
+        
+        # Calculate tokens for the endpoint documentation
+        full_content = endpoint['full_context']
+        token_count = self.count_tokens(full_content)
+        
+        doc = f"""---
+title: {method} {path}
+method: {method}
+path: {path}
+endpoint_type: api_endpoint
+tokens: {token_count}
+optimal_model: {self.get_best_fit_model(token_count)}
+has_parameters: {len(endpoint.get('parameters', [])) > 0}
+has_request_body: {bool(endpoint.get('request_body', {}))}
+has_examples: {len(endpoint.get('examples', [])) > 0}
+authentication_required: {bool(endpoint.get('authentication', ''))}
+---
+
+# {method} {path}
+
+## Summary
+{endpoint.get('summary', 'No summary available')}
+
+## Description
+{endpoint.get('description', 'No detailed description available')}
+
+## Authentication
+{endpoint.get('authentication', 'Authentication requirements not specified')}
+
+## Parameters
+"""
+        
+        # Add parameters section
+        if endpoint.get('parameters'):
+            doc += "\n| Name | Location | Type | Required | Description |\n"
+            doc += "|------|----------|------|----------|-------------|\n"
+            for param in endpoint['parameters']:
+                doc += f"| {param['name']} | {param['location']} | {param['type']} | {param['required']} | - |\n"
+        else:
+            doc += "No parameters required.\n"
+        
+        # Add request body section
+        if endpoint.get('request_body'):
+            req_body = endpoint['request_body']
+            doc += f"\n## Request Body\n"
+            doc += f"**Content-Type:** {req_body.get('content_type', 'application/json')}\n\n"
+            if req_body.get('example'):
+                doc += f"**Example:**\n```json\n{req_body['example']}\n```\n"
+        
+        # Add responses section
+        doc += "\n## Responses\n"
+        if endpoint.get('responses'):
+            for code, response in endpoint['responses'].items():
+                doc += f"\n### {code}\n{response.get('description', 'No description')}\n"
+        else:
+            doc += "Response formats not documented in source.\n"
+        
+        # Add examples section
+        if endpoint.get('examples'):
+            doc += "\n## Examples\n"
+            for example in endpoint['examples']:
+                doc += f"\n### {example['language'].upper()}\n```{example['language']}\n{example['code']}\n```\n"
+        
+        # Add raw context for LLM reference
+        doc += f"\n## Source Context\n```\n{endpoint['full_context'][:1000]}{'...' if len(endpoint['full_context']) > 1000 else ''}\n```\n"
+        
+        return doc
+    
+    def get_status_code_description(self, code):
+        """Get human-readable description for HTTP status codes"""
+        descriptions = {
+            '200': 'OK - Success',
+            '201': 'Created - Resource created successfully',
+            '204': 'No Content - Success with no response body',
+            '400': 'Bad Request - Invalid request format',
+            '401': 'Unauthorized - Authentication required',
+            '403': 'Forbidden - Access denied',
+            '404': 'Not Found - Resource not found',
+            '422': 'Unprocessable Entity - Validation failed',
+            '500': 'Internal Server Error - Server error'
+        }
+        return descriptions.get(code, f'HTTP {code}')
+    
+    def create_api_index(self, endpoint_files):
+        """Create an index file listing all API endpoints"""
+        index_content = f"""# API Endpoints Index
+
+Generated: {datetime.now().isoformat()}
+Total Endpoints: {len(endpoint_files)}
+
+## Quick Reference
+
+| Method | Path | Summary | File |
+|--------|------|---------|------|
+"""
+        
+        for endpoint in endpoint_files:
+            summary = endpoint['summary'][:50] + '...' if len(endpoint['summary']) > 50 else endpoint['summary']
+            index_content += f"| {endpoint['method']} | {endpoint['path']} | {summary} | [{endpoint['filename']}](api-endpoints/{endpoint['filename']}) |\n"
+        
+        index_content += f"""
+
+## Usage for LLMs
+
+Each endpoint file contains:
+- Complete parameter documentation
+- Request/response examples  
+- Authentication requirements
+- Source context for reference
+- Token counts and processing guidance
+
+### Processing Strategy
+1. **Start with authentication endpoints** for API access setup
+2. **Process core CRUD endpoints** for main functionality
+3. **Handle specialized endpoints** based on use case
+4. **Reference error codes** for debugging
+
+### Batch Processing
+- Group endpoints by authentication type
+- Process related endpoints together (e.g., user management)
+- Use token counts to optimize context windows
+
+## Endpoint Categories
+"""
+        
+        # Group by HTTP method
+        methods = {}
+        for endpoint in endpoint_files:
+            method = endpoint['method']
+            if method not in methods:
+                methods[method] = []
+            methods[method].append(endpoint)
+        
+        for method, endpoints in methods.items():
+            index_content += f"\n### {method} Endpoints ({len(endpoints)})\n"
+            for endpoint in endpoints:
+                index_content += f"- [{endpoint['path']}](api-endpoints/{endpoint['filename']}) - {endpoint['summary']}\n"
+        
+        # Save index
+        index_file = self.output_dir / "api-endpoints" / "README.md"
+        with open(index_file, 'w', encoding='utf-8') as f:
+            f.write(index_content)
     
     def create_metadata_summary(self, metadata):
         """Create a human-readable metadata summary"""

@@ -270,6 +270,8 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 		hasIndex := false
 		hasMetadata := false
 		hasLLMReport := false
+		hasAPIEndpoints := false
+		apiEndpointCount := 0
 		
 		if _, err := os.Stat(filepath.Join(outputDir, "complete", "full-document.md")); err == nil {
 			hasComplete = true
@@ -287,6 +289,18 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 			hasLLMReport = true
 		}
 		
+		// Check for API endpoints directory
+		apiDir := filepath.Join(outputDir, "api-endpoints")
+		if files, err := os.ReadDir(apiDir); err == nil {
+			hasAPIEndpoints = true
+			// Count .md files (excluding README.md)
+			for _, file := range files {
+				if strings.HasSuffix(file.Name(), ".md") && file.Name() != "README.md" {
+					apiEndpointCount++
+				}
+			}
+		}
+		
 		var extras []string
 		if hasIndex {
 			extras = append(extras, "navigation index")
@@ -302,6 +316,9 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 		}
 		if hasLLMReport {
 			extras = append(extras, "LLM compatibility report")
+		}
+		if hasAPIEndpoints {
+			extras = append(extras, fmt.Sprintf("%d API endpoints", apiEndpointCount))
 		}
 		
 		extrasStr := ""
