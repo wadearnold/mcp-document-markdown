@@ -179,6 +179,7 @@ Each file is optimized for AI context windows and includes:
 ### Prerequisites
 - Go 1.21 or higher
 - Python 3.8 or higher
+- Python dependencies (installed automatically via `make setup` or `pip install -r requirements.txt`)
 
 ### Build Options
 
@@ -191,9 +192,7 @@ make build    # Build the server
 #### Option 2: Manual Build
 ```bash
 go mod download
-pip install pypdf pdfplumber pymupdf pandas pillow tabulate markdown
-# Optional: Install tiktoken for accurate token counting (recommended)
-pip install tiktoken
+pip install -r requirements.txt
 go build -o bin/mcp-pdf-markdown main.go python_embed.go python_loader.go
 ```
 

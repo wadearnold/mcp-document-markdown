@@ -4,7 +4,8 @@ WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
 COPY *.go ./
-RUN go build -o mcp-server .
+COPY python/ ./python/
+RUN go build -o mcp-server main.go python_embed.go python_loader.go
 
 FROM python:3.11-slim
 
@@ -17,15 +18,11 @@ RUN apt-get update && apt-get install -y \
     libxslt-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy requirements file
+COPY requirements.txt .
+
 # Install Python dependencies
-RUN pip install --no-cache-dir \
-    pypdf \
-    pdfplumber \
-    pymupdf \
-    pandas \
-    pillow \
-    tabulate \
-    markdown
+RUN pip install --no-cache-dir -r requirements.txt
 
 WORKDIR /app
 COPY --from=builder /build/mcp-server .
