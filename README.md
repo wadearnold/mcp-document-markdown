@@ -19,19 +19,11 @@ Convert any PDF into structured documentation that your AI assistant can underst
 
 ### 1. Install the MCP Server
 
-**Option A: Standard Install**
 ```bash
 git clone https://github.com/wadearnold/mcp-pdf-markdown.git
 cd mcp-pdf-markdown
 make setup    # Installs dependencies
 make build    # Builds the server
-```
-
-**Option B: Docker (Alternative)**
-```bash
-git clone https://github.com/wadearnold/mcp-pdf-markdown.git
-cd mcp-pdf-markdown
-docker build -t mcp-pdf-markdown .
 ```
 
 ### 2. Configure Your AI Assistant
@@ -179,20 +171,6 @@ rag_output/
 ```
 
 ## Configuration
-
-### Docker Setup
-If you chose Docker installation, configure it as an alternative to Step 1:
-
-**For Docker-based MCP client configs**, use:
-```json
-{
-  "command": "docker",
-  "args": ["run", "--rm", "-v", "/path/to/your/pdfs:/pdfs", "mcp-pdf-markdown"],
-  "env": {}
-}
-```
-
-**Note**: This runs a container per request. For better performance, consider running a persistent container.
 
 ### Tool Parameters
 
