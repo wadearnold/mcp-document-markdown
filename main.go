@@ -191,6 +191,11 @@ func (s *MCPServer) handleToolsList() (*ToolsListResponse, error) {
 						"description": "Whether to convert tables to structured JSON format with data type detection",
 						"default":     true,
 					},
+					"build_search_index": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Whether to build comprehensive search index with terms, endpoints, and error codes",
+						"default":     true,
+					},
 				},
 				"required": []string{"pdf_path"},
 			},
@@ -258,6 +263,11 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 		structuredTables = structured
 	}
 
+	buildSearchIndex := true
+	if searchIndex, ok := args["build_search_index"].(bool); ok {
+		buildSearchIndex = searchIndex
+	}
+
 	// Create output directory
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create output directory: %v", err)
@@ -265,7 +275,7 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 
 	// Convert PDF using Python script (handles all organization automatically)
 	log.Printf("Converting PDF: %s", pdfPath)
-	err := s.runPythonConverter(pdfPath, outputDir, preserveTables, extractImages, enableChunking, structuredTables)
+	err := s.runPythonConverter(pdfPath, outputDir, preserveTables, extractImages, enableChunking, structuredTables, buildSearchIndex)
 	if err != nil {
 		return nil, fmt.Errorf("PDF conversion failed: %v", err)
 	}
@@ -382,6 +392,17 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 			extras = append(extras, fmt.Sprintf("%d structured tables", structuredTableCount))
 		}
 		
+		// Check for search index directory
+		hasSearchIndex := false
+		searchIndexDir := filepath.Join(outputDir, "search-index")
+		if _, err := os.Stat(searchIndexDir); err == nil {
+			hasSearchIndex = true
+		}
+		
+		if hasSearchIndex {
+			extras = append(extras, "search index")
+		}
+		
 		extrasStr := ""
 		if len(extras) > 0 {
 			extrasStr = fmt.Sprintf(" with %s", strings.Join(extras, ", "))
@@ -437,7 +458,7 @@ func (s *MCPServer) analyzePDFStructure(args map[string]interface{}) (*CallToolR
 }
 
 // runPythonConverter executes the Python PDF conversion script
-func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables, extractImages, enableChunking, structuredTables bool) error {
+func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables, extractImages, enableChunking, structuredTables, buildSearchIndex bool) error {
 	// Get Python scripts (embedded or from files in dev mode)
 	convertScript, _, err := getPythonScripts()
 	if err != nil {
@@ -456,6 +477,9 @@ func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables
 	}
 	if structuredTables {
 		args = append(args, "--structured-tables")
+	}
+	if buildSearchIndex {
+		args = append(args, "--build-search-index")
 	}
 
 	cmd := exec.Command(s.pythonPath, args...)
