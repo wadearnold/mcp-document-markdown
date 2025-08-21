@@ -26,7 +26,7 @@ except ImportError:
     print("Warning: tiktoken not available. Using approximation for token counting.", file=sys.stderr)
 
 class PDFToMarkdownConverter:
-    def __init__(self, pdf_path, output_dir, preserve_tables=True, extract_images=True, enable_chunking=True, structured_tables=True, build_search_index=True):
+    def __init__(self, pdf_path, output_dir, preserve_tables=True, extract_images=True, enable_chunking=True, structured_tables=True, build_search_index=True, generate_concept_map=True):
         self.pdf_path = pdf_path
         self.output_dir = Path(output_dir)
         self.preserve_tables = preserve_tables
@@ -34,6 +34,7 @@ class PDFToMarkdownConverter:
         self.enable_chunking = enable_chunking
         self.structured_tables = structured_tables
         self.build_search_index = build_search_index
+        self.generate_concept_map = generate_concept_map
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.images_dir = self.output_dir / "images"
         if self.extract_images:
@@ -97,6 +98,10 @@ class PDFToMarkdownConverter:
         # Build searchable index with terms, endpoints, and error codes if enabled
         if self.build_search_index:
             self.build_searchable_index(markdown_content, sections)
+        
+        # Generate concept map and glossary of technical terms
+        if self.generate_concept_map:
+            self.generate_concept_map_and_glossary(sections)
         
         # Return success message
         return f"Converted PDF to organized sections in {self.output_dir}"
@@ -3046,6 +3051,1196 @@ The search index is optimized for LLM queries with:
         frequencies = [data['frequency'] for data in terms_data.values()]
         return round(sum(frequencies) / len(frequencies), 1)
     
+    def generate_concept_map_and_glossary(self, sections):
+        """Generate concept map and comprehensive glossary of technical terms"""
+        # Create concepts directory
+        concepts_dir = self.output_dir / "concepts"
+        concepts_dir.mkdir(exist_ok=True)
+        
+        # Extract comprehensive term information
+        terms_data = self.extract_comprehensive_terms(sections)
+        concepts_data = self.extract_concept_definitions(sections)
+        relationships = self.build_concept_relationships(terms_data, concepts_data, sections)
+        
+        # Generate concept map
+        concept_map = self.create_concept_map(terms_data, concepts_data, relationships)
+        
+        # Generate comprehensive glossary
+        glossary = self.create_comprehensive_glossary(terms_data, concepts_data)
+        
+        # Create visualization data for concept relationships
+        visualization_data = self.create_concept_visualization_data(concept_map, relationships)
+        
+        # Save all concept files
+        self.save_concept_files(concepts_dir, concept_map, glossary, visualization_data, terms_data)
+        
+        return len(terms_data) + len(concepts_data)
+    
+    def extract_comprehensive_terms(self, sections):
+        """Extract comprehensive technical terms with enhanced context"""
+        terms_data = {}
+        
+        # Enhanced technical term patterns with more categories
+        term_patterns = {
+            'api_concepts': r'\b(?:API|REST|GraphQL|endpoint|authentication|authorization|token|OAuth|JWT|CORS|rate.?limit|webhook|callback)\b',
+            'http_concepts': r'\b(?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|HTTP|HTTPS|request|response|header|body|status.?code)\b',
+            'data_concepts': r'\b(?:JSON|XML|YAML|CSV|Base64|UTF-8|ASCII|schema|validation|serialization|deserialization|encoding)\b',
+            'security_concepts': r'\b(?:encryption|hash|salt|certificate|private.?key|public.?key|signature|TLS|SSL|HMAC|RSA|AES)\b',
+            'database_concepts': r'\b(?:SQL|NoSQL|database|table|query|index|schema|migration|transaction|ACID|relation)\b',
+            'programming_concepts': r'\b(?:function|method|class|object|array|string|integer|boolean|null|undefined|variable|constant)\b',
+            'network_concepts': r'\b(?:TCP|UDP|IP|DNS|URL|URI|WebSocket|gRPC|protocol|port|socket|proxy|firewall)\b',
+            'architecture_concepts': r'\b(?:microservices|monolith|container|docker|kubernetes|serverless|cloud|scaling|load.?balancer)\b',
+            'business_concepts': r'\b(?:user|customer|account|profile|permission|role|license|subscription|payment|billing)\b',
+            'process_concepts': r'\b(?:workflow|pipeline|deployment|testing|debugging|monitoring|logging|analytics|metrics)\b'
+        }
+        
+        for section in sections:
+            section_content = section.get('content', '')
+            section_title = section.get('title', 'Unknown')
+            section_slug = section.get('slug', 'unknown')
+            section_type = section.get('section_type', 'general')
+            
+            for category, pattern in term_patterns.items():
+                matches = re.finditer(pattern, section_content, re.IGNORECASE)
+                
+                for match in matches:
+                    term = match.group().lower().strip()
+                    
+                    # Extract enhanced context
+                    context_start = max(0, match.start() - 100)
+                    context_end = min(len(section_content), match.end() + 100)
+                    context = section_content[context_start:context_end].strip()
+                    
+                    # Extract definition if present
+                    definition = self.extract_term_definition(section_content, match.start(), term)
+                    
+                    if term not in terms_data:
+                        terms_data[term] = {
+                            'term': term,
+                            'category': category,
+                            'frequency': 0,
+                            'sections': [],
+                            'contexts': [],
+                            'definitions': [],
+                            'section_types': set(),
+                            'importance_score': 0,
+                            'related_terms': set(),
+                            'usage_patterns': []
+                        }
+                    
+                    terms_data[term]['frequency'] += 1
+                    terms_data[term]['section_types'].add(section_type)
+                    
+                    # Add section reference
+                    section_ref = {
+                        'title': section_title,
+                        'slug': section_slug,
+                        'section_type': section_type,
+                        'occurrences': 1,
+                        'context_snippet': context[:200] + '...' if len(context) > 200 else context
+                    }
+                    
+                    # Check if section already referenced
+                    existing_section = None
+                    for sect in terms_data[term]['sections']:
+                        if sect['slug'] == section_slug:
+                            existing_section = sect
+                            break
+                    
+                    if existing_section:
+                        existing_section['occurrences'] += 1
+                    else:
+                        terms_data[term]['sections'].append(section_ref)
+                    
+                    # Add definition if found
+                    if definition and definition not in terms_data[term]['definitions']:
+                        terms_data[term]['definitions'].append(definition)
+                    
+                    # Add context (limit to 5 best contexts)
+                    if len(terms_data[term]['contexts']) < 5:
+                        relevance = self.calculate_enhanced_relevance(term, context, section_type)
+                        terms_data[term]['contexts'].append({
+                            'section': section_title,
+                            'context': context,
+                            'relevance': relevance,
+                            'section_type': section_type
+                        })
+                    
+                    # Extract related terms from context
+                    related_terms = self.extract_related_terms_from_context(context, term, term_patterns)
+                    terms_data[term]['related_terms'].update(related_terms)
+        
+        # Calculate importance scores and convert sets to lists
+        for term, data in terms_data.items():
+            data['importance_score'] = self.calculate_term_importance(data)
+            data['section_types'] = list(data['section_types'])
+            data['related_terms'] = list(data['related_terms'])
+            
+            # Sort contexts by relevance
+            data['contexts'].sort(key=lambda x: x['relevance'], reverse=True)
+        
+        return terms_data
+    
+    def extract_concept_definitions(self, sections):
+        """Extract explicit concept definitions and explanations"""
+        concepts_data = {}
+        
+        # Patterns for finding definitions
+        definition_patterns = [
+            r'(\w+)\s+(?:is|means|refers to|defines?|represents?)\s+([^.!?]{10,200}[.!?])',
+            r'(\w+):\s+([^.!?]{10,200}[.!?])',
+            r'(\w+)\s*[-–]\s*([^.!?]{10,200}[.!?])',
+            r'(?:define|definition of|meaning of)\s+(\w+)[:\s]+([^.!?]{10,200}[.!?])',
+            r'\b([A-Z]{2,})\s*\(([^)]{10,100})\)',  # Acronyms with explanations
+        ]
+        
+        for section in sections:
+            section_content = section.get('content', '')
+            section_title = section.get('title', 'Unknown')
+            section_slug = section.get('slug', 'unknown')
+            section_type = section.get('section_type', 'general')
+            
+            for pattern in definition_patterns:
+                matches = re.finditer(pattern, section_content, re.IGNORECASE | re.MULTILINE)
+                
+                for match in matches:
+                    concept = match.group(1).lower().strip()
+                    definition = match.group(2).strip()
+                    
+                    # Filter out very short or very generic terms
+                    if len(concept) < 2 or concept in ['the', 'and', 'for', 'with', 'this', 'that']:
+                        continue
+                    
+                    # Clean up definition
+                    definition = re.sub(r'\s+', ' ', definition).strip()
+                    
+                    if concept not in concepts_data:
+                        concepts_data[concept] = {
+                            'concept': concept,
+                            'definitions': [],
+                            'sections': [],
+                            'category': self.categorize_concept(concept, definition),
+                            'complexity_score': 0,
+                            'usage_frequency': 0,
+                            'related_concepts': set(),
+                            'examples': []
+                        }
+                    
+                    # Add definition if not already present
+                    if definition not in concepts_data[concept]['definitions']:
+                        concepts_data[concept]['definitions'].append(definition)
+                    
+                    # Add section reference
+                    section_ref = {
+                        'title': section_title,
+                        'slug': section_slug,
+                        'section_type': section_type,
+                        'definition_context': definition
+                    }
+                    concepts_data[concept]['sections'].append(section_ref)
+                    
+                    # Calculate complexity
+                    concepts_data[concept]['complexity_score'] = self.calculate_concept_complexity(definition)
+                    
+                    # Extract examples if present
+                    examples = self.extract_concept_examples(section_content, match.start(), concept)
+                    concepts_data[concept]['examples'].extend(examples)
+        
+        # Convert sets to lists and calculate final scores
+        for concept, data in concepts_data.items():
+            data['related_concepts'] = list(data['related_concepts'])
+            data['usage_frequency'] = len(data['sections'])
+        
+        return concepts_data
+    
+    def build_concept_relationships(self, terms_data, concepts_data, sections):
+        """Build relationships between concepts and terms"""
+        relationships = {
+            'term_to_term': {},
+            'concept_to_concept': {},
+            'term_to_concept': {},
+            'hierarchical': {},
+            'semantic_clusters': {}
+        }
+        
+        # Build term-to-term relationships based on co-occurrence
+        for term1, data1 in terms_data.items():
+            relationships['term_to_term'][term1] = []
+            
+            for term2, data2 in terms_data.items():
+                if term1 == term2:
+                    continue
+                
+                # Calculate relationship strength based on shared sections
+                shared_sections = set(s['slug'] for s in data1['sections']) & set(s['slug'] for s in data2['sections'])
+                
+                if shared_sections:
+                    relationship_strength = len(shared_sections) / max(len(data1['sections']), len(data2['sections']))
+                    
+                    if relationship_strength > 0.1:  # Threshold for meaningful relationship
+                        relationships['term_to_term'][term1].append({
+                            'related_term': term2,
+                            'strength': round(relationship_strength, 3),
+                            'shared_sections': len(shared_sections),
+                            'relationship_type': self.determine_relationship_type(term1, term2, data1, data2)
+                        })
+            
+            # Sort by strength
+            relationships['term_to_term'][term1].sort(key=lambda x: x['strength'], reverse=True)
+            relationships['term_to_term'][term1] = relationships['term_to_term'][term1][:10]  # Top 10
+        
+        # Build concept-to-concept relationships
+        for concept1, data1 in concepts_data.items():
+            relationships['concept_to_concept'][concept1] = []
+            
+            for concept2, data2 in concepts_data.items():
+                if concept1 == concept2:
+                    continue
+                
+                # Check for definitional relationships
+                definition_similarity = self.calculate_definition_similarity(data1['definitions'], data2['definitions'])
+                
+                if definition_similarity > 0.2:
+                    relationships['concept_to_concept'][concept1].append({
+                        'related_concept': concept2,
+                        'similarity': round(definition_similarity, 3),
+                        'relationship_type': 'definitional'
+                    })
+        
+        # Build term-to-concept relationships
+        for term, term_data in terms_data.items():
+            relationships['term_to_concept'][term] = []
+            
+            for concept, concept_data in concepts_data.items():
+                # Check if term appears in concept definitions
+                for definition in concept_data['definitions']:
+                    if term in definition.lower():
+                        relationships['term_to_concept'][term].append({
+                            'concept': concept,
+                            'relationship_type': 'definition_mention',
+                            'context': definition
+                        })
+        
+        # Create semantic clusters
+        relationships['semantic_clusters'] = self.create_semantic_clusters(terms_data, concepts_data)
+        
+        return relationships
+    
+    def create_concept_map(self, terms_data, concepts_data, relationships):
+        """Create a comprehensive concept map structure"""
+        concept_map = {
+            'metadata': {
+                'generated_at': datetime.now().isoformat(),
+                'total_terms': len(terms_data),
+                'total_concepts': len(concepts_data),
+                'total_relationships': sum(len(rels) for rels in relationships['term_to_term'].values())
+            },
+            'nodes': {},
+            'edges': [],
+            'clusters': relationships['semantic_clusters'],
+            'hierarchy': self.build_concept_hierarchy(terms_data, concepts_data)
+        }
+        
+        # Create nodes for terms
+        for term, data in terms_data.items():
+            concept_map['nodes'][term] = {
+                'id': term,
+                'type': 'term',
+                'category': data['category'],
+                'importance': data['importance_score'],
+                'frequency': data['frequency'],
+                'sections': len(data['sections']),
+                'definitions': data['definitions'][:2],  # Top 2 definitions
+                'section_types': data['section_types']
+            }
+        
+        # Create nodes for concepts
+        for concept, data in concepts_data.items():
+            concept_map['nodes'][concept] = {
+                'id': concept,
+                'type': 'concept',
+                'category': data['category'],
+                'complexity': data['complexity_score'],
+                'frequency': data['usage_frequency'],
+                'definitions': data['definitions'][:1],  # Primary definition
+                'examples': data['examples'][:3]  # Top 3 examples
+            }
+        
+        # Create edges for relationships
+        edge_id = 0
+        for source_term, relationships_list in relationships['term_to_term'].items():
+            for rel in relationships_list:
+                concept_map['edges'].append({
+                    'id': edge_id,
+                    'source': source_term,
+                    'target': rel['related_term'],
+                    'weight': rel['strength'],
+                    'type': rel['relationship_type'],
+                    'shared_sections': rel['shared_sections']
+                })
+                edge_id += 1
+        
+        return concept_map
+    
+    def create_comprehensive_glossary(self, terms_data, concepts_data):
+        """Create a comprehensive glossary with categorized terms"""
+        glossary = {
+            'metadata': {
+                'generated_at': datetime.now().isoformat(),
+                'total_entries': len(terms_data) + len(concepts_data),
+                'categories': list(set(data['category'] for data in terms_data.values()))
+            },
+            'terms': {},
+            'concepts': {},
+            'categories': {}
+        }
+        
+        # Organize terms by category
+        for category in glossary['metadata']['categories']:
+            glossary['categories'][category] = {
+                'terms': [],
+                'description': self.get_category_description(category),
+                'importance': self.calculate_category_importance(category, terms_data)
+            }
+        
+        # Add terms to glossary
+        for term, data in terms_data.items():
+            glossary_entry = {
+                'term': term,
+                'category': data['category'],
+                'frequency': data['frequency'],
+                'importance': data['importance_score'],
+                'definitions': data['definitions'],
+                'primary_definition': data['definitions'][0] if data['definitions'] else self.generate_contextual_definition(term, data),
+                'usage_contexts': [ctx['context'][:150] + '...' for ctx in data['contexts'][:3]],
+                'appears_in_sections': [s['title'] for s in data['sections'][:5]],
+                'section_types': data['section_types'],
+                'related_terms': data['related_terms'][:10],
+                'examples': self.extract_usage_examples(term, data['contexts'])
+            }
+            
+            glossary['terms'][term] = glossary_entry
+            glossary['categories'][data['category']]['terms'].append(term)
+        
+        # Add concepts to glossary
+        for concept, data in concepts_data.items():
+            glossary['concepts'][concept] = {
+                'concept': concept,
+                'category': data['category'],
+                'complexity': data['complexity_score'],
+                'definitions': data['definitions'],
+                'primary_definition': data['definitions'][0] if data['definitions'] else '',
+                'examples': data['examples'],
+                'appears_in_sections': [s['title'] for s in data['sections']],
+                'related_concepts': data['related_concepts']
+            }
+        
+        # Sort categories by importance
+        glossary['categories'] = dict(sorted(
+            glossary['categories'].items(), 
+            key=lambda x: x[1]['importance'], 
+            reverse=True
+        ))
+        
+        return glossary
+    
+    def create_concept_visualization_data(self, concept_map, relationships):
+        """Create data structure optimized for visualization tools"""
+        visualization = {
+            'graph_data': {
+                'nodes': [],
+                'links': []
+            },
+            'hierarchy_data': concept_map['hierarchy'],
+            'cluster_data': concept_map['clusters'],
+            'statistics': {
+                'node_count': len(concept_map['nodes']),
+                'edge_count': len(concept_map['edges']),
+                'cluster_count': len(concept_map['clusters']),
+                'max_connections': 0,
+                'avg_connections': 0
+            }
+        }
+        
+        # Convert nodes for visualization
+        for node_id, node_data in concept_map['nodes'].items():
+            vis_node = {
+                'id': node_id,
+                'label': node_id,
+                'type': node_data['type'],
+                'category': node_data['category'],
+                'size': min(node_data.get('frequency', 1) * 10, 100),  # Scale size
+                'color': self.get_category_color(node_data['category']),
+                'importance': node_data.get('importance', 0),
+                'tooltip': self.create_node_tooltip(node_data)
+            }
+            visualization['graph_data']['nodes'].append(vis_node)
+        
+        # Convert edges for visualization
+        for edge in concept_map['edges']:
+            vis_edge = {
+                'source': edge['source'],
+                'target': edge['target'],
+                'weight': edge['weight'],
+                'type': edge['type'],
+                'thickness': min(edge['weight'] * 10, 5)  # Scale thickness
+            }
+            visualization['graph_data']['links'].append(vis_edge)
+        
+        # Calculate statistics
+        connection_counts = {}
+        for edge in concept_map['edges']:
+            connection_counts[edge['source']] = connection_counts.get(edge['source'], 0) + 1
+            connection_counts[edge['target']] = connection_counts.get(edge['target'], 0) + 1
+        
+        if connection_counts:
+            visualization['statistics']['max_connections'] = max(connection_counts.values())
+            visualization['statistics']['avg_connections'] = round(sum(connection_counts.values()) / len(connection_counts), 2)
+        
+        return visualization
+    
+    def save_concept_files(self, concepts_dir, concept_map, glossary, visualization_data, terms_data):
+        """Save all concept-related files"""
+        
+        # Save concept map JSON
+        concept_map_file = concepts_dir / "concept-map.json"
+        with open(concept_map_file, 'w', encoding='utf-8') as f:
+            json.dump(concept_map, f, indent=2, ensure_ascii=False)
+        
+        # Save glossary JSON
+        glossary_file = concepts_dir / "glossary.json"
+        with open(glossary_file, 'w', encoding='utf-8') as f:
+            json.dump(glossary, f, indent=2, ensure_ascii=False)
+        
+        # Save visualization data
+        viz_file = concepts_dir / "visualization-data.json"
+        with open(viz_file, 'w', encoding='utf-8') as f:
+            json.dump(visualization_data, f, indent=2, ensure_ascii=False)
+        
+        # Create human-readable glossary markdown
+        self.create_glossary_markdown(concepts_dir, glossary)
+        
+        # Create concept map documentation
+        self.create_concept_map_documentation(concepts_dir, concept_map, visualization_data)
+        
+        # Create category-specific glossaries
+        self.create_category_glossaries(concepts_dir, glossary)
+    
+    # Helper methods for concept map generation
+    def extract_term_definition(self, content, position, term):
+        """Extract definition for a term from surrounding context"""
+        # Look for definition patterns around the term
+        context_start = max(0, position - 200)
+        context_end = min(len(content), position + 300)
+        context = content[context_start:context_end]
+        
+        # Definition patterns
+        patterns = [
+            rf'{re.escape(term)}\s+(?:is|means|refers to)\s+([^.!?]+[.!?])',
+            rf'{re.escape(term)}:\s+([^.!?]+[.!?])',
+            rf'{re.escape(term)}\s*[-–]\s*([^.!?]+[.!?])'
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, context, re.IGNORECASE)
+            if match:
+                return match.group(1).strip()
+        
+        return None
+    
+    def calculate_enhanced_relevance(self, term, context, section_type):
+        """Calculate enhanced relevance score"""
+        base_score = 1.0
+        
+        # Section type bonus
+        section_bonuses = {
+            'authentication': 1.5,
+            'api_endpoint': 1.3,
+            'security': 1.4,
+            'error_handling': 1.2
+        }
+        base_score *= section_bonuses.get(section_type, 1.0)
+        
+        # Context indicators
+        indicators = ['important', 'critical', 'key', 'main', 'primary', 'essential']
+        for indicator in indicators:
+            if indicator in context.lower():
+                base_score += 0.3
+        
+        # Definition indicators
+        if any(pattern in context.lower() for pattern in [f'{term} is', f'{term} means', f'{term}:']):
+            base_score += 0.5
+        
+        return min(base_score, 3.0)
+    
+    def extract_related_terms_from_context(self, context, main_term, term_patterns):
+        """Extract related terms from context"""
+        related_terms = set()
+        
+        for category, pattern in term_patterns.items():
+            matches = re.finditer(pattern, context, re.IGNORECASE)
+            for match in matches:
+                term = match.group().lower().strip()
+                if term != main_term and len(term) > 2:
+                    related_terms.add(term)
+        
+        return related_terms
+    
+    def calculate_term_importance(self, term_data):
+        """Calculate importance score for a term"""
+        frequency_score = min(term_data['frequency'] / 10.0, 2.0)
+        section_diversity = len(term_data['section_types']) * 0.5
+        definition_bonus = 1.0 if term_data['definitions'] else 0.0
+        
+        return round(frequency_score + section_diversity + definition_bonus, 2)
+    
+    def categorize_concept(self, concept, definition):
+        """Categorize a concept based on its definition"""
+        definition_lower = definition.lower()
+        
+        if any(word in definition_lower for word in ['api', 'endpoint', 'request', 'response']):
+            return 'api_concepts'
+        elif any(word in definition_lower for word in ['security', 'encrypt', 'auth', 'credential']):
+            return 'security_concepts'
+        elif any(word in definition_lower for word in ['data', 'format', 'structure', 'schema']):
+            return 'data_concepts'
+        elif any(word in definition_lower for word in ['network', 'protocol', 'connection']):
+            return 'network_concepts'
+        else:
+            return 'general_concepts'
+    
+    def calculate_concept_complexity(self, definition):
+        """Calculate complexity score based on definition"""
+        word_count = len(definition.split())
+        technical_terms = len(re.findall(r'\b(?:API|HTTP|JSON|authentication|encryption|protocol)\b', definition, re.IGNORECASE))
+        
+        return round((word_count / 20.0) + (technical_terms * 0.5), 2)
+    
+    def extract_concept_examples(self, content, position, concept):
+        """Extract examples for a concept"""
+        # Look for example patterns
+        context_start = max(0, position - 100)
+        context_end = min(len(content), position + 500)
+        context = content[context_start:context_end]
+        
+        example_patterns = [
+            r'(?:for example|e\.g\.|such as)[:\s]+([^.!?]+[.!?])',
+            r'example[:\s]+([^.!?]+[.!?])',
+            r'like[:\s]+([^.!?]+[.!?])'
+        ]
+        
+        examples = []
+        for pattern in example_patterns:
+            matches = re.finditer(pattern, context, re.IGNORECASE)
+            for match in matches:
+                example = match.group(1).strip()
+                if len(example) > 10:
+                    examples.append(example)
+        
+        return examples[:3]  # Return top 3 examples
+    
+    def determine_relationship_type(self, term1, term2, data1, data2):
+        """Determine the type of relationship between two terms"""
+        if data1['category'] == data2['category']:
+            return 'categorical'
+        elif term2 in data1['related_terms'] or term1 in data2['related_terms']:
+            return 'semantic'
+        else:
+            return 'contextual'
+    
+    def calculate_definition_similarity(self, definitions1, definitions2):
+        """Calculate similarity between sets of definitions"""
+        if not definitions1 or not definitions2:
+            return 0.0
+        
+        # Simple word overlap similarity
+        words1 = set(' '.join(definitions1).lower().split())
+        words2 = set(' '.join(definitions2).lower().split())
+        
+        if not words1 or not words2:
+            return 0.0
+        
+        intersection = len(words1 & words2)
+        union = len(words1 | words2)
+        
+        return intersection / union if union > 0 else 0.0
+    
+    def create_semantic_clusters(self, terms_data, concepts_data):
+        """Create semantic clusters of related terms"""
+        clusters = {}
+        
+        # Group by category first
+        for term, data in terms_data.items():
+            category = data['category']
+            if category not in clusters:
+                clusters[category] = {
+                    'cluster_id': category,
+                    'terms': [],
+                    'concepts': [],
+                    'description': self.get_category_description(category),
+                    'size': 0
+                }
+            
+            clusters[category]['terms'].append({
+                'term': term,
+                'importance': data['importance_score'],
+                'frequency': data['frequency']
+            })
+        
+        # Add concepts to clusters
+        for concept, data in concepts_data.items():
+            category = data['category']
+            if category in clusters:
+                clusters[category]['concepts'].append({
+                    'concept': concept,
+                    'complexity': data['complexity_score']
+                })
+        
+        # Calculate cluster sizes and sort
+        for cluster_id, cluster in clusters.items():
+            cluster['size'] = len(cluster['terms']) + len(cluster['concepts'])
+            cluster['terms'].sort(key=lambda x: x['importance'], reverse=True)
+            cluster['concepts'].sort(key=lambda x: x['complexity'], reverse=True)
+        
+        return clusters
+    
+    def build_concept_hierarchy(self, terms_data, concepts_data):
+        """Build hierarchical structure of concepts"""
+        hierarchy = {
+            'root': {
+                'name': 'Technical Documentation',
+                'children': []
+            }
+        }
+        
+        # Create category-based hierarchy
+        categories = set(data['category'] for data in terms_data.values())
+        
+        for category in categories:
+            category_node = {
+                'name': self.get_category_display_name(category),
+                'type': 'category',
+                'children': []
+            }
+            
+            # Add important terms to category
+            category_terms = [(term, data) for term, data in terms_data.items() if data['category'] == category]
+            category_terms.sort(key=lambda x: x[1]['importance_score'], reverse=True)
+            
+            for term, data in category_terms[:10]:  # Top 10 terms per category
+                term_node = {
+                    'name': term,
+                    'type': 'term',
+                    'importance': data['importance_score'],
+                    'frequency': data['frequency']
+                }
+                category_node['children'].append(term_node)
+            
+            hierarchy['root']['children'].append(category_node)
+        
+        return hierarchy
+    
+    def get_category_description(self, category):
+        """Get description for a category"""
+        descriptions = {
+            'api_concepts': 'Application Programming Interface related terms and concepts',
+            'http_concepts': 'HTTP protocol and web communication terms',
+            'data_concepts': 'Data formats, structures, and processing terms',
+            'security_concepts': 'Security, authentication, and encryption terms',
+            'database_concepts': 'Database and data storage related terms',
+            'programming_concepts': 'General programming and development terms',
+            'network_concepts': 'Networking and communication protocol terms',
+            'architecture_concepts': 'System architecture and design pattern terms',
+            'business_concepts': 'Business logic and domain-specific terms',
+            'process_concepts': 'Development processes and workflow terms'
+        }
+        return descriptions.get(category, 'General technical terms')
+    
+    def calculate_category_importance(self, category, terms_data):
+        """Calculate importance score for a category"""
+        category_terms = [data for data in terms_data.values() if data['category'] == category]
+        if not category_terms:
+            return 0.0
+        
+        total_frequency = sum(data['frequency'] for data in category_terms)
+        avg_importance = sum(data['importance_score'] for data in category_terms) / len(category_terms)
+        
+        return round((total_frequency * 0.1) + avg_importance, 2)
+    
+    def generate_contextual_definition(self, term, term_data):
+        """Generate a contextual definition based on usage"""
+        if not term_data['contexts']:
+            return f"Technical term appearing {term_data['frequency']} times in documentation"
+        
+        best_context = term_data['contexts'][0]['context']
+        # Extract a sentence containing the term
+        sentences = re.split(r'[.!?]+', best_context)
+        for sentence in sentences:
+            if term in sentence.lower():
+                return sentence.strip() + '.'
+        
+        return f"Technical term in {term_data['category'].replace('_', ' ')} domain"
+    
+    def extract_usage_examples(self, term, contexts):
+        """Extract usage examples from contexts"""
+        examples = []
+        for context_data in contexts[:3]:
+            context = context_data['context']
+            # Find sentences containing the term
+            sentences = re.split(r'[.!?]+', context)
+            for sentence in sentences:
+                if term in sentence.lower() and len(sentence.strip()) > 20:
+                    examples.append(sentence.strip() + '.')
+                    break
+        return examples
+    
+    def get_category_color(self, category):
+        """Get color code for category visualization"""
+        colors = {
+            'api_concepts': '#FF6B6B',
+            'http_concepts': '#4ECDC4',
+            'data_concepts': '#45B7D1',
+            'security_concepts': '#F9CA24',
+            'database_concepts': '#6C5CE7',
+            'programming_concepts': '#A0E7E5',
+            'network_concepts': '#FFA726',
+            'architecture_concepts': '#26A69A',
+            'business_concepts': '#EF5350',
+            'process_concepts': '#66BB6A'
+        }
+        return colors.get(category, '#95A5A6')
+    
+    def get_category_display_name(self, category):
+        """Get display name for category"""
+        display_names = {
+            'api_concepts': 'API Concepts',
+            'http_concepts': 'HTTP & Web',
+            'data_concepts': 'Data & Formats',
+            'security_concepts': 'Security',
+            'database_concepts': 'Database',
+            'programming_concepts': 'Programming',
+            'network_concepts': 'Networking',
+            'architecture_concepts': 'Architecture',
+            'business_concepts': 'Business Logic',
+            'process_concepts': 'Processes'
+        }
+        return display_names.get(category, category.replace('_', ' ').title())
+    
+    def create_node_tooltip(self, node_data):
+        """Create tooltip text for visualization nodes"""
+        if node_data['type'] == 'term':
+            return f"Term: {node_data.get('id', '')}\nFrequency: {node_data.get('frequency', 0)}\nImportance: {node_data.get('importance', 0)}\nCategory: {node_data.get('category', '')}"
+        else:
+            return f"Concept: {node_data.get('id', '')}\nComplexity: {node_data.get('complexity', 0)}\nCategory: {node_data.get('category', '')}"
+    
+    def create_glossary_markdown(self, concepts_dir, glossary):
+        """Create human-readable glossary in markdown format"""
+        glossary_content = f"""# Technical Glossary
+
+Generated: {datetime.now().isoformat()}
+Total Terms: {len(glossary['terms'])}
+Total Concepts: {len(glossary['concepts'])}
+
+## Overview
+
+This glossary contains technical terms and concepts extracted from the document, organized by category and importance. Terms are ranked by frequency and relevance to help LLMs understand the technical vocabulary used throughout the document.
+
+## Quick Statistics
+
+- **Most Common Category**: {glossary['statistics']['most_common_category']}
+- **Average Term Frequency**: {glossary['statistics']['avg_term_frequency']:.1f}
+- **High-Importance Terms**: {glossary['statistics']['high_importance_count']}
+- **Concepts with Definitions**: {len([c for c in glossary['concepts'].values() if c['definitions']])}
+
+## All Terms by Category
+
+"""
+        
+        # Group terms by category
+        terms_by_category = {}
+        for term_data in glossary['terms'].values():
+            category = term_data['category']
+            if category not in terms_by_category:
+                terms_by_category[category] = []
+            terms_by_category[category].append(term_data)
+        
+        # Sort categories by number of terms
+        sorted_categories = sorted(terms_by_category.items(), key=lambda x: len(x[1]), reverse=True)
+        
+        for category, terms in sorted_categories:
+            category_name = category.replace('_', ' ').title()
+            glossary_content += f"### {category_name} ({len(terms)} terms)\n\n"
+            
+            # Sort terms by importance score
+            sorted_terms = sorted(terms, key=lambda x: x['importance_score'], reverse=True)
+            
+            for term_data in sorted_terms:
+                term = term_data['term']
+                freq = term_data['frequency']
+                importance = term_data['importance_score']
+                
+                glossary_content += f"**{term.upper()}** (freq: {freq}, importance: {importance:.1f})\n"
+                
+                # Add definitions if available
+                if term_data['definitions']:
+                    for definition in term_data['definitions'][:2]:  # Limit to 2 best definitions
+                        glossary_content += f"  - {definition}\n"
+                
+                # Add best context
+                if term_data['contexts']:
+                    best_context = term_data['contexts'][0]
+                    context_snippet = best_context['context'][:150] + '...' if len(best_context['context']) > 150 else best_context['context']
+                    glossary_content += f"  - *Context*: {context_snippet}\n"
+                
+                # Add related terms
+                if term_data['related_terms']:
+                    related = ', '.join(term_data['related_terms'][:5])
+                    glossary_content += f"  - *Related*: {related}\n"
+                
+                glossary_content += "\n"
+        
+        # Add concepts section
+        if glossary['concepts']:
+            glossary_content += "## Detailed Concepts\n\n"
+            
+            # Sort concepts by complexity and usage
+            sorted_concepts = sorted(glossary['concepts'].values(), 
+                                   key=lambda x: (x['complexity_score'], len(x['definitions'])), 
+                                   reverse=True)
+            
+            for concept_data in sorted_concepts:
+                concept = concept_data['concept']
+                category = concept_data['category']
+                complexity = concept_data['complexity_score']
+                
+                glossary_content += f"### {concept.upper()}\n"
+                glossary_content += f"*Category*: {category.replace('_', ' ').title()} | *Complexity*: {complexity:.1f}\n\n"
+                
+                # Add all definitions
+                for i, definition in enumerate(concept_data['definitions'], 1):
+                    glossary_content += f"{i}. {definition}\n"
+                
+                # Add examples
+                if concept_data['examples']:
+                    glossary_content += "\n**Examples:**\n"
+                    for example in concept_data['examples'][:3]:
+                        glossary_content += f"- {example}\n"
+                
+                # Add section references
+                if concept_data['sections']:
+                    section_titles = [s['title'] for s in concept_data['sections'][:3]]
+                    glossary_content += f"\n*Found in sections*: {', '.join(section_titles)}\n"
+                
+                glossary_content += "\n"
+        
+        # Save glossary
+        glossary_path = concepts_dir / "glossary.md"
+        with open(glossary_path, 'w', encoding='utf-8') as f:
+            f.write(glossary_content)
+        
+        return str(glossary_path)
+    
+    def create_concept_map_documentation(self, concepts_dir, concept_map, visualization_data):
+        """Create documentation for the concept map"""
+        # Create concept map overview
+        map_content = f"""# Concept Map Documentation
+
+Generated: {datetime.now().isoformat()}
+Total Nodes: {len(visualization_data['nodes'])}
+Total Relationships: {len(visualization_data['edges'])}
+
+## Overview
+
+This concept map visualizes the relationships between technical terms and concepts found in the document. It helps LLMs understand how different technical concepts are interconnected and provides a semantic network for better comprehension.
+
+## Network Statistics
+
+- **Total Terms**: {len([n for n in visualization_data['nodes'] if n['type'] == 'term'])}
+- **Total Concepts**: {len([n for n in visualization_data['nodes'] if n['type'] == 'concept'])}
+- **Total Relationships**: {len(visualization_data['edges'])}
+- **Most Connected Node**: {max(visualization_data['nodes'], key=lambda x: x.get('connection_count', 0))['id']}
+- **Average Connections per Node**: {sum(n.get('connection_count', 0) for n in visualization_data['nodes']) / len(visualization_data['nodes']):.1f}
+
+## Core Concept Clusters
+
+"""
+        
+        # Group nodes by category and importance
+        clusters = {}
+        for node in visualization_data['nodes']:
+            category = node.get('category', 'general')
+            if category not in clusters:
+                clusters[category] = {'terms': [], 'concepts': []}
+            
+            if node['type'] == 'term':
+                clusters[category]['terms'].append(node)
+            else:
+                clusters[category]['concepts'].append(node)
+        
+        # Sort clusters by total node count
+        sorted_clusters = sorted(clusters.items(), 
+                               key=lambda x: len(x[1]['terms']) + len(x[1]['concepts']), 
+                               reverse=True)
+        
+        for category, cluster_data in sorted_clusters:
+            category_name = category.replace('_', ' ').title()
+            total_nodes = len(cluster_data['terms']) + len(cluster_data['concepts'])
+            map_content += f"### {category_name} ({total_nodes} nodes)\n\n"
+            
+            # Most important terms in cluster
+            if cluster_data['terms']:
+                sorted_terms = sorted(cluster_data['terms'], key=lambda x: x.get('importance', 0), reverse=True)
+                top_terms = [t['id'] for t in sorted_terms[:5]]
+                map_content += f"**Key Terms**: {', '.join(top_terms)}\n\n"
+            
+            # Most important concepts in cluster
+            if cluster_data['concepts']:
+                sorted_concepts = sorted(cluster_data['concepts'], key=lambda x: x.get('complexity', 0), reverse=True)
+                top_concepts = [c['id'] for c in sorted_concepts[:3]]
+                map_content += f"**Key Concepts**: {', '.join(top_concepts)}\n\n"
+        
+        # Add relationship analysis
+        map_content += "## Relationship Analysis\n\n"
+        
+        # Group relationships by type
+        relationship_types = {}
+        for edge in visualization_data['edges']:
+            rel_type = edge.get('relationship_type', 'related')
+            if rel_type not in relationship_types:
+                relationship_types[rel_type] = []
+            relationship_types[rel_type].append(edge)
+        
+        for rel_type, edges in relationship_types.items():
+            map_content += f"**{rel_type.replace('_', ' ').title()}** ({len(edges)} connections)\n"
+            
+            # Show strongest relationships
+            sorted_edges = sorted(edges, key=lambda x: x.get('strength', 0), reverse=True)
+            for edge in sorted_edges[:5]:
+                source = edge['source']
+                target = edge['target']
+                strength = edge.get('strength', 0)
+                map_content += f"  - {source} → {target} (strength: {strength:.2f})\n"
+            map_content += "\n"
+        
+        # Add network topology insights
+        map_content += "## Network Topology\n\n"
+        
+        # Find hub nodes (high connection count)
+        hub_nodes = sorted(visualization_data['nodes'], key=lambda x: x.get('connection_count', 0), reverse=True)[:10]
+        map_content += "**Hub Nodes** (most connected):\n"
+        for i, node in enumerate(hub_nodes, 1):
+            connections = node.get('connection_count', 0)
+            node_type = node['type'].title()
+            map_content += f"{i}. {node['id']} ({node_type}, {connections} connections)\n"
+        map_content += "\n"
+        
+        # Find bridge concepts (connecting different categories)
+        bridge_concepts = []
+        for node in visualization_data['nodes']:
+            connected_categories = set()
+            node_id = node['id']
+            
+            for edge in visualization_data['edges']:
+                if edge['source'] == node_id:
+                    target_node = next((n for n in visualization_data['nodes'] if n['id'] == edge['target']), None)
+                    if target_node:
+                        connected_categories.add(target_node.get('category', 'general'))
+                elif edge['target'] == node_id:
+                    source_node = next((n for n in visualization_data['nodes'] if n['id'] == edge['source']), None)
+                    if source_node:
+                        connected_categories.add(source_node.get('category', 'general'))
+            
+            if len(connected_categories) > 2:
+                bridge_concepts.append((node, len(connected_categories)))
+        
+        if bridge_concepts:
+            bridge_concepts.sort(key=lambda x: x[1], reverse=True)
+            map_content += "**Bridge Concepts** (connecting multiple categories):\n"
+            for node, category_count in bridge_concepts[:5]:
+                map_content += f"- {node['id']} (connects {category_count} categories)\n"
+        
+        # Save concept map documentation
+        map_path = concepts_dir / "concept_map.md"
+        with open(map_path, 'w', encoding='utf-8') as f:
+            f.write(map_content)
+        
+        return str(map_path)
+    
+    def create_category_glossaries(self, concepts_dir, glossary):
+        """Create separate glossaries for each category"""
+        category_files = []
+        
+        # Create categories directory
+        categories_dir = concepts_dir / "categories"
+        categories_dir.mkdir(exist_ok=True)
+        
+        # Group terms by category
+        terms_by_category = {}
+        for term_data in glossary['terms'].values():
+            category = term_data['category']
+            if category not in terms_by_category:
+                terms_by_category[category] = []
+            terms_by_category[category].append(term_data)
+        
+        # Group concepts by category
+        concepts_by_category = {}
+        for concept_data in glossary['concepts'].values():
+            category = concept_data['category']
+            if category not in concepts_by_category:
+                concepts_by_category[category] = []
+            concepts_by_category[category].append(concept_data)
+        
+        # Get all categories
+        all_categories = set(terms_by_category.keys()) | set(concepts_by_category.keys())
+        
+        for category in all_categories:
+            category_name = category.replace('_', ' ').title()
+            category_terms = terms_by_category.get(category, [])
+            category_concepts = concepts_by_category.get(category, [])
+            
+            category_content = f"""# {category_name} Glossary
+
+Generated: {datetime.now().isoformat()}
+Terms: {len(category_terms)}
+Concepts: {len(category_concepts)}
+
+## Category Overview
+
+This glossary focuses specifically on {category_name.lower()} terms and concepts found in the document. This specialized vocabulary is essential for understanding the {category_name.lower()}-related content and context.
+
+"""
+            
+            # Add terms section
+            if category_terms:
+                category_content += f"## Terms ({len(category_terms)})\n\n"
+                
+                # Sort terms by importance
+                sorted_terms = sorted(category_terms, key=lambda x: x['importance_score'], reverse=True)
+                
+                for term_data in sorted_terms:
+                    term = term_data['term']
+                    freq = term_data['frequency']
+                    importance = term_data['importance_score']
+                    
+                    category_content += f"### {term.upper()}\n"
+                    category_content += f"*Frequency*: {freq} | *Importance*: {importance:.1f}\n\n"
+                    
+                    # Add definitions
+                    if term_data['definitions']:
+                        category_content += "**Definitions:**\n"
+                        for definition in term_data['definitions']:
+                            category_content += f"- {definition}\n"
+                        category_content += "\n"
+                    
+                    # Add contexts
+                    if term_data['contexts']:
+                        category_content += "**Usage Contexts:**\n"
+                        for context in term_data['contexts'][:3]:
+                            snippet = context['context'][:200] + '...' if len(context['context']) > 200 else context['context']
+                            category_content += f"- *{context['section']}*: {snippet}\n"
+                        category_content += "\n"
+                    
+                    # Add related terms
+                    if term_data['related_terms']:
+                        related_in_category = [rt for rt in term_data['related_terms'] 
+                                             if any(t['term'] == rt for t in category_terms)]
+                        if related_in_category:
+                            category_content += f"**Related in this category**: {', '.join(related_in_category)}\n\n"
+                    
+                    # Add section references
+                    if term_data['sections']:
+                        section_refs = [f"[{s['title']}](#{s['slug']})" for s in term_data['sections'][:3]]
+                        category_content += f"**Found in**: {', '.join(section_refs)}\n\n"
+                    
+                    category_content += "---\n\n"
+            
+            # Add concepts section
+            if category_concepts:
+                category_content += f"## Detailed Concepts ({len(category_concepts)})\n\n"
+                
+                # Sort concepts by complexity
+                sorted_concepts = sorted(category_concepts, key=lambda x: x['complexity_score'], reverse=True)
+                
+                for concept_data in sorted_concepts:
+                    concept = concept_data['concept']
+                    complexity = concept_data['complexity_score']
+                    
+                    category_content += f"### {concept.upper()}\n"
+                    category_content += f"*Complexity Score*: {complexity:.1f}\n\n"
+                    
+                    # Add all definitions
+                    if concept_data['definitions']:
+                        category_content += "**Definitions:**\n"
+                        for i, definition in enumerate(concept_data['definitions'], 1):
+                            category_content += f"{i}. {definition}\n"
+                        category_content += "\n"
+                    
+                    # Add examples
+                    if concept_data['examples']:
+                        category_content += "**Examples:**\n"
+                        for example in concept_data['examples']:
+                            category_content += f"- {example}\n"
+                        category_content += "\n"
+                    
+                    # Add section references
+                    if concept_data['sections']:
+                        category_content += "**Detailed in sections:**\n"
+                        for section in concept_data['sections']:
+                            category_content += f"- *{section['title']}*: {section['definition_context'][:150]}...\n"
+                        category_content += "\n"
+                    
+                    category_content += "---\n\n"
+            
+            # Add category summary
+            category_content += f"## Category Summary\n\n"
+            category_content += f"This {category_name.lower()} glossary contains {len(category_terms)} terms and {len(category_concepts)} detailed concepts. "
+            
+            if category_terms:
+                avg_importance = sum(t['importance_score'] for t in category_terms) / len(category_terms)
+                high_importance_count = len([t for t in category_terms if t['importance_score'] > avg_importance])
+                category_content += f"The average term importance is {avg_importance:.1f}, with {high_importance_count} high-importance terms. "
+            
+            if category_concepts:
+                avg_complexity = sum(c['complexity_score'] for c in category_concepts) / len(category_concepts)
+                category_content += f"The average concept complexity is {avg_complexity:.1f}. "
+            
+            category_content += f"This specialized vocabulary is crucial for understanding {category_name.lower()}-specific content in the document.\n"
+            
+            # Save category glossary
+            safe_category_name = category.replace('_', '-').lower()
+            category_path = categories_dir / f"{safe_category_name}-glossary.md"
+            with open(category_path, 'w', encoding='utf-8') as f:
+                f.write(category_content)
+            
+            category_files.append(str(category_path))
+        
+        # Create category index
+        index_content = f"""# Category Glossaries Index
+
+Generated: {datetime.now().isoformat()}
+Total Categories: {len(all_categories)}
+
+## Available Category Glossaries
+
+"""
+        
+        for category in sorted(all_categories):
+            category_name = category.replace('_', ' ').title()
+            safe_category_name = category.replace('_', '-').lower()
+            term_count = len(terms_by_category.get(category, []))
+            concept_count = len(concepts_by_category.get(category, []))
+            
+            index_content += f"- **[{category_name}]({safe_category_name}-glossary.md)** - {term_count} terms, {concept_count} concepts\n"
+        
+        index_content += f"\n## Usage\n\nEach category glossary provides specialized vocabulary for that domain. Use these glossaries to understand domain-specific terminology and concepts when working with the converted document content.\n"
+        
+        index_path = categories_dir / "index.md"
+        with open(index_path, 'w', encoding='utf-8') as f:
+            f.write(index_content)
+        
+        category_files.append(str(index_path))
+        return category_files
+    
     def create_api_index(self, endpoint_files):
         """Create an index file listing all API endpoints"""
         index_content = f"""# API Endpoints Index
@@ -3200,6 +4395,8 @@ def main():
                       help='Convert tables to structured JSON formats (default: True)')
     parser.add_argument('--build-search-index', action='store_true', default=True,
                       help='Build comprehensive search index with terms, endpoints, and error codes (default: True)')
+    parser.add_argument('--generate-concept-map', action='store_true', default=True,
+                      help='Generate concept map and glossary with technical terms and relationships (default: True)')
     
     args = parser.parse_args()
     
@@ -3210,7 +4407,8 @@ def main():
         args.extract_images,
         args.enable_chunking,
         args.structured_tables,
-        args.build_search_index
+        args.build_search_index,
+        args.generate_concept_map
     )
     
     output_file = converter.convert()

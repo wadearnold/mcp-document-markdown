@@ -127,6 +127,7 @@ Convert /path/to/document.pdf with enable_chunking set to false
 - `enable_chunking` (default: true): Enable smart chunking for optimal LLM context usage
 - `structured_tables` (default: true): Convert tables to structured JSON format with data type detection
 - `build_search_index` (default: true): Build comprehensive search index with terms, endpoints, and error codes
+- `generate_concept_map` (default: true): Generate concept map and glossary with technical terms and relationships
 
 ## What You Get
 
@@ -161,6 +162,17 @@ docs/
 │   ├── endpoints-index.json        # API endpoints with parameters
 │   ├── errors-index.json           # Error codes with context
 │   └── concepts-index.json         # Key concepts with relationships
+├── concepts/                       # Concept map and glossary
+│   ├── glossary.md                 # Human-readable technical glossary
+│   ├── concept-map.md              # Network analysis and documentation
+│   ├── concept-map.json            # Machine-readable concept relationships
+│   ├── glossary.json               # Structured glossary for LLM processing
+│   ├── visualization-data.json     # Graph visualization data
+│   └── categories/                 # Category-specific glossaries
+│       ├── index.md                # Category index
+│       ├── api-concepts-glossary.md        # API terminology
+│       ├── security-concepts-glossary.md   # Security terms
+│       └── [category]-glossary.md          # Other domain glossaries
 ├── complete/
 │   └── full-document.md           # Complete document
 ├── images/                        # Extracted images
@@ -279,6 +291,9 @@ Convert the PDF at /path/to/document.pdf with structured_tables set to false
 
 # Disable search index
 Convert the PDF at /path/to/document.pdf with build_search_index set to false
+
+# Disable concept map generation
+Convert the PDF at /path/to/document.pdf with generate_concept_map set to false
 ```
 
 #### Comprehensive Search Index (NEW!)
@@ -329,6 +344,77 @@ error_404 = search_db['error_codes'].get('404', {})
 - **Frequency Analysis**: Identify most important terms and concepts in documentation
 - **Error Resolution**: Quick lookup of error codes with descriptions and solutions
 - **API Discovery**: Comprehensive endpoint catalog with parameters and examples
+
+#### Concept Map and Glossary Generation (NEW!)
+Generate comprehensive concept maps and technical glossaries with relationship analysis:
+
+```
+docs/concepts/
+├── glossary.md                 # Human-readable technical glossary
+├── concept-map.md              # Network analysis and documentation  
+├── concept-map.json            # Machine-readable concept relationships
+├── glossary.json               # Structured glossary for LLM processing
+├── visualization-data.json     # Graph visualization data
+└── categories/                 # Category-specific glossaries
+    ├── index.md                # Category index
+    ├── api-concepts-glossary.md        # API terminology
+    ├── security-concepts-glossary.md   # Security terms
+    └── [category]-glossary.md          # Other domain glossaries
+```
+
+**Advanced Term Extraction:**
+- **10 Technical Categories**: API, HTTP, security, database, programming, network, architecture, business, data, and process concepts
+- **Frequency Analysis**: Importance scoring based on frequency, section types, and context relevance
+- **Definition Extraction**: Automatic identification of concept definitions and explanations
+- **Relationship Mapping**: Semantic clustering and hierarchical organization of related terms
+
+**Concept Map Features:**
+```json
+{
+  "nodes": [
+    {
+      "id": "authentication",
+      "type": "concept",
+      "category": "security_concepts",
+      "importance": 8.5,
+      "complexity": 7.2,
+      "definitions": ["Process of verifying user identity..."],
+      "related_terms": ["oauth", "jwt", "token"]
+    }
+  ],
+  "edges": [
+    {
+      "source": "authentication",
+      "target": "oauth", 
+      "relationship_type": "implements",
+      "strength": 0.85
+    }
+  ]
+}
+```
+
+**Glossary Organization:**
+- **Categorized Terms**: Organized by technical domain for targeted learning
+- **Context Examples**: Real usage examples from the document for each term
+- **Cross-References**: Links between related terms and concepts
+- **Complexity Scoring**: Difficulty ratings to guide learning progression
+- **Section Mapping**: Direct links to where terms are defined in the document
+
+**LLM Integration Benefits:**
+- **Vocabulary Building**: Comprehensive technical lexicon for domain understanding
+- **Semantic Networks**: Relationship graphs for improved comprehension
+- **Context Awareness**: Rich contextual information for accurate term usage
+- **Knowledge Mapping**: Hierarchical concept organization for structured learning
+
+**Control Options:**
+Concept map generation is enabled by default but can be controlled:
+```
+# Enable concept map (default behavior)
+Convert the PDF at /path/to/document.pdf to markdown
+
+# Disable concept map generation
+Convert the PDF at /path/to/document.pdf with generate_concept_map set to false
+```
 
 #### Structured Table Conversion (NEW!)
 Automatically converts tables to structured JSON format with intelligent data type detection:
