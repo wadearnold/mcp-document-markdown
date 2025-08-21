@@ -12,3 +12,6 @@ markdown>=3.4.0
 # Token counting for LLM optimization
 # This is optional but highly recommended for accurate token counts
 tiktoken>=0.5.0
+
+# Note: Structured table output uses JSON format only
+# JSON is optimal for LLM processing - no additional dependencies needed

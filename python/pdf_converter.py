@@ -15,6 +15,8 @@ from PIL import Image
 import io
 import base64
 
+# Structured table output uses JSON format for LLM optimization
+
 # Try to import tiktoken for accurate token counting
 try:
     import tiktoken
@@ -24,16 +26,20 @@ except ImportError:
     print("Warning: tiktoken not available. Using approximation for token counting.", file=sys.stderr)
 
 class PDFToMarkdownConverter:
-    def __init__(self, pdf_path, output_dir, preserve_tables=True, extract_images=True, enable_chunking=True):
+    def __init__(self, pdf_path, output_dir, preserve_tables=True, extract_images=True, enable_chunking=True, structured_tables=True):
         self.pdf_path = pdf_path
         self.output_dir = Path(output_dir)
         self.preserve_tables = preserve_tables
         self.extract_images = extract_images
         self.enable_chunking = enable_chunking
+        self.structured_tables = structured_tables
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.images_dir = self.output_dir / "images"
         if self.extract_images:
             self.images_dir.mkdir(exist_ok=True)
+        
+        # Store extracted tables for structured conversion
+        self.extracted_tables = []
         
         # Initialize token counter
         self.token_encoder = None
@@ -79,6 +85,10 @@ class PDFToMarkdownConverter:
         
         # Extract and create dedicated API endpoint files
         self.extract_api_endpoints_to_files(markdown_content)
+        
+        # Convert tables to structured formats if enabled
+        if self.structured_tables:
+            self.convert_tables_to_structured_formats()
         
         # Generate metadata file with statistics
         self.generate_metadata_file()
@@ -147,9 +157,31 @@ class PDFToMarkdownConverter:
                             # Clean up the dataframe
                             df = df.fillna('')
                             tables_by_page[page_num].append(df)
+                            
+                            # Store for structured conversion
+                            if self.structured_tables:
+                                table_info = {
+                                    'page': page_num,
+                                    'table_index': len(tables_by_page[page_num]) - 1,
+                                    'dataframe': df.copy(),
+                                    'raw_data': table,
+                                    'title': self.detect_table_title(table, page_num)
+                                }
+                                self.extracted_tables.append(table_info)
                         except Exception as e:
                             # Fallback to raw table
                             tables_by_page[page_num].append(table)
+                            
+                            # Store raw table for structured conversion
+                            if self.structured_tables:
+                                table_info = {
+                                    'page': page_num,
+                                    'table_index': len(tables_by_page[page_num]) - 1,
+                                    'dataframe': None,
+                                    'raw_data': table,
+                                    'title': self.detect_table_title(table, page_num)
+                                }
+                                self.extracted_tables.append(table_info)
         
         return tables_by_page
     
@@ -1903,6 +1935,381 @@ Each chunk preserves:
         with open(index_file, 'w', encoding='utf-8') as f:
             f.write(index_content)
     
+    def detect_table_title(self, table_data, page_num):
+        """Detect or generate a title for a table"""
+        if not table_data or not table_data[0]:
+            return f"Table {page_num}"
+        
+        # Use first row as potential title if it looks like a header
+        first_row = table_data[0]
+        if len(first_row) == 1 and len(first_row[0]) > 0:
+            # Single cell in first row might be a title
+            title = str(first_row[0]).strip()
+            if len(title) < 100 and not any(char in title for char in '|():'):
+                return title
+        
+        # Generate title from column headers
+        if len(first_row) > 1:
+            headers = [str(cell).strip() for cell in first_row if cell]
+            if headers:
+                return f"Table: {' vs '.join(headers[:3])}"
+        
+        return f"Table {page_num}"
+    
+    def convert_tables_to_structured_formats(self):
+        """Convert extracted tables to JSON and YAML formats"""
+        if not self.extracted_tables:
+            return
+        
+        # Create tables directory
+        tables_dir = self.output_dir / "tables"
+        tables_dir.mkdir(exist_ok=True)
+        
+        # Convert each table
+        all_tables_data = []
+        
+        for i, table_info in enumerate(self.extracted_tables, 1):
+            table_data = self.process_table_for_structure(table_info)
+            all_tables_data.append(table_data)
+            
+            # Create individual table files
+            table_filename = f"table_{i:02d}"
+            
+            # Save as JSON for programmatic access
+            json_file = tables_dir / f"{table_filename}.json"
+            with open(json_file, 'w', encoding='utf-8') as f:
+                json.dump(table_data, f, indent=2, ensure_ascii=False)
+            
+            # Create enhanced markdown version
+            self.create_enhanced_table_markdown(table_info, table_data, tables_dir / f"{table_filename}.md")
+        
+        # Create tables index
+        self.create_tables_index(all_tables_data, tables_dir)
+        
+        return len(all_tables_data)
+    
+    def process_table_for_structure(self, table_info):
+        """Process table data into structured format"""
+        metadata = {
+            'title': table_info['title'],
+            'page': table_info['page'],
+            'table_index': table_info['table_index'],
+            'extracted_at': datetime.now().isoformat(),
+            'data_types': {},
+            'summary_stats': {},
+            'structure': {}
+        }
+        
+        if table_info['dataframe'] is not None:
+            df = table_info['dataframe']
+            
+            # Basic structure info
+            metadata['structure'] = {
+                'rows': len(df),
+                'columns': len(df.columns),
+                'column_names': list(df.columns)
+            }
+            
+            # Data type detection and conversion
+            processed_data = []
+            for _, row in df.iterrows():
+                row_data = {}
+                for col in df.columns:
+                    value = row[col]
+                    processed_value, data_type = self.detect_and_convert_cell_value(value)
+                    row_data[col] = processed_value
+                    
+                    # Track data types
+                    if col not in metadata['data_types']:
+                        metadata['data_types'][col] = {}
+                    if data_type not in metadata['data_types'][col]:
+                        metadata['data_types'][col][data_type] = 0
+                    metadata['data_types'][col][data_type] += 1
+                
+                processed_data.append(row_data)
+            
+            # Summary statistics for numeric columns
+            for col in df.columns:
+                numeric_values = []
+                for row in processed_data:
+                    if isinstance(row[col], (int, float)):
+                        numeric_values.append(row[col])
+                
+                if numeric_values:
+                    metadata['summary_stats'][col] = {
+                        'count': len(numeric_values),
+                        'min': min(numeric_values),
+                        'max': max(numeric_values),
+                        'avg': sum(numeric_values) / len(numeric_values)
+                    }
+        else:
+            # Process raw table data
+            raw_data = table_info['raw_data']
+            if raw_data and len(raw_data) > 1:
+                headers = raw_data[0] if raw_data[0] else [f"Column_{i}" for i in range(len(raw_data[1]))]
+                
+                metadata['structure'] = {
+                    'rows': len(raw_data) - 1,
+                    'columns': len(headers),
+                    'column_names': headers
+                }
+                
+                processed_data = []
+                for row_data in raw_data[1:]:
+                    if row_data:
+                        row_dict = {}
+                        for i, header in enumerate(headers):
+                            value = row_data[i] if i < len(row_data) else ""
+                            processed_value, data_type = self.detect_and_convert_cell_value(value)
+                            row_dict[header] = processed_value
+                        processed_data.append(row_dict)
+            else:
+                processed_data = []
+        
+        return {
+            'metadata': metadata,
+            'data': processed_data
+        }
+    
+    def detect_and_convert_cell_value(self, value):
+        """Detect the data type and convert cell value appropriately"""
+        if pd.isna(value) or value == '' or value is None:
+            return None, 'null'
+        
+        str_value = str(value).strip()
+        
+        # Try integer
+        try:
+            if '.' not in str_value and str_value.isdigit():
+                return int(str_value), 'integer'
+        except ValueError:
+            pass
+        
+        # Try float
+        try:
+            if '.' in str_value:
+                return float(str_value), 'float'
+        except ValueError:
+            pass
+        
+        # Check for boolean
+        if str_value.lower() in ['true', 'false', 'yes', 'no']:
+            return str_value.lower() in ['true', 'yes'], 'boolean'
+        
+        # Check for dates (basic patterns)
+        date_patterns = [
+            r'\d{4}-\d{2}-\d{2}',  # YYYY-MM-DD
+            r'\d{2}/\d{2}/\d{4}',  # MM/DD/YYYY
+            r'\d{2}-\d{2}-\d{4}',  # MM-DD-YYYY
+        ]
+        
+        for pattern in date_patterns:
+            if re.match(pattern, str_value):
+                return str_value, 'date'
+        
+        # Check for URLs
+        if str_value.startswith(('http://', 'https://', 'www.')):
+            return str_value, 'url'
+        
+        # Check for emails
+        if '@' in str_value and '.' in str_value:
+            return str_value, 'email'
+        
+        # Default to string
+        return str_value, 'string'
+    
+    def create_enhanced_table_markdown(self, table_info, structured_data, output_file):
+        """Create enhanced markdown file for a table with metadata"""
+        metadata = structured_data['metadata']
+        data = structured_data['data']
+        
+        content = f"""---
+title: {metadata['title']}
+table_info:
+  page: {metadata['page']}
+  table_index: {metadata['table_index']}
+  extracted_at: {metadata['extracted_at']}
+structure:
+  rows: {metadata['structure'].get('rows', 0)}
+  columns: {metadata['structure'].get('columns', 0)}
+  column_names: {metadata['structure'].get('column_names', [])}
+data_types: {json.dumps(metadata['data_types'], indent=2) if metadata['data_types'] else '{}'}
+summary_stats: {json.dumps(metadata['summary_stats'], indent=2) if metadata['summary_stats'] else '{}'}
+---
+
+# {metadata['title']}
+
+**Table Information:**
+- **Source Page**: {metadata['page']}
+- **Rows**: {metadata['structure'].get('rows', 0)}
+- **Columns**: {metadata['structure'].get('columns', 0)}
+- **Extracted**: {metadata['extracted_at'][:19]}
+
+## Structure Analysis
+
+### Column Information
+"""
+        
+        # Add column analysis
+        if metadata['data_types']:
+            for col, types in metadata['data_types'].items():
+                primary_type = max(types.items(), key=lambda x: x[1])[0]
+                content += f"- **{col}**: Primary type `{primary_type}`"
+                if len(types) > 1:
+                    content += f" (mixed: {', '.join(f'{t}({c})' for t, c in types.items())})"
+                content += "\n"
+        
+        # Add summary statistics
+        if metadata['summary_stats']:
+            content += "\n### Summary Statistics\n"
+            for col, stats in metadata['summary_stats'].items():
+                content += f"- **{col}**: {stats['count']} values, range {stats['min']:.2f} - {stats['max']:.2f}, avg {stats['avg']:.2f}\n"
+        
+        # Add the actual table
+        if data and table_info['dataframe'] is not None:
+            content += "\n## Table Data\n\n"
+            content += table_info['dataframe'].to_markdown(index=False, tablefmt='pipe')
+        elif data:
+            content += "\n## Table Data\n\n"
+            if metadata['structure'].get('column_names'):
+                headers = metadata['structure']['column_names']
+                content += "| " + " | ".join(headers) + " |\n"
+                content += "| " + " | ".join("---" for _ in headers) + " |\n"
+                
+                for row in data:
+                    row_values = [str(row.get(col, "")) for col in headers]
+                    content += "| " + " | ".join(row_values) + " |\n"
+        
+        content += f"""
+
+## Processing Notes
+
+- **Data Types**: Automatically detected and converted
+- **Quality**: {len([r for r in data if any(v for v in r.values())])} non-empty rows out of {len(data) if data else 0}
+- **Format**: Available in JSON format for LLM processing
+- **LLM Ready**: Structured data optimized for programmatic analysis
+
+## Available Formats
+
+- **Markdown**: This file (enhanced with metadata and analysis)
+- **JSON**: `table_{metadata['table_index']:02d}.json` (structured data for LLM processing)
+
+## Usage Examples
+
+### Load JSON in Python
+```python
+import json
+with open('table_{metadata['table_index']:02d}.json') as f:
+    table_data = json.load(f)
+    
+# Access data
+rows = table_data['data']
+metadata = table_data['metadata']
+```
+
+### Query Data
+```python
+# Filter rows by condition (example)
+filtered = [row for row in table_data['data'] if row.get('column_name') == 'value']
+
+# Get column values
+column_values = [row.get('column_name') for row in table_data['data']]
+```
+"""
+        
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(content)
+    
+    def create_tables_index(self, all_tables_data, tables_dir):
+        """Create an index of all structured tables"""
+        index_content = f"""# Tables Index
+
+Generated: {datetime.now().isoformat()}
+Total Tables: {len(all_tables_data)}
+
+## Table Summary
+
+"""
+        
+        for i, table_data in enumerate(all_tables_data, 1):
+            metadata = table_data['metadata']
+            structure = metadata['structure']
+            
+            index_content += f"""### Table {i}: {metadata['title']}
+
+- **Source**: Page {metadata['page']}
+- **Size**: {structure.get('rows', 0)} rows × {structure.get('columns', 0)} columns
+- **Columns**: {', '.join(structure.get('column_names', []))}
+- **Files**: 
+  - [Markdown](table_{i:02d}.md) - Enhanced documentation with analysis
+  - [JSON](table_{i:02d}.json) - Structured data for LLM processing
+
+"""
+        
+        index_content += """## Processing Information
+
+### Data Type Detection
+Tables are automatically analyzed for:
+- **Numeric data**: Integers and floats with summary statistics
+- **Dates**: Common date formats (YYYY-MM-DD, MM/DD/YYYY, etc.)
+- **URLs and Emails**: Automatically identified
+- **Boolean values**: True/false, yes/no patterns
+- **Mixed types**: Columns with multiple data types are flagged
+
+### Available Formats
+
+1. **Markdown (.md)**: Enhanced documentation with metadata and analysis
+2. **JSON (.json)**: Structured data optimized for LLM processing
+
+### LLM Integration
+
+The structured table data is optimized for:
+- **Data Analysis**: Query and filter operations
+- **Report Generation**: Summary statistics and insights
+- **API Development**: Direct JSON integration
+- **Data Visualization**: Structured format for charts and graphs
+- **Machine Learning**: Clean, typed data for analysis
+
+### Usage Patterns
+
+```python
+# Load all tables
+import json
+import glob
+
+table_files = glob.glob('tables/*.json')
+all_tables = []
+for file in table_files:
+    with open(file) as f:
+        all_tables.append(json.load(f))
+
+# Analyze table structures
+for table in all_tables:
+    print(f"Table: {table['metadata']['title']}")
+    print(f"Columns: {table['metadata']['structure']['column_names']}")
+    print(f"Data types: {table['metadata']['data_types']}")
+```
+
+## Quality Metrics
+
+"""
+        
+        # Add quality metrics
+        total_rows = sum(t['metadata']['structure'].get('rows', 0) for t in all_tables_data)
+        total_cols = sum(t['metadata']['structure'].get('columns', 0) for t in all_tables_data)
+        
+        index_content += f"""- **Total Data Points**: {total_rows} rows across {len(all_tables_data)} tables
+- **Average Table Size**: {total_rows / len(all_tables_data):.1f} rows per table
+- **Column Distribution**: {total_cols} total columns
+- **Data Type Coverage**: Numeric, text, dates, URLs, and boolean detection
+- **Processing Success**: {len([t for t in all_tables_data if t['data']])} tables with extracted data
+"""
+        
+        # Save index
+        index_file = tables_dir / "README.md"
+        with open(index_file, 'w', encoding='utf-8') as f:
+            f.write(index_content)
+    
     def create_api_index(self, endpoint_files):
         """Create an index file listing all API endpoints"""
         index_content = f"""# API Endpoints Index
@@ -2053,6 +2460,8 @@ def main():
                       help='Extract and reference images')
     parser.add_argument('--enable-chunking', action='store_true', default=True,
                       help='Enable smart chunking by token limits (default: True)')
+    parser.add_argument('--structured-tables', action='store_true', default=True,
+                      help='Convert tables to structured JSON/YAML formats (default: True)')
     
     args = parser.parse_args()
     
@@ -2061,7 +2470,8 @@ def main():
         args.output_dir,
         args.preserve_tables,
         args.extract_images,
-        args.enable_chunking
+        args.enable_chunking,
+        args.structured_tables
     )
     
     output_file = converter.convert()

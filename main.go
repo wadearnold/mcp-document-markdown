@@ -186,6 +186,11 @@ func (s *MCPServer) handleToolsList() (*ToolsListResponse, error) {
 						"description": "Whether to enable smart chunking by token limits for optimal LLM context usage",
 						"default":     true,
 					},
+					"structured_tables": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Whether to convert tables to structured JSON format with data type detection",
+						"default":     true,
+					},
 				},
 				"required": []string{"pdf_path"},
 			},
@@ -248,6 +253,11 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 		enableChunking = chunking
 	}
 
+	structuredTables := true
+	if structured, ok := args["structured_tables"].(bool); ok {
+		structuredTables = structured
+	}
+
 	// Create output directory
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create output directory: %v", err)
@@ -255,7 +265,7 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 
 	// Convert PDF using Python script (handles all organization automatically)
 	log.Printf("Converting PDF: %s", pdfPath)
-	err := s.runPythonConverter(pdfPath, outputDir, preserveTables, extractImages, enableChunking)
+	err := s.runPythonConverter(pdfPath, outputDir, preserveTables, extractImages, enableChunking, structuredTables)
 	if err != nil {
 		return nil, fmt.Errorf("PDF conversion failed: %v", err)
 	}
@@ -331,6 +341,21 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 			}
 		}
 		
+		// Check for structured tables directory
+		hasStructuredTables := false
+		structuredTableCount := 0
+		tablesDir := filepath.Join(outputDir, "tables")
+		if _, err := os.Stat(tablesDir); err == nil {
+			hasStructuredTables = true
+			if files, err := os.ReadDir(tablesDir); err == nil {
+				for _, file := range files {
+					if strings.HasSuffix(file.Name(), ".json") {
+						structuredTableCount++
+					}
+				}
+			}
+		}
+		
 		var extras []string
 		if hasIndex {
 			extras = append(extras, "navigation index")
@@ -352,6 +377,9 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 		}
 		if hasChunkedSections {
 			extras = append(extras, fmt.Sprintf("%d smart chunks", chunkedSectionCount))
+		}
+		if hasStructuredTables {
+			extras = append(extras, fmt.Sprintf("%d structured tables", structuredTableCount))
 		}
 		
 		extrasStr := ""
@@ -409,7 +437,7 @@ func (s *MCPServer) analyzePDFStructure(args map[string]interface{}) (*CallToolR
 }
 
 // runPythonConverter executes the Python PDF conversion script
-func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables, extractImages, enableChunking bool) error {
+func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables, extractImages, enableChunking, structuredTables bool) error {
 	// Get Python scripts (embedded or from files in dev mode)
 	convertScript, _, err := getPythonScripts()
 	if err != nil {
@@ -425,6 +453,9 @@ func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables
 	}
 	if enableChunking {
 		args = append(args, "--enable-chunking")
+	}
+	if structuredTables {
+		args = append(args, "--structured-tables")
 	}
 
 	cmd := exec.Command(s.pythonPath, args...)

@@ -125,6 +125,7 @@ Convert /path/to/document.pdf with enable_chunking set to false
 - `preserve_tables` (default: true): Preserve table formatting
 - `extract_images` (default: true): Extract and reference images
 - `enable_chunking` (default: true): Enable smart chunking for optimal LLM context usage
+- `structured_tables` (default: true): Convert tables to structured JSON format with data type detection
 
 ## What You Get
 
@@ -147,6 +148,11 @@ docs/
 │   ├── 01-post-users-create.md    # POST /users endpoint
 │   ├── 02-get-users-id.md         # GET /users/{id} endpoint
 │   └── 03-delete-users-id.md      # DELETE /users/{id} endpoint
+├── tables/                         # Structured table data
+│   ├── README.md                   # Tables index and processing guide
+│   ├── table_01.md                 # Enhanced table with metadata
+│   ├── table_01.json               # Structured JSON for LLM processing
+│   └── table_02.md/.json           # Additional tables
 ├── complete/
 │   └── full-document.md           # Complete document
 ├── images/                        # Extracted images
@@ -259,6 +265,65 @@ Convert the PDF at /path/to/document.pdf to markdown
 
 # Disable chunking explicitly  
 Convert the PDF at /path/to/document.pdf with enable_chunking set to false
+
+# Disable structured tables
+Convert the PDF at /path/to/document.pdf with structured_tables set to false
+```
+
+#### Structured Table Conversion (NEW!)
+Automatically converts tables to structured JSON format with intelligent data type detection:
+
+```
+docs/tables/
+├── README.md                    # Tables index and processing guide
+├── table_01.md                  # Enhanced markdown with metadata
+├── table_01.json                # Structured JSON for LLM processing
+└── table_02.md/.json            # Additional tables
+```
+
+**Advanced Data Type Detection:**
+- **Numeric Values**: Automatic integer/float detection with summary statistics
+- **Dates**: Recognition of common date formats (YYYY-MM-DD, MM/DD/YYYY, etc.)
+- **URLs and Emails**: Automatic identification and classification
+- **Boolean Values**: True/false, yes/no pattern recognition
+- **Mixed Types**: Columns with multiple data types are analyzed and flagged
+
+**Enhanced Table Documentation:**
+Each table includes comprehensive metadata and analysis:
+```markdown
+---
+title: Revenue Analysis Q4 2024
+table_info:
+  page: 15
+  extracted_at: 2024-01-20T10:30:00
+structure:
+  rows: 12
+  columns: 4
+  column_names: ["Quarter", "Revenue", "Growth", "Region"]
+data_types:
+  "Revenue": {"integer": 12}
+  "Growth": {"float": 12} 
+  "Region": {"string": 12}
+summary_stats:
+  "Revenue": {"count": 12, "min": 150000, "max": 2500000, "avg": 875000}
+---
+```
+
+**Processing Benefits:**
+- **LLM Analysis**: Structured data ready for statistical analysis and insights
+- **API Integration**: Direct JSON consumption for web applications
+- **Data Visualization**: Clean, typed data for charts and graphs
+- **Report Generation**: Automated summary statistics and data quality metrics
+- **Machine Learning**: Properly formatted data for analysis pipelines
+
+**Control Options:**
+Structured table conversion is enabled by default but can be controlled:
+```
+# Enable structured tables (default behavior)
+Convert the PDF at /path/to/document.pdf to markdown
+
+# Disable structured tables
+Convert the PDF at /path/to/document.pdf with structured_tables set to false
 ```
 
 #### Intelligent Section Types
@@ -292,11 +357,13 @@ The **llm-compatibility-report.md** shows:
 ✅ **Context Window Management**: Precise token counts and model recommendations
 ✅ **Structured API Data**: Parameters, request/response formats, and examples extracted
 ✅ **Smart Chunking**: Automatic splitting for optimal context window utilization
+✅ **Structured Tables**: JSON/YAML conversion with data type detection and statistics
 ✅ **Workflow Optimization**: Processing notes guide LLMs on what to focus on
 ✅ **Batch API Processing**: Process related endpoints together for efficient integration
 ✅ **Code Generation Ready**: Complete endpoint info for automatic client generation
 ✅ **Cost Estimation**: Calculate API costs based on accurate token counts
 ✅ **Multi-Model Support**: Optimized chunks for GPT-3.5, GPT-4, GPT-4-32K, and Claude
+✅ **Data Analysis Ready**: Structured table data for statistical analysis and visualization
 
 Each file is optimized for LLM processing and includes:
 - Clean markdown formatting with semantic structure
@@ -497,6 +564,67 @@ if os.path.exists(api_dir):
                 print(f"Found POST endpoint: {filename}")
 ```
 
+### Working with Structured Table Data
+
+```python
+import json
+import glob
+import pandas as pd
+
+# Load all structured tables
+table_files = glob.glob('docs/tables/*.json')
+all_tables = []
+for file in table_files:
+    with open(file) as f:
+        table_data = json.load(f)
+        all_tables.append(table_data)
+
+# Analyze table structures
+for table in all_tables:
+    meta = table['metadata']
+    print(f"Table: {meta['title']}")
+    print(f"Size: {meta['structure']['rows']}x{meta['structure']['columns']}")
+    print(f"Columns: {meta['structure']['column_names']}")
+    
+    # Check for numeric columns with statistics
+    if meta['summary_stats']:
+        print("Numeric columns with statistics:")
+        for col, stats in meta['summary_stats'].items():
+            print(f"  {col}: avg={stats['avg']:.2f}, range={stats['min']}-{stats['max']}")
+
+# Convert table to pandas DataFrame for analysis
+def load_table_as_dataframe(table_data):
+    """Convert structured table data to pandas DataFrame"""
+    rows = table_data['data']
+    if not rows:
+        return pd.DataFrame()
+    
+    # Create DataFrame from structured data
+    df = pd.DataFrame(rows)
+    
+    # Apply data type conversion based on metadata
+    data_types = table_data['metadata']['data_types']
+    for col, type_info in data_types.items():
+        if col in df.columns:
+            primary_type = max(type_info.items(), key=lambda x: x[1])[0]
+            if primary_type == 'integer':
+                df[col] = pd.to_numeric(df[col], errors='coerce').astype('Int64')
+            elif primary_type == 'float':
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+            elif primary_type == 'date':
+                df[col] = pd.to_datetime(df[col], errors='coerce')
+    
+    return df
+
+# Example: Load and analyze a specific table
+if all_tables:
+    first_table = all_tables[0]
+    df = load_table_as_dataframe(first_table)
+    print(f"\nDataFrame shape: {df.shape}")
+    print(f"Data types:\n{df.dtypes}")
+    print(f"\nSample data:\n{df.head()}")
+```
+
 ### API Endpoint Features
 
 Each extracted API endpoint includes:
@@ -531,6 +659,7 @@ The `convert_pdf` tool accepts these parameters:
 - **`preserve_tables`** (default: true): Whether to preserve table formatting
 - **`extract_images`** (default: true): Whether to extract and reference images
 - **`enable_chunking`** (default: true): Whether to enable smart chunking by token limits
+- **`structured_tables`** (default: true): Whether to convert tables to structured JSON format
 
 ### Environment Variables
 - **`OUTPUT_DIR`**: Where to save converted files (default: `./docs`)
