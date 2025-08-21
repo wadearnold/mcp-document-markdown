@@ -181,6 +181,11 @@ func (s *MCPServer) handleToolsList() (*ToolsListResponse, error) {
 						"description": "Whether to extract and reference images",
 						"default":     true,
 					},
+					"enable_chunking": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Whether to enable smart chunking by token limits for optimal LLM context usage",
+						"default":     true,
+					},
 				},
 				"required": []string{"pdf_path"},
 			},
@@ -238,6 +243,11 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 		extractImages = extract
 	}
 
+	enableChunking := true
+	if chunking, ok := args["enable_chunking"].(bool); ok {
+		enableChunking = chunking
+	}
+
 	// Create output directory
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create output directory: %v", err)
@@ -245,7 +255,7 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 
 	// Convert PDF using Python script (handles all organization automatically)
 	log.Printf("Converting PDF: %s", pdfPath)
-	err := s.runPythonConverter(pdfPath, outputDir, preserveTables, extractImages)
+	err := s.runPythonConverter(pdfPath, outputDir, preserveTables, extractImages, enableChunking)
 	if err != nil {
 		return nil, fmt.Errorf("PDF conversion failed: %v", err)
 	}
@@ -399,7 +409,7 @@ func (s *MCPServer) analyzePDFStructure(args map[string]interface{}) (*CallToolR
 }
 
 // runPythonConverter executes the Python PDF conversion script
-func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables, extractImages bool) error {
+func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables, extractImages, enableChunking bool) error {
 	// Get Python scripts (embedded or from files in dev mode)
 	convertScript, _, err := getPythonScripts()
 	if err != nil {
@@ -412,6 +422,9 @@ func (s *MCPServer) runPythonConverter(pdfPath, outputDir string, preserveTables
 	}
 	if extractImages {
 		args = append(args, "--extract-images")
+	}
+	if enableChunking {
+		args = append(args, "--enable-chunking")
 	}
 
 	cmd := exec.Command(s.pythonPath, args...)

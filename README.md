@@ -105,13 +105,26 @@ Each guide provides step-by-step instructions for configuring the MCP server wit
 
 Once configured, you can use natural language prompts to convert PDFs and work with the structured content. The server provides these tools:
 
-- **`convert_pdf`**: Convert PDFs to structured markdown files
+- **`convert_pdf`**: Convert PDFs to structured markdown files with configurable options
 - **`analyze_pdf_structure`**: Analyze PDF structure without converting
 
 **Example usage in any MCP client:**
 ```
 Convert the PDF at /path/to/document.pdf to markdown with chapter splitting
 ```
+
+**Control chunking behavior:**
+```
+Convert /path/to/document.pdf with enable_chunking set to false
+```
+
+**Available Parameters:**
+- `pdf_path` (required): Path to the PDF file
+- `output_dir` (optional): Output directory for markdown files  
+- `split_by_chapters` (default: true): Split document by chapters
+- `preserve_tables` (default: true): Preserve table formatting
+- `extract_images` (default: true): Extract and reference images
+- `enable_chunking` (default: true): Enable smart chunking for optimal LLM context usage
 
 ## What You Get
 
@@ -237,6 +250,16 @@ next_chunk: "api-documentation-chunk-2-small.md"
 - Cross-references help LLMs understand document flow
 - Token counts enable precise context window planning
 - Processing notes guide LLM focus areas
+
+**Control Options:**
+Smart chunking is enabled by default but can be controlled:
+```
+# Enable chunking (default behavior)
+Convert the PDF at /path/to/document.pdf to markdown
+
+# Disable chunking explicitly  
+Convert the PDF at /path/to/document.pdf with enable_chunking set to false
+```
 
 #### Intelligent Section Types
 - **api_endpoint**: HTTP methods, URLs, parameters
@@ -499,6 +522,15 @@ Each extracted API endpoint includes:
 - Install tiktoken for best results: `pip install tiktoken`
 
 ## Configuration Options
+
+### MCP Tool Parameters
+The `convert_pdf` tool accepts these parameters:
+- **`pdf_path`** (required): Path to the PDF file to convert
+- **`output_dir`** (optional): Directory where markdown files will be saved
+- **`split_by_chapters`** (default: true): Whether to split the document by chapters  
+- **`preserve_tables`** (default: true): Whether to preserve table formatting
+- **`extract_images`** (default: true): Whether to extract and reference images
+- **`enable_chunking`** (default: true): Whether to enable smart chunking by token limits
 
 ### Environment Variables
 - **`OUTPUT_DIR`**: Where to save converted files (default: `./docs`)

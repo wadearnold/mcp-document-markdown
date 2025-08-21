@@ -24,11 +24,12 @@ except ImportError:
     print("Warning: tiktoken not available. Using approximation for token counting.", file=sys.stderr)
 
 class PDFToMarkdownConverter:
-    def __init__(self, pdf_path, output_dir, preserve_tables=True, extract_images=True):
+    def __init__(self, pdf_path, output_dir, preserve_tables=True, extract_images=True, enable_chunking=True):
         self.pdf_path = pdf_path
         self.output_dir = Path(output_dir)
         self.preserve_tables = preserve_tables
         self.extract_images = extract_images
+        self.enable_chunking = enable_chunking
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.images_dir = self.output_dir / "images"
         if self.extract_images:
@@ -72,8 +73,9 @@ class PDFToMarkdownConverter:
         # Save organized content (this does all the work)
         sections = self.save_and_organize_content(markdown_content)
         
-        # Apply smart chunking to large sections
-        self.apply_smart_chunking(sections)
+        # Apply smart chunking to large sections if enabled
+        if self.enable_chunking:
+            self.apply_smart_chunking(sections)
         
         # Extract and create dedicated API endpoint files
         self.extract_api_endpoints_to_files(markdown_content)
@@ -2049,6 +2051,8 @@ def main():
                       help='Preserve table formatting')
     parser.add_argument('--extract-images', action='store_true',
                       help='Extract and reference images')
+    parser.add_argument('--enable-chunking', action='store_true', default=True,
+                      help='Enable smart chunking by token limits (default: True)')
     
     args = parser.parse_args()
     
@@ -2056,7 +2060,8 @@ def main():
         args.pdf_path,
         args.output_dir,
         args.preserve_tables,
-        args.extract_images
+        args.extract_images,
+        args.enable_chunking
     )
     
     output_file = converter.convert()
