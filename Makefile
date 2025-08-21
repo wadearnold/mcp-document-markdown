@@ -97,6 +97,7 @@ check-deps: venv
 	@./venv/bin/python -c "import fitz" 2>/dev/null || echo "  ⚠️  pymupdf not installed"
 	@./venv/bin/python -c "import pandas" 2>/dev/null || echo "  ⚠️  pandas not installed"
 	@./venv/bin/python -c "import PIL" 2>/dev/null || echo "  ⚠️  pillow not installed"
+	@./venv/bin/python -c "import tiktoken" 2>/dev/null || echo "  ⚠️  tiktoken not installed (optional but recommended for accurate token counts)"
 	@echo "Dependency check complete!"
 
 # Help command

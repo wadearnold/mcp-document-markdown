@@ -70,7 +70,10 @@ class PDFToMarkdownConverter:
             markdown_content = self.basic_extraction()
         
         # Save organized content (this does all the work)
-        self.save_and_organize_content(markdown_content)
+        sections = self.save_and_organize_content(markdown_content)
+        
+        # Apply smart chunking to large sections
+        self.apply_smart_chunking(sections)
         
         # Extract and create dedicated API endpoint files
         self.extract_api_endpoints_to_files(markdown_content)
@@ -628,7 +631,7 @@ llm_processing_notes: {self.get_processing_notes(section.get('type', 'content'),
         # Also create a summary index file
         self.create_summary_index(sections)
         
-        return content
+        return sections
     
     def create_summary_index(self, sections):
         """Create a summary index for quick reference"""
@@ -1520,6 +1523,383 @@ authentication_required: {bool(endpoint.get('authentication', ''))}
             '500': 'Internal Server Error - Server error'
         }
         return descriptions.get(code, f'HTTP {code}')
+    
+    def apply_smart_chunking(self, sections):
+        """Apply smart chunking to sections that exceed token limits"""
+        chunked_dir = self.output_dir / "chunked"
+        chunked_dir.mkdir(exist_ok=True)
+        
+        # Define token limits for different LLM context windows
+        chunk_limits = {
+            'small': 3500,    # GPT-3.5 safe limit
+            'medium': 7000,   # GPT-4 safe limit  
+            'large': 30000,   # GPT-4-32K safe limit
+            'xlarge': 95000   # Claude safe limit
+        }
+        
+        chunked_sections = []
+        
+        for section in sections:
+            token_count = self.count_tokens(section['content'])
+            
+            # If section is small enough, no chunking needed
+            if token_count <= chunk_limits['small']:
+                continue
+                
+            # Determine which chunk sizes to create
+            chunks_to_create = []
+            if token_count > chunk_limits['small']:
+                chunks_to_create.append(('small', chunk_limits['small']))
+            if token_count > chunk_limits['medium']:
+                chunks_to_create.append(('medium', chunk_limits['medium']))
+            if token_count > chunk_limits['large']:
+                chunks_to_create.append(('large', chunk_limits['large']))
+            
+            # Create chunks for each size
+            for chunk_size, token_limit in chunks_to_create:
+                chunks = self.chunk_section_intelligently(section, token_limit)
+                
+                if len(chunks) > 1:  # Only save if actually chunked
+                    chunk_dir = chunked_dir / chunk_size
+                    chunk_dir.mkdir(exist_ok=True)
+                    
+                    # Save chunked files
+                    for i, chunk in enumerate(chunks, 1):
+                        chunk_filename = f"{section['slug']}-chunk-{i:02d}.md"
+                        chunk_filepath = chunk_dir / chunk_filename
+                        
+                        chunk_content = self.create_chunk_documentation(
+                            section, chunk, i, len(chunks), chunk_size, token_limit
+                        )
+                        
+                        with open(chunk_filepath, 'w', encoding='utf-8') as f:
+                            f.write(chunk_content)
+                        
+                        chunked_sections.append({
+                            'original_section': section['title'],
+                            'chunk_size': chunk_size,
+                            'chunk_number': i,
+                            'total_chunks': len(chunks),
+                            'filename': chunk_filename,
+                            'tokens': self.count_tokens(chunk['content'])
+                        })
+        
+        # Create chunking index
+        if chunked_sections:
+            self.create_chunking_index(chunked_sections)
+        
+        return chunked_sections
+    
+    def chunk_section_intelligently(self, section, token_limit):
+        """Split a section into chunks at natural boundaries"""
+        content = section['content']
+        chunks = []
+        
+        # First, try to split by major headers (## or ###)
+        header_splits = self.split_by_headers(content, token_limit)
+        if header_splits:
+            return header_splits
+        
+        # If no header splits work, try paragraph boundaries
+        paragraph_splits = self.split_by_paragraphs(content, token_limit)
+        if paragraph_splits:
+            return paragraph_splits
+        
+        # Last resort: split by sentences
+        sentence_splits = self.split_by_sentences(content, token_limit)
+        return sentence_splits
+    
+    def split_by_headers(self, content, token_limit):
+        """Split content by markdown headers"""
+        lines = content.split('\n')
+        chunks = []
+        current_chunk = []
+        current_tokens = 0
+        
+        for line in lines:
+            line_tokens = self.count_tokens(line)
+            
+            # Check if this is a header that could be a good split point
+            if re.match(r'^#{2,4}\s+', line) and current_tokens > 0:
+                # Check if adding this line would exceed limit
+                if current_tokens + line_tokens > token_limit * 0.9:  # 90% safety margin
+                    # Save current chunk
+                    if current_chunk:
+                        chunks.append({
+                            'content': '\n'.join(current_chunk),
+                            'split_type': 'header',
+                            'boundary': line.strip()
+                        })
+                        current_chunk = []
+                        current_tokens = 0
+            
+            current_chunk.append(line)
+            current_tokens += line_tokens
+            
+            # Emergency split if we're way over limit
+            if current_tokens > token_limit:
+                chunks.append({
+                    'content': '\n'.join(current_chunk[:-1]),
+                    'split_type': 'forced',
+                    'boundary': 'Token limit exceeded'
+                })
+                current_chunk = [line]
+                current_tokens = line_tokens
+        
+        # Add final chunk
+        if current_chunk:
+            chunks.append({
+                'content': '\n'.join(current_chunk),
+                'split_type': 'final',
+                'boundary': 'End of section'
+            })
+        
+        return chunks if len(chunks) > 1 else []
+    
+    def split_by_paragraphs(self, content, token_limit):
+        """Split content by paragraph boundaries"""
+        paragraphs = content.split('\n\n')
+        chunks = []
+        current_chunk = []
+        current_tokens = 0
+        
+        for paragraph in paragraphs:
+            paragraph_tokens = self.count_tokens(paragraph)
+            
+            # If single paragraph exceeds limit, we need sentence splitting
+            if paragraph_tokens > token_limit:
+                if current_chunk:
+                    chunks.append({
+                        'content': '\n\n'.join(current_chunk),
+                        'split_type': 'paragraph',
+                        'boundary': 'Paragraph boundary'
+                    })
+                    current_chunk = []
+                    current_tokens = 0
+                
+                # Split this large paragraph by sentences
+                sentence_chunks = self.split_large_paragraph_by_sentences(paragraph, token_limit)
+                chunks.extend(sentence_chunks)
+                continue
+            
+            # Check if adding this paragraph would exceed limit
+            if current_tokens + paragraph_tokens > token_limit * 0.9:
+                if current_chunk:
+                    chunks.append({
+                        'content': '\n\n'.join(current_chunk),
+                        'split_type': 'paragraph',
+                        'boundary': 'Paragraph boundary'
+                    })
+                    current_chunk = []
+                    current_tokens = 0
+            
+            current_chunk.append(paragraph)
+            current_tokens += paragraph_tokens
+        
+        # Add final chunk
+        if current_chunk:
+            chunks.append({
+                'content': '\n\n'.join(current_chunk),
+                'split_type': 'paragraph',
+                'boundary': 'End of section'
+            })
+        
+        return chunks if len(chunks) > 1 else []
+    
+    def split_by_sentences(self, content, token_limit):
+        """Split content by sentence boundaries as last resort"""
+        # Simple sentence splitting
+        sentences = re.split(r'(?<=[.!?])\s+', content)
+        chunks = []
+        current_chunk = []
+        current_tokens = 0
+        
+        for sentence in sentences:
+            sentence_tokens = self.count_tokens(sentence)
+            
+            if current_tokens + sentence_tokens > token_limit * 0.9:
+                if current_chunk:
+                    chunks.append({
+                        'content': ' '.join(current_chunk),
+                        'split_type': 'sentence',
+                        'boundary': 'Sentence boundary'
+                    })
+                    current_chunk = []
+                    current_tokens = 0
+            
+            current_chunk.append(sentence)
+            current_tokens += sentence_tokens
+        
+        # Add final chunk
+        if current_chunk:
+            chunks.append({
+                'content': ' '.join(current_chunk),
+                'split_type': 'sentence',
+                'boundary': 'End of section'
+            })
+        
+        return chunks if len(chunks) > 1 else []
+    
+    def split_large_paragraph_by_sentences(self, paragraph, token_limit):
+        """Split a large paragraph by sentences"""
+        sentences = re.split(r'(?<=[.!?])\s+', paragraph)
+        chunks = []
+        current_chunk = []
+        current_tokens = 0
+        
+        for sentence in sentences:
+            sentence_tokens = self.count_tokens(sentence)
+            
+            if current_tokens + sentence_tokens > token_limit * 0.9:
+                if current_chunk:
+                    chunks.append({
+                        'content': ' '.join(current_chunk),
+                        'split_type': 'sentence',
+                        'boundary': 'Large paragraph split'
+                    })
+                    current_chunk = []
+                    current_tokens = 0
+            
+            current_chunk.append(sentence)
+            current_tokens += sentence_tokens
+        
+        if current_chunk:
+            chunks.append({
+                'content': ' '.join(current_chunk),
+                'split_type': 'sentence',
+                'boundary': 'Large paragraph split'
+            })
+        
+        return chunks
+    
+    def create_chunk_documentation(self, original_section, chunk, chunk_num, total_chunks, chunk_size, token_limit):
+        """Create documentation for a chunk"""
+        chunk_tokens = self.count_tokens(chunk['content'])
+        
+        return f"""---
+title: {original_section['title']} (Part {chunk_num})
+original_section: {original_section['title']}
+section_type: {original_section.get('type', 'content')}
+chunk_info:
+  chunk_number: {chunk_num}
+  total_chunks: {total_chunks}
+  chunk_size: {chunk_size}
+  token_limit: {token_limit}
+  actual_tokens: {chunk_tokens}
+  split_type: {chunk['split_type']}
+  split_boundary: {chunk['boundary']}
+optimal_model: {self.get_best_fit_model(chunk_tokens)}
+processing_priority: {self.determine_processing_priority(original_section.get('type', 'content'))}
+is_chunk: true
+---
+
+# {original_section['title']} (Part {chunk_num} of {total_chunks})
+
+**Chunk Information:**
+- **Size**: {chunk_size} token limit ({chunk_tokens} actual tokens)
+- **Split Method**: {chunk['split_type']}
+- **Split Boundary**: {chunk['boundary']}
+- **Optimal Model**: {self.get_best_fit_model(chunk_tokens)}
+
+## Content
+
+{chunk['content']}
+
+---
+
+**Navigation:**
+- **Previous**: {'Part ' + str(chunk_num - 1) if chunk_num > 1 else 'Original section'}
+- **Next**: {'Part ' + str(chunk_num + 1) if chunk_num < total_chunks else 'End of section'}
+- **Original Section**: {original_section['title']}
+
+**Processing Notes:**
+- This is a chunked section optimized for {chunk_size} context windows
+- Consider processing chunks in sequence for complete understanding
+- Reference original section for full context if needed
+"""
+    
+    def create_chunking_index(self, chunked_sections):
+        """Create an index of all chunked sections"""
+        index_content = f"""# Smart Chunking Index
+
+Generated: {datetime.now().isoformat()}
+Total Chunked Sections: {len(set(c['original_section'] for c in chunked_sections))}
+Total Chunks Created: {len(chunked_sections)}
+
+## Chunking Strategy
+
+This document contains sections that were automatically split to fit within different LLM context windows:
+
+- **Small chunks (3.5K tokens)**: Optimized for GPT-3.5
+- **Medium chunks (7K tokens)**: Optimized for GPT-4
+- **Large chunks (30K tokens)**: Optimized for GPT-4-32K
+- **XLarge chunks (95K tokens)**: Optimized for Claude
+
+## Chunked Sections Overview
+
+"""
+        
+        # Group by original section
+        sections_map = {}
+        for chunk in chunked_sections:
+            original = chunk['original_section']
+            if original not in sections_map:
+                sections_map[original] = {}
+            
+            chunk_size = chunk['chunk_size']
+            if chunk_size not in sections_map[original]:
+                sections_map[original][chunk_size] = []
+            
+            sections_map[original][chunk_size].append(chunk)
+        
+        for section_name, size_chunks in sections_map.items():
+            index_content += f"\n### {section_name}\n\n"
+            
+            for chunk_size, chunks in size_chunks.items():
+                index_content += f"**{chunk_size.title()} Chunks ({len(chunks)} parts):**\n"
+                for chunk in chunks:
+                    index_content += f"- [Part {chunk['chunk_number']}]({chunk_size}/{chunk['filename']}) - {chunk['tokens']} tokens\n"
+                index_content += "\n"
+        
+        index_content += """
+## Usage Guidelines
+
+### For LLM Processing:
+1. **Choose appropriate chunk size** based on your LLM's context window
+2. **Process chunks sequentially** for complete understanding
+3. **Reference original sections** when context is needed across chunks
+4. **Use chunk metadata** for processing optimization
+
+### Chunk Selection:
+- **GPT-3.5**: Use small chunks (3.5K tokens)
+- **GPT-4**: Use medium chunks (7K tokens) 
+- **GPT-4-32K**: Use large chunks (30K tokens)
+- **Claude**: Use xlarge chunks (95K tokens) or original sections
+
+### Processing Strategies:
+- **Sequential Processing**: Process chunks in order for complete coverage
+- **Parallel Processing**: Process independent chunks simultaneously
+- **Summarization**: Use chunks to create progressive summaries
+- **Context Building**: Combine chunks for comprehensive analysis
+
+## Technical Details
+
+Chunking is performed using intelligent boundary detection:
+1. **Header boundaries**: Split at markdown headers (##, ###)
+2. **Paragraph boundaries**: Split at paragraph breaks
+3. **Sentence boundaries**: Split at sentence endings (last resort)
+
+Each chunk preserves:
+- Original context and meaning
+- Proper markdown formatting
+- Metadata for processing guidance
+- Navigation links between chunks
+"""
+        
+        # Save index
+        index_file = self.output_dir / "chunked" / "README.md"
+        with open(index_file, 'w', encoding='utf-8') as f:
+            f.write(index_content)
     
     def create_api_index(self, endpoint_files):
         """Create an index file listing all API endpoints"""

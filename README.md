@@ -123,6 +123,12 @@ docs/
 │   ├── 01-introduction.md         # With token counts & LLM fit
 │   ├── 02-authentication.md       # Semantic type detection
 │   └── 03-api-endpoints.md        # Smart chunking
+├── chunked/                        # Smart chunks by token limits
+│   ├── large-section-chunk-1-small.md    # 3.5K tokens (GPT-3.5)
+│   ├── large-section-chunk-1-medium.md   # 7K tokens (GPT-4)
+│   ├── large-section-chunk-1-large.md    # 30K tokens (GPT-4-32K)
+│   ├── large-section-chunk-1-xlarge.md   # 95K tokens (Claude)
+│   └── chunk-manifest.json               # Chunking metadata
 ├── api-endpoints/                  # Individual API endpoint files
 │   ├── README.md                   # API index and processing guide
 │   ├── 01-post-users-create.md    # POST /users endpoint
@@ -192,6 +198,46 @@ curl -X POST /users/123/update -H "Authorization: Bearer token"
 ```
 ```
 
+#### Smart Chunking by Token Limits (NEW!)
+Automatically splits large sections into optimal token-sized chunks for different LLM context windows:
+
+```
+docs/chunked/
+├── large-section-chunk-1-small.md     # 3,500 tokens (GPT-3.5)
+├── large-section-chunk-1-medium.md    # 7,000 tokens (GPT-4)  
+├── large-section-chunk-1-large.md     # 30,000 tokens (GPT-4-32K)
+├── large-section-chunk-1-xlarge.md    # 95,000 tokens (Claude)
+└── chunk-manifest.json                # Chunking metadata
+```
+
+**Intelligent Boundary Detection:**
+- Preserves complete headers and subsections
+- Maintains paragraph integrity
+- Splits at sentence boundaries when needed
+- Includes cross-references between chunks
+
+**Chunk Documentation:**
+Each chunk includes comprehensive metadata for processing guidance:
+```markdown
+---
+title: API Documentation - Part 1 of 3
+original_section: API Endpoints  
+chunk_number: 1
+total_chunks: 3
+token_limit: small
+tokens: 3485
+contains_api_endpoints: 5
+processing_notes: ["Focus on authentication endpoints", "Contains OAuth flow"]
+next_chunk: "api-documentation-chunk-2-small.md"
+---
+```
+
+**Processing Guidance:**
+- Chunks maintain logical coherence for LLM understanding
+- Cross-references help LLMs understand document flow
+- Token counts enable precise context window planning
+- Processing notes guide LLM focus areas
+
 #### Intelligent Section Types
 - **api_endpoint**: HTTP methods, URLs, parameters
 - **authentication**: OAuth, JWT, API keys, credentials  
@@ -222,10 +268,12 @@ The **llm-compatibility-report.md** shows:
 ✅ **Processing Priority**: Critical sections (authentication, APIs) identified first  
 ✅ **Context Window Management**: Precise token counts and model recommendations
 ✅ **Structured API Data**: Parameters, request/response formats, and examples extracted
+✅ **Smart Chunking**: Automatic splitting for optimal context window utilization
 ✅ **Workflow Optimization**: Processing notes guide LLMs on what to focus on
 ✅ **Batch API Processing**: Process related endpoints together for efficient integration
 ✅ **Code Generation Ready**: Complete endpoint info for automatic client generation
 ✅ **Cost Estimation**: Calculate API costs based on accurate token counts
+✅ **Multi-Model Support**: Optimized chunks for GPT-3.5, GPT-4, GPT-4-32K, and Claude
 
 Each file is optimized for LLM processing and includes:
 - Clean markdown formatting with semantic structure

@@ -301,6 +301,26 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 			}
 		}
 		
+		// Check for chunked sections directory
+		hasChunkedSections := false
+		chunkedSectionCount := 0
+		chunkedDir := filepath.Join(outputDir, "chunked")
+		if _, err := os.Stat(chunkedDir); err == nil {
+			hasChunkedSections = true
+			// Count all chunk files across all size directories
+			sizeDirs := []string{"small", "medium", "large", "xlarge"}
+			for _, sizeDir := range sizeDirs {
+				sizePath := filepath.Join(chunkedDir, sizeDir)
+				if files, err := os.ReadDir(sizePath); err == nil {
+					for _, file := range files {
+						if strings.HasSuffix(file.Name(), ".md") {
+							chunkedSectionCount++
+						}
+					}
+				}
+			}
+		}
+		
 		var extras []string
 		if hasIndex {
 			extras = append(extras, "navigation index")
@@ -319,6 +339,9 @@ func (s *MCPServer) convertPDF(args map[string]interface{}) (*CallToolResponse, 
 		}
 		if hasAPIEndpoints {
 			extras = append(extras, fmt.Sprintf("%d API endpoints", apiEndpointCount))
+		}
+		if hasChunkedSections {
+			extras = append(extras, fmt.Sprintf("%d smart chunks", chunkedSectionCount))
 		}
 		
 		extrasStr := ""
