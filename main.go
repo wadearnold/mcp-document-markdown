@@ -229,6 +229,45 @@ func (s *MCPServer) handleToolsList() (*ToolsListResponse, error) {
 				"required": []string{"pdf_path"},
 			},
 		},
+		{
+			Name:        "prepare_pdf_for_rag",
+			Description: "Prepare PDF for vector databases and RAG systems with optimized chunking",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"pdf_path": map[string]interface{}{
+						"type":        "string",
+						"description": "Path to the PDF file to process",
+					},
+					"output_dir": map[string]interface{}{
+						"type":        "string",
+						"description": "Output directory for chunks and metadata",
+					},
+					"chunk_size": map[string]interface{}{
+						"type":        "number",
+						"description": "Target chunk size in tokens (default: 768)",
+						"default":     768,
+					},
+					"chunk_overlap": map[string]interface{}{
+						"type":        "number",
+						"description": "Overlap between chunks in tokens (default: 128)",
+						"default":     128,
+					},
+					"vector_db_format": map[string]interface{}{
+						"type":        "string",
+						"description": "Target vector database format: generic, pinecone, chromadb, weaviate, qdrant",
+						"default":     "generic",
+						"enum":        []string{"generic", "pinecone", "chromadb", "weaviate", "qdrant"},
+					},
+					"embedding_model": map[string]interface{}{
+						"type":        "string",
+						"description": "Target embedding model for optimization",
+						"default":     "text-embedding-ada-002",
+					},
+				},
+				"required": []string{"pdf_path"},
+			},
+		},
 	}
 
 	return &ToolsListResponse{Tools: tools}, nil
@@ -241,6 +280,8 @@ func (s *MCPServer) handleToolCall(req CallToolRequest) (*CallToolResponse, erro
 		return s.convertPDF(req.Arguments)
 	case "analyze_pdf_structure":
 		return s.analyzePDFStructure(req.Arguments)
+	case "prepare_pdf_for_rag":
+		return s.preparePDFForRAG(req.Arguments)
 	default:
 		return nil, fmt.Errorf("unknown tool: %s", req.Name)
 	}
@@ -482,6 +523,96 @@ func (s *MCPServer) analyzePDFStructure(args map[string]interface{}) (*CallToolR
 			{
 				Type: "text",
 				Text: string(output),
+			},
+		},
+	}, nil
+}
+
+// preparePDFForRAG prepares PDF for vector databases and RAG systems
+func (s *MCPServer) preparePDFForRAG(args map[string]interface{}) (*CallToolResponse, error) {
+	pdfPath, ok := args["pdf_path"].(string)
+	if !ok {
+		return nil, fmt.Errorf("pdf_path is required")
+	}
+
+	// Default output directory
+	outputDir := "./rag_output"
+	if dir, ok := args["output_dir"].(string); ok {
+		outputDir = dir
+	}
+
+	// Get optional parameters with defaults
+	chunkSize := 768
+	if size, ok := args["chunk_size"].(float64); ok {
+		chunkSize = int(size)
+	}
+
+	chunkOverlap := 128
+	if overlap, ok := args["chunk_overlap"].(float64); ok {
+		chunkOverlap = int(overlap)
+	}
+
+	vectorDBFormat := "generic"
+	if format, ok := args["vector_db_format"].(string); ok {
+		vectorDBFormat = format
+	}
+
+	embeddingModel := "text-embedding-ada-002"
+	if model, ok := args["embedding_model"].(string); ok {
+		embeddingModel = model
+	}
+
+	// Create output directory
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create output directory: %v", err)
+	}
+
+	// Load the RAG preparation script
+	ragScript, err := loadPythonScript("pdf_to_rag.py")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load RAG script: %v", err)
+	}
+
+	// Build command arguments
+	cmdArgs := []string{
+		"-", pdfPath, outputDir,
+		"--chunk-size", fmt.Sprintf("%d", chunkSize),
+		"--chunk-overlap", fmt.Sprintf("%d", chunkOverlap),
+		"--format", vectorDBFormat,
+		"--model", embeddingModel,
+	}
+
+	// Run the RAG preparation script
+	cmd := exec.Command(s.pythonPath, cmdArgs...)
+	cmd.Stdin = strings.NewReader(ragScript)
+	
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("RAG preparation failed: %v\nOutput: %s", err, output)
+	}
+
+	// Parse the output to get summary information
+	resultMessage := fmt.Sprintf(`✅ PDF prepared for RAG successfully!
+
+Output Directory: %s
+Chunk Size: %d tokens
+Chunk Overlap: %d tokens
+Vector DB Format: %s
+Embedding Model: %s
+
+Files created:
+- chunks.json: Raw chunks with metadata
+- %s_format.json: Database-specific format
+- metadata.json: Document metadata
+- import_instructions.md: Import guide with code examples
+
+%s`, outputDir, chunkSize, chunkOverlap, vectorDBFormat, embeddingModel, vectorDBFormat, string(output))
+
+	return &CallToolResponse{
+		Content: []ToolContent{
+			{
+				Type: "text",
+				Text: resultMessage,
 			},
 		},
 	}, nil

@@ -678,6 +678,323 @@ Each file is optimized for LLM processing and includes:
 - API endpoint extraction and classification
 - Processing priority for workflow optimization
 
+## 🔀 Two Workflows: Direct LLM vs RAG Pipeline
+
+This MCP server provides **two distinct tools** for different use cases:
+
+### Workflow A: Direct LLM Consumption (`convert_pdf`)
+**Best for:** Interactive AI conversations, document analysis, code review
+```
+PDF → Organized Markdown Files → Feed to Claude/GPT-4 → Get Answers
+```
+
+**Use this when you want to:**
+- Have a conversation about a document with an AI assistant
+- Navigate through chapters and sections manually
+- Work with human-readable markdown files
+- Leverage cross-references and summaries
+- Process documents incrementally
+
+**Example:**
+```
+Convert the PDF at /path/to/manual.pdf to markdown, then help me understand Chapter 3
+```
+
+### Workflow B: RAG/Vector Database Pipeline (`prepare_pdf_for_rag`)
+**Best for:** Semantic search, knowledge bases, automated Q&A systems
+```
+PDF → Semantic Chunks → Vector Database → Similarity Search → Retrieved Context
+```
+
+**Use this when you want to:**
+- Build a searchable knowledge base
+- Enable semantic search across documents
+- Create automated Q&A systems
+- Scale to hundreds of documents
+- Use with LangChain, LlamaIndex, or custom RAG pipelines
+
+**Example:**
+```
+Prepare the PDF at /path/to/docs.pdf for RAG with vector database format chromadb
+```
+
+## 📚 RAG and Vector Database Integration
+
+The `prepare_pdf_for_rag` tool creates optimized chunks for vector databases with rich metadata for hybrid search.
+
+### What You Get with RAG Preparation
+
+```
+rag_output/
+├── chunks.json                 # Semantic chunks with metadata
+├── chromadb_format.json        # Ready for ChromaDB import
+├── metadata.json               # Document-level metadata
+└── import_instructions.md      # Complete import guide with code
+```
+
+### Chunk Structure
+Each chunk is optimized for embedding models:
+```json
+{
+  "chunk_id": "doc_abc123_chunk_0001",
+  "text": "Semantic chunk content...",
+  "metadata": {
+    "doc_id": "abc123",
+    "source_pages": [1, 2],
+    "token_count": 487,
+    "keywords": ["API", "authentication", "OAuth"],
+    "quality_score": 0.92,
+    "content_type": "technical"
+  }
+}
+```
+
+### Quick Import Examples
+
+#### ChromaDB (Local Vector Database)
+```python
+import chromadb
+import json
+from chromadb.utils import embedding_functions
+
+# Load prepared chunks
+with open('chromadb_format.json', 'r') as f:
+    data = json.load(f)
+
+# Create ChromaDB client
+client = chromadb.PersistentClient(path="./chroma_db")
+
+# Create collection with OpenAI embeddings
+openai_ef = embedding_functions.OpenAIEmbeddingFunction(
+    api_key="your-api-key",
+    model_name="text-embedding-ada-002"
+)
+
+collection = client.create_collection(
+    name=data['collection_name'],
+    embedding_function=openai_ef
+)
+
+# Add documents
+collection.add(
+    ids=data['ids'],
+    documents=data['documents'],
+    metadatas=data['metadatas']
+)
+
+# Query example
+results = collection.query(
+    query_texts=["How does authentication work?"],
+    n_results=5
+)
+```
+
+#### Pinecone (Cloud Vector Database)
+```python
+import pinecone
+import json
+from openai import OpenAI
+
+# Initialize
+pinecone.init(api_key="your-pinecone-key")
+index = pinecone.Index("your-index")
+openai_client = OpenAI(api_key="your-openai-key")
+
+# Load prepared chunks
+with open('pinecone_format.json', 'r') as f:
+    data = json.load(f)
+
+# Generate embeddings and upsert
+for vector in data['vectors']:
+    # Generate embedding
+    response = openai_client.embeddings.create(
+        model="text-embedding-ada-002",
+        input=vector['metadata']['text']
+    )
+    vector['values'] = response.data[0].embedding
+    
+    # Upsert to Pinecone
+    index.upsert(vectors=[vector], namespace=data['namespace'])
+
+# Query example
+query_embedding = openai_client.embeddings.create(
+    model="text-embedding-ada-002",
+    input="authentication process"
+).data[0].embedding
+
+results = index.query(
+    vector=query_embedding,
+    top_k=5,
+    namespace=data['namespace'],
+    include_metadata=True
+)
+```
+
+#### Weaviate (Self-Hosted or Cloud)
+```python
+import weaviate
+import json
+
+# Connect to Weaviate
+client = weaviate.Client(
+    url="http://localhost:8080",
+    additional_headers={"X-OpenAI-Api-Key": "your-key"}
+)
+
+# Load prepared chunks
+with open('weaviate_format.json', 'r') as f:
+    data = json.load(f)
+
+# Create schema
+client.schema.create_class({
+    "class": "DocumentChunk",
+    "vectorizer": "text2vec-openai",
+    "properties": [
+        {"name": "content", "dataType": ["text"]},
+        {"name": "docId", "dataType": ["string"]},
+        {"name": "sourcePages", "dataType": ["int[]"]},
+        {"name": "keywords", "dataType": ["string[]"]},
+    ]
+})
+
+# Import data
+client.batch.configure(batch_size=100)
+with client.batch as batch:
+    for obj in data['objects']:
+        batch.add_data_object(
+            obj['properties'],
+            class_name="DocumentChunk"
+        )
+
+# Query example
+result = client.query.get(
+    "DocumentChunk", 
+    ["content", "sourcePages", "keywords"]
+).with_near_text({
+    "concepts": ["API authentication"]
+}).with_limit(5).do()
+```
+
+#### Qdrant (Self-Hosted or Cloud)
+```python
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams, PointStruct
+import json
+from openai import OpenAI
+
+# Initialize clients
+qdrant = QdrantClient("localhost", port=6333)
+openai_client = OpenAI(api_key="your-key")
+
+# Load prepared chunks
+with open('qdrant_format.json', 'r') as f:
+    data = json.load(f)
+
+# Create collection
+qdrant.recreate_collection(
+    collection_name=data['collection_name'],
+    vectors_config=VectorParams(size=1536, distance=Distance.COSINE)
+)
+
+# Generate embeddings and upload
+points = []
+for point in data['points']:
+    # Generate embedding
+    embedding = openai_client.embeddings.create(
+        model="text-embedding-ada-002",
+        input=point['payload']['text']
+    ).data[0].embedding
+    
+    points.append(PointStruct(
+        id=point['id'],
+        vector=embedding,
+        payload=point['payload']
+    ))
+
+qdrant.upsert(
+    collection_name=data['collection_name'],
+    points=points
+)
+
+# Search example
+query_vector = openai_client.embeddings.create(
+    model="text-embedding-ada-002",
+    input="How to authenticate API requests?"
+).data[0].embedding
+
+search_result = qdrant.search(
+    collection_name=data['collection_name'],
+    query_vector=query_vector,
+    limit=5
+)
+```
+
+### Integration with LangChain
+
+```python
+from langchain.vectorstores import Chroma
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.chains import RetrievalQA
+from langchain.llms import OpenAI
+import json
+
+# Load the prepared chunks
+with open('chromadb_format.json', 'r') as f:
+    data = json.load(f)
+
+# Create vector store from prepared chunks
+embeddings = OpenAIEmbeddings()
+vectorstore = Chroma.from_texts(
+    texts=data['documents'],
+    metadatas=data['metadatas'],
+    embedding=embeddings,
+    collection_name=data['collection_name']
+)
+
+# Create QA chain
+qa_chain = RetrievalQA.from_chain_type(
+    llm=OpenAI(temperature=0),
+    chain_type="stuff",
+    retriever=vectorstore.as_retriever(search_kwargs={"k": 5})
+)
+
+# Query
+response = qa_chain.run("What are the authentication requirements?")
+```
+
+### RAG Tool Parameters
+
+The `prepare_pdf_for_rag` tool accepts:
+- **`pdf_path`** (required): Path to the PDF file
+- **`output_dir`**: Where to save chunks (default: `./rag_output`)
+- **`chunk_size`**: Target tokens per chunk (default: 768)
+- **`chunk_overlap`**: Token overlap between chunks (default: 128)
+- **`vector_db_format`**: Target database format (`generic`, `pinecone`, `chromadb`, `weaviate`, `qdrant`)
+- **`embedding_model`**: Target embedding model for optimization
+
+### Best Practices for RAG
+
+1. **Chunk Size**: 
+   - 512-768 tokens for most embedding models
+   - 256 tokens for dense retrieval
+   - 1024 tokens for newer models like `text-embedding-3`
+
+2. **Overlap Strategy**:
+   - 10-20% overlap maintains context
+   - Higher overlap for technical documents
+   - Lower overlap for narrative content
+
+3. **Metadata Usage**:
+   - Filter by `quality_score` for better results
+   - Use `keywords` for hybrid search
+   - Track `source_pages` for citations
+
+4. **Indexing Strategy**:
+   - Separate namespaces/collections per document type
+   - Use metadata filters for targeted search
+   - Implement hybrid search (semantic + keyword)
+
 ## Building the Server
 
 ### Prerequisites
