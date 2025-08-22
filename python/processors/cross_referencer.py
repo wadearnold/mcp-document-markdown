@@ -434,7 +434,12 @@ class CrossReferencer:
                 resolved['broken_refs'].append({**ref, 'reason': 'table_not_found'})
         
         # Resolve concept references
-        concept_terms = concepts.get('terms', {}) if concepts else {}
+        # Handle concepts being a list of file paths or a dict with terms
+        concept_terms = {}
+        if isinstance(concepts, dict):
+            concept_terms = concepts.get('terms', {})
+        # If concepts is a list (of file paths), we'll skip concept resolution
+        
         for ref in all_refs['concept_refs']:
             concept = ref['concept']
             if concept in concept_terms:

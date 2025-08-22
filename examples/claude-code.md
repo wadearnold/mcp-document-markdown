@@ -21,23 +21,27 @@ This guide shows how to configure the MCP PDF Converter with Claude Code CLI.
 
 ### Method 1: Using Claude Code CLI (Recommended)
 
-Use the command and args from `make run` output:
+Copy the Command and Args values from `make run` output and use them like this:
 
 ```bash
-claude mcp add pdf-markdown -- [COMMAND_FROM_MAKE_RUN] [ARGS_FROM_MAKE_RUN]
+# Template (replace with your actual paths from 'make run'):
+claude mcp add pdf-markdown -- "COMMAND_PATH" "ARGS_PATH"
+
+# Real example:
+claude mcp add pdf-markdown -- "/Users/username/Documents/mcp-pdf-markdown/venv/bin/python" "/Users/username/Documents/mcp-pdf-markdown/mcp_pdf_markdown.py"
 ```
 
-For example:
-```bash
-claude mcp add pdf-markdown -- /Users/username/Documents/mcp-pdf-markdown/venv/bin/python /Users/username/Documents/mcp-pdf-markdown/mcp_pdf_markdown.py
-```
+**📋 Copy-Paste Steps:**
+1. Run `make run` and copy the Command path
+2. Copy the Args path  
+3. Use both in quotes as shown above
 
-**⚠️ Important**: Always use the exact paths shown by `make run`. These are full absolute paths that Claude Code needs to find the server.
+**⚠️ Important**: Use quotes around the paths to handle spaces correctly.
 
 ### With Environment Variables
 
 ```bash
-claude mcp add pdf-markdown --env OUTPUT_DIR=./docs -- [COMMAND_FROM_MAKE_RUN] [ARGS_FROM_MAKE_RUN]
+claude mcp add pdf-markdown --env OUTPUT_DIR=./docs -- "COMMAND_PATH" "ARGS_PATH"
 ```
 
 ### Method 2: Manual Configuration

@@ -3,15 +3,25 @@
 # Default target
 all: setup
 
-# Run the Python MCP server
-run: venv
-	@echo "🚀 Starting Python MCP server..."
-	@echo
-	@echo "📋 Configuration for MCP clients:"
+# Show configuration info for Claude Code
+config: venv
+	@echo "📋 MCP Server Configuration for Claude Code:"
 	@echo "   Command: $(PWD)/venv/bin/python"
-	@echo "   Args: [\"$(PWD)/mcp_pdf_markdown.py\"]"
+	@echo "   Args: $(PWD)/mcp_pdf_markdown.py"
 	@echo
-	@echo "💡 If you get import errors, run 'make setup' first"
+	@echo "To add this server to Claude Code, run:"
+	@echo "  claude mcp add pdf-markdown -- \"$(PWD)/venv/bin/python\" \"$(PWD)/mcp_pdf_markdown.py\""
+
+# Test/Debug the MCP server (NOT needed for normal operation)
+run: venv
+	@echo "🧪 Testing MCP PDF-to-Markdown server (stdio mode)..."
+	@echo
+	@echo "📋 Configuration paths for Claude Code CLI:"
+	@echo "   Command: $(PWD)/venv/bin/python"
+	@echo "   Args: $(PWD)/mcp_pdf_markdown.py"
+	@echo
+	@echo "ℹ️  This is a stdio server - Claude Code starts it on-demand"
+	@echo "💡 You don't need to keep this running. Use Ctrl+C to exit."
 	@echo
 	./venv/bin/python mcp_pdf_markdown.py
 

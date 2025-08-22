@@ -1,36 +1,21 @@
 #!/usr/bin/env python3
 """
-MCP PDF to Markdown Server
-Python-based Model Context Protocol server for PDF to Markdown conversion.
+Fixed MCP PDF to Markdown Server
 """
 import asyncio
 import json
 import sys
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
-import traceback
+from typing import Any, Dict
 
-# Add the python directory to the path for module imports
+# Add python directory to path
 sys.path.insert(0, str(Path(__file__).parent / "python"))
 
-from modular_pdf_converter import ModularPDFConverter
-from pdf_analyzer import analyze_pdf
-from pdf_to_rag import PDFToRAGProcessor
-
 # MCP imports
-try:
-    from mcp.server import Server
-    from mcp.types import (
-        Tool,
-        TextContent,
-        CallToolResult,
-        ListToolsResult,
-    )
-    import mcp.server.stdio
-except ImportError:
-    print("Error: MCP library not found. Install with: pip install mcp", file=sys.stderr)
-    sys.exit(1)
+from mcp.server import Server
+from mcp.types import Tool, TextContent, CallToolResult, ListToolsResult
+import mcp.server.stdio
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -40,13 +25,13 @@ logger = logging.getLogger(__name__)
 app = Server("pdf-markdown")
 
 @app.list_tools()
-async def list_tools() -> ListToolsResult:
+async def list_tools():
     """List available tools for PDF processing"""
-    return ListToolsResult(
-        tools=[
+    print("🔧 LIST_TOOLS CALLED - WORKING!", flush=True)
+    return [
             Tool(
                 name="convert_pdf",
-                description="Convert PDF to organized markdown documentation with advanced features",
+                description="Convert PDF to organized markdown documentation",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -56,22 +41,22 @@ async def list_tools() -> ListToolsResult:
                         },
                         "output_dir": {
                             "type": "string", 
-                            "description": "Directory to save converted files (default: ./docs)",
+                            "description": "Directory to save the converted files (default: ./docs)",
                             "default": "./docs"
                         },
                         "split_by_chapters": {
                             "type": "boolean",
-                            "description": "Organize content by document structure (default: true)",
+                            "description": "Split output by document chapters/sections",
                             "default": True
                         },
                         "preserve_tables": {
-                            "type": "boolean", 
-                            "description": "Keep table formatting (default: true)",
+                            "type": "boolean",
+                            "description": "Preserve table formatting in markdown",
                             "default": True
                         },
                         "extract_images": {
                             "type": "boolean",
-                            "description": "Extract and save referenced images (default: true)", 
+                            "description": "Extract and save images from PDF", 
                             "default": True
                         },
                         "generate_summaries": {
@@ -85,7 +70,7 @@ async def list_tools() -> ListToolsResult:
                             "default": True
                         },
                         "resolve_cross_references": {
-                            "type": "boolean", 
+                            "type": "boolean",
                             "description": "Resolve cross-references and create links (default: true)",
                             "default": True
                         },
@@ -94,9 +79,9 @@ async def list_tools() -> ListToolsResult:
                             "description": "Convert tables to structured JSON (default: true)",
                             "default": True
                         },
-                        "enable_chunking": {
+                        "chunk_size_optimization": {
                             "type": "boolean",
-                            "description": "Enable smart chunking for LLM optimization (default: true)", 
+                            "description": "Optimize chunks for LLM token windows (default: true)",
                             "default": True
                         }
                     },
@@ -104,8 +89,8 @@ async def list_tools() -> ListToolsResult:
                 }
             ),
             Tool(
-                name="analyze_pdf_structure",
-                description="Analyze PDF structure and metadata without conversion",
+                name="analyze_pdf_structure", 
+                description="Analyze PDF structure without converting",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -118,10 +103,10 @@ async def list_tools() -> ListToolsResult:
                 }
             ),
             Tool(
-                name="prepare_pdf_for_rag", 
-                description="Prepare PDF content for RAG (Retrieval Augmented Generation) with vector database formats",
+                name="prepare_pdf_for_rag",
+                description="Prepare PDF content for RAG workflows",
                 inputSchema={
-                    "type": "object",
+                    "type": "object", 
                     "properties": {
                         "pdf_path": {
                             "type": "string",
@@ -129,18 +114,17 @@ async def list_tools() -> ListToolsResult:
                         },
                         "vector_db_format": {
                             "type": "string",
-                            "description": "Target vector database format",
-                            "enum": ["chromadb", "pinecone", "weaviate", "qdrant"],
+                            "description": "Vector database format (chromadb, pinecone, weaviate, qdrant)",
                             "default": "chromadb"
                         },
                         "chunk_size": {
                             "type": "integer",
-                            "description": "Target chunk size in tokens (default: 768)",
+                            "description": "Target chunk size in tokens",
                             "default": 768
                         },
                         "output_dir": {
                             "type": "string",
-                            "description": "Directory to save RAG files (default: ./rag_output)",
+                            "description": "Directory to save RAG-prepared files",
                             "default": "./rag_output"
                         }
                     },
@@ -148,186 +132,162 @@ async def list_tools() -> ListToolsResult:
                 }
             )
         ]
-    )
 
 @app.call_tool()
-async def call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
+async def call_tool(name: str, arguments: Dict[str, Any]):
     """Handle tool calls"""
     try:
+        logger.info(f"Tool called: {name} with args: {arguments}")
+        
         if name == "convert_pdf":
             return await handle_convert_pdf(arguments)
         elif name == "analyze_pdf_structure":
-            return await handle_analyze_pdf(arguments)
+            return await handle_analyze_pdf(arguments)  
         elif name == "prepare_pdf_for_rag":
             return await handle_prepare_rag(arguments)
         else:
             raise ValueError(f"Unknown tool: {name}")
             
     except Exception as e:
-        logger.error(f"Tool {name} failed: {e}")
-        logger.error(traceback.format_exc())
-        return CallToolResult(
-            content=[
-                TextContent(
-                    type="text",
-                    text=f"Error: {str(e)}"
-                )
-            ],
-            isError=True
-        )
+        logger.error(f"Tool execution failed: {e}")
+        return [TextContent(type="text", text=f"Error: {str(e)}")]
 
-async def handle_convert_pdf(args: Dict[str, Any]) -> CallToolResult:
+async def handle_convert_pdf(args: Dict[str, Any]):
     """Handle PDF to markdown conversion"""
-    pdf_path = args["pdf_path"]
-    output_dir = args.get("output_dir", "./docs")
-    
-    # Validate PDF file exists
-    if not Path(pdf_path).exists():
-        raise FileNotFoundError(f"PDF file not found: {pdf_path}")
-    
-    # Build options from arguments
-    options = {
-        "split_by_chapters": args.get("split_by_chapters", True),
-        "preserve_tables": args.get("preserve_tables", True), 
-        "extract_images": args.get("extract_images", True),
-        "generate_summaries": args.get("generate_summaries", True),
-        "generate_concept_map": args.get("generate_concept_map", True),
-        "resolve_cross_references": args.get("resolve_cross_references", True),
-        "structured_tables": args.get("structured_tables", True),
-        "enable_chunking": args.get("enable_chunking", True)
-    }
-    
-    logger.info(f"Converting PDF: {pdf_path} to {output_dir}")
-    
-    # Run the modular converter
-    converter = ModularPDFConverter(pdf_path, output_dir, options)
-    result = converter.convert()
-    
-    if result.get("success"):
-        message = f"✅ Successfully converted {Path(pdf_path).name}\n"
-        message += f"📁 Output directory: {output_dir}\n"
-        message += f"📄 Files created: {len(result.get('output_files', []))}\n"
-        message += f"⏱️ Processing time: {result.get('processing_time_seconds', 0):.1f}s\n"
+    try:
+        from modular_pdf_converter import ModularPDFConverter
         
-        if result.get('processing_stats'):
-            stats = result['processing_stats']
-            message += f"📊 Statistics:\n"
-            if 'pdf_extraction' in stats:
-                pdf_stats = stats['pdf_extraction']
-                message += f"   • Pages: {pdf_stats.get('pages', 0)}\n"
-                message += f"   • Images: {pdf_stats.get('images', 0)}\n" 
-                message += f"   • Tables: {pdf_stats.get('tables', 0)}\n"
-            if 'sections' in stats:
-                message += f"   • Sections: {stats['sections']}\n"
+        pdf_path = args["pdf_path"]
+        output_dir = args.get("output_dir", "./docs")
         
-        return CallToolResult(
-            content=[TextContent(type="text", text=message)]
-        )
-    else:
-        error_msg = f"❌ Conversion failed: {result.get('error', 'Unknown error')}"
-        return CallToolResult(
-            content=[TextContent(type="text", text=error_msg)],
-            isError=True
-        )
+        if not Path(pdf_path).exists():
+            raise FileNotFoundError(f"PDF file not found: {pdf_path}")
+        
+        options = {
+            "split_by_chapters": args.get("split_by_chapters", True),
+            "preserve_tables": args.get("preserve_tables", True), 
+            "extract_images": args.get("extract_images", True),
+            "generate_summaries": args.get("generate_summaries", True),
+            "generate_concept_map": args.get("generate_concept_map", True),
+            "resolve_cross_references": args.get("resolve_cross_references", True),
+            "structured_tables": args.get("structured_tables", True),
+            "chunk_size_optimization": args.get("chunk_size_optimization", True),
+        }
+        
+        logger.info(f"Converting PDF: {pdf_path} to {output_dir}")
+        
+        converter = ModularPDFConverter(pdf_path, output_dir, options)
+        result = converter.convert()
+        
+        if result.get("success"):
+            message = f"✅ Successfully converted {Path(pdf_path).name}\n"
+            message += f"📁 Output directory: {output_dir}\n"
+            message += f"📄 Files created: {len(result.get('output_files', []))}\n"
+            message += f"⏱️  Processing time: {result.get('processing_time_seconds', 0):.1f}s\n\n"
+            
+            # Add processing stats if available
+            stats = result.get('processing_stats', {})
+            if stats:
+                message += "📊 Processing Statistics:\n"
+                pdf_stats = stats.get('pdf_extraction', {})
+                if pdf_stats:
+                    message += f"   • Pages: {pdf_stats.get('pages', 0)}\n"
+                    message += f"   • Images: {pdf_stats.get('images', 0)}\n" 
+                    message += f"   • Tables: {pdf_stats.get('tables', 0)}\n"
+                if 'sections' in stats:
+                    message += f"   • Sections: {stats['sections']}\n"
+            
+            return [TextContent(type="text", text=message)]
+        else:
+            error_msg = f"❌ Conversion failed: {result.get('error', 'Unknown error')}"
+            return [TextContent(type="text", text=error_msg)]
+        
+    except Exception as e:
+        logger.error(f"Convert PDF failed: {e}")
+        raise
 
-async def handle_analyze_pdf(args: Dict[str, Any]) -> CallToolResult:
+async def handle_analyze_pdf(args: Dict[str, Any]):
     """Handle PDF structure analysis"""
-    pdf_path = args["pdf_path"]
-    
-    # Validate PDF file exists
-    if not Path(pdf_path).exists():
-        raise FileNotFoundError(f"PDF file not found: {pdf_path}")
-    
-    logger.info(f"Analyzing PDF structure: {pdf_path}")
-    
-    # Run the analyzer
-    analysis = analyze_pdf(pdf_path)
-    
-    # Format the analysis results
-    message = f"📋 PDF Analysis: {Path(pdf_path).name}\n\n"
-    message += f"📄 **Basic Info:**\n"
-    message += f"   • Pages: {analysis.get('page_count', 0)}\n"
-    message += f"   • File size: {analysis.get('file_size_mb', 0):.1f} MB\n"
-    
-    if analysis.get('metadata'):
-        metadata = analysis['metadata']
-        message += f"\n📝 **Metadata:**\n"
-        if metadata.get('title'):
-            message += f"   • Title: {metadata['title']}\n"
-        if metadata.get('author'):
-            message += f"   • Author: {metadata['author']}\n"
-        if metadata.get('creation_date'):
-            message += f"   • Created: {metadata['creation_date']}\n"
-    
-    if analysis.get('structure'):
-        structure = analysis['structure']
-        message += f"\n🏗️ **Structure:**\n"
-        message += f"   • Images: {structure.get('images', 0)}\n"
-        message += f"   • Tables: {structure.get('tables', 0)}\n"
-        message += f"   • Text blocks: {structure.get('text_blocks', 0)}\n"
-    
-    return CallToolResult(
-        content=[TextContent(type="text", text=message)]
-    )
+    try:
+        from pdf_analyzer import analyze_pdf
+        
+        pdf_path = args["pdf_path"]
+        
+        if not Path(pdf_path).exists():
+            raise FileNotFoundError(f"PDF file not found: {pdf_path}")
+            
+        logger.info(f"Analyzing PDF structure: {pdf_path}")
+        
+        analysis = analyze_pdf(pdf_path)
+        
+        # Get file size
+        file_size_mb = Path(pdf_path).stat().st_size / (1024 * 1024)
+        
+        message = f"📊 PDF Analysis: {Path(pdf_path).name}\n"
+        message += f"Pages: {analysis.get('pages', 'unknown')}\n"
+        message += f"Size: {file_size_mb:.2f} MB\n"
+        message += f"Has TOC: {analysis.get('has_toc', False)}\n"
+        message += f"Tables: {analysis.get('table_count', 0)}\n"
+        message += f"Images: {analysis.get('image_count', 0)}"
+        
+        return [TextContent(type="text", text=message)]
+        
+    except Exception as e:
+        logger.error(f"Analyze PDF failed: {e}")
+        raise
 
-async def handle_prepare_rag(args: Dict[str, Any]) -> CallToolResult:
+async def handle_prepare_rag(args: Dict[str, Any]):
     """Handle RAG preparation"""
-    pdf_path = args["pdf_path"]
-    vector_db_format = args.get("vector_db_format", "chromadb")
-    chunk_size = args.get("chunk_size", 768)
-    output_dir = args.get("output_dir", "./rag_output")
-    
-    # Validate PDF file exists
-    if not Path(pdf_path).exists():
-        raise FileNotFoundError(f"PDF file not found: {pdf_path}")
-    
-    logger.info(f"Preparing PDF for RAG: {pdf_path} -> {vector_db_format}")
-    
-    # Run RAG preparation
-    processor = PDFToRAGProcessor(pdf_path, output_dir, vector_db_format, chunk_size)
-    chunk_count = processor.process()
-    
-    result = {
-        "success": True,
-        "chunk_count": chunk_count,
-        "avg_chunk_size": chunk_size,  # Approximation
-        "output_files": [
-            str(Path(output_dir) / "chunks.json"),
-            str(Path(output_dir) / f"{vector_db_format}_format.json"),
-            str(Path(output_dir) / "import_instructions.md")
-        ]
-    }
-    
-    if result.get("success"):
-        message = f"✅ RAG preparation completed for {Path(pdf_path).name}\n"
-        message += f"🗄️ Format: {vector_db_format}\n"
-        message += f"📁 Output directory: {output_dir}\n"
-        message += f"🧩 Chunks created: {result.get('chunk_count', 0)}\n"
-        message += f"📏 Average chunk size: {result.get('avg_chunk_size', 0)} tokens\n"
+    try:
+        from pdf_to_rag import PDFToRAGProcessor
         
-        if result.get('output_files'):
-            message += f"\n📄 **Files created:**\n"
-            for file_path in result['output_files']:
-                message += f"   • {Path(file_path).name}\n"
+        pdf_path = args["pdf_path"]
+        vector_db_format = args.get("vector_db_format", "chromadb")
+        chunk_size = args.get("chunk_size", 768)
+        output_dir = args.get("output_dir", "./rag_output")
         
-        return CallToolResult(
-            content=[TextContent(type="text", text=message)]
+        if not Path(pdf_path).exists():
+            raise FileNotFoundError(f"PDF file not found: {pdf_path}")
+            
+        logger.info(f"Preparing PDF for RAG: {pdf_path} -> {vector_db_format}")
+        
+        processor = PDFToRAGProcessor(
+            pdf_path,
+            output_dir, 
+            vector_db_format=vector_db_format,
+            chunk_size=chunk_size
         )
-    else:
-        error_msg = f"❌ RAG preparation failed: {result.get('error', 'Unknown error')}"
-        return CallToolResult(
-            content=[TextContent(type="text", text=error_msg)],
-            isError=True
-        )
+        
+        chunk_count = processor.process()
+        
+        message = f"🎯 RAG Preparation Complete\n"
+        message += f"PDF: {Path(pdf_path).name}\n" 
+        message += f"Format: {vector_db_format}\n"
+        message += f"Chunks: {chunk_count}\n"
+        message += f"Output: {output_dir}"
+        
+        return [TextContent(type="text", text=message)]
+        
+    except Exception as e:
+        logger.error(f"RAG preparation failed: {e}")
+        raise
 
 async def main():
     """Main entry point"""
-    # Import here to avoid issues if mcp is not installed
-    import mcp.server.stdio
+    logger.info("Starting MCP PDF-to-Markdown server (pdf-markdown)")
+    print(f"🐍 Python executable: {sys.executable}", file=sys.stderr, flush=True)
+    print(f"📁 Working directory: {Path.cwd()}", file=sys.stderr, flush=True)
+    print(f"🛤️  Python path: {sys.path[:3]}...", file=sys.stderr, flush=True)
     
-    logger.info("Starting MCP PDF to Markdown server")
+    # Add debugging for request handling
+    original_run = app.run
+    async def debug_run(*args, **kwargs):
+        print(f"🔧 Server.run() called", file=sys.stderr, flush=True)
+        return await original_run(*args, **kwargs)
+    app.run = debug_run
     
     async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
+        print(f"📡 Starting stdio server", file=sys.stderr, flush=True)
         await app.run(
             read_stream,
             write_stream,

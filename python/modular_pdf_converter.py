@@ -173,10 +173,12 @@ class ModularPDFConverter:
             return final_results
             
         except Exception as e:
+            import traceback
             error_time = datetime.now()
             processing_time = (error_time - start_time).total_seconds()
             
             print(f"Conversion failed after {processing_time:.2f} seconds: {str(e)}")
+            traceback.print_exc()
             
             return {
                 'success': False,
@@ -354,22 +356,16 @@ class ModularPDFConverter:
     
     def generate_main_markdown_files(self, sections: List[Dict[str, Any]], 
                                    pdf_content: Dict[str, Any]) -> List[str]:
-        """Generate the main markdown files"""
+        """Generate the main markdown files for LLM agents"""
         generated_files = []
         
-        # Generate complete document markdown
-        complete_md = self.create_complete_markdown(sections, pdf_content)
-        complete_file = self.output_dir / "complete-document.md"
-        FileUtils.write_markdown(complete_md, complete_file)
-        generated_files.append(str(complete_file))
-        
-        # Generate structured document markdown  
+        # Generate structure overview (navigation and metadata for LLM agents)
         structured_md = self.create_structured_markdown(sections, pdf_content)
-        structured_file = self.output_dir / "structured-document.md"
-        FileUtils.write_markdown(structured_md, structured_file)
-        generated_files.append(str(structured_file))
+        structure_file = self.output_dir / "structure-overview.md"
+        FileUtils.write_markdown(structured_md, structure_file)
+        generated_files.append(str(structure_file))
         
-        # Generate individual section files
+        # Generate individual section files (optimized for LLM processing)
         sections_dir = self.output_dir / "sections"
         FileUtils.ensure_directory(sections_dir)
         
@@ -382,43 +378,14 @@ class ModularPDFConverter:
         
         return generated_files
     
-    def create_complete_markdown(self, sections: List[Dict[str, Any]], 
-                               pdf_content: Dict[str, Any]) -> str:
-        """Create a complete markdown document"""
-        metadata = pdf_content.get('metadata', {})
-        stats = pdf_content.get('stats', {})
-        
-        content = f"""# {metadata.get('title', 'PDF Document')}
-
-**Converted**: {datetime.now().isoformat()}  
-**Source**: {self.pdf_path.name}  
-**Pages**: {stats.get('total_pages', 'Unknown')}  
-**Images**: {stats.get('total_images', 0)}  
-**Tables**: {stats.get('total_tables', 0)}
-
----
-
-"""
-        
-        # Add all sections
-        for section in sections:
-            title = section.get('title', 'Untitled Section')
-            section_content = section.get('content', '')
-            level = section.get('level', 1)
-            
-            # Adjust header level
-            header_prefix = '#' * min(level + 1, 6)
-            content += f"{header_prefix} {title}\\n\\n{section_content}\\n\\n---\\n\\n"
-        
-        return content
     
     def create_structured_markdown(self, sections: List[Dict[str, Any]], 
                                  pdf_content: Dict[str, Any]) -> str:
-        """Create a structured markdown document with metadata"""
+        """Create a structure overview document for LLM navigation"""
         metadata = pdf_content.get('metadata', {})
         stats = pdf_content.get('stats', {})
         
-        content = f"""# {metadata.get('title', 'PDF Document')} - Structured
+        content = f"""# {metadata.get('title', 'PDF Document')} - Structure Overview
 
 **Document Type**: {self.processing_stats.get('document_type', 'Unknown')}  
 **Converted**: {datetime.now().isoformat()}  
@@ -533,7 +500,7 @@ class ModularPDFConverter:
 ## Usage Guide
 
 ### Quick Start
-1. Start with `structured-document.md` for an overview
+1. Start with `structure-overview.md` for navigation and metadata
 2. Check `summaries/README.md` for different summary types
 3. Use `chunked/` directory for LLM-optimized content
 
@@ -580,10 +547,10 @@ class ModularPDFConverter:
             'processing_stats': self.processing_stats,
             'conversion_results_summary': {
                 'sections_created': self.processing_stats.get('sections', 0),
-                'tables_processed': len(self.conversion_results.get('tables', {}).get('processed_tables', [])),
-                'concepts_extracted': len(self.conversion_results.get('concepts', {}).get('terms', {})),
-                'summaries_generated': len(self.conversion_results.get('summaries', {}).get('summaries', {})),
-                'chunks_created': self.conversion_results.get('chunks', {}).get('total_chunks', 0)
+                'tables_processed': len(self.conversion_results.get('tables', [])) if isinstance(self.conversion_results.get('tables', []), list) else len(self.conversion_results.get('tables', {}).get('processed_tables', [])),
+                'concepts_extracted': len(self.conversion_results.get('concepts', [])) if isinstance(self.conversion_results.get('concepts', []), list) else len(self.conversion_results.get('concepts', {}).get('terms', {})),
+                'summaries_generated': len(self.conversion_results.get('summaries', [])) if isinstance(self.conversion_results.get('summaries', []), list) else len(self.conversion_results.get('summaries', {}).get('summaries', {})),
+                'chunks_created': len(self.conversion_results.get('chunks', [])) if isinstance(self.conversion_results.get('chunks', []), list) else self.conversion_results.get('chunks', {}).get('total_chunks', 0)
             }
         }
         
@@ -599,26 +566,41 @@ class ModularPDFConverter:
         all_files.extend(self.conversion_results.get('markdown_files', []))
         
         # Add table files
-        table_results = self.conversion_results.get('tables', {})
-        all_files.extend(table_results.get('table_files', []))
+        table_results = self.conversion_results.get('tables', [])
+        if isinstance(table_results, list):
+            all_files.extend(table_results)
+        elif isinstance(table_results, dict):
+            all_files.extend(table_results.get('table_files', []))
         
         # Add concept files
-        concept_results = self.conversion_results.get('concepts', {})
-        all_files.extend(concept_results.get('concept_files', []))
+        concept_results = self.conversion_results.get('concepts', [])
+        if isinstance(concept_results, list):
+            all_files.extend(concept_results)
+        elif isinstance(concept_results, dict):
+            all_files.extend(concept_results.get('concept_files', []))
         
         # Add cross-reference files
-        xref_results = self.conversion_results.get('cross_references', {})
-        all_files.extend(xref_results.get('reference_files', []))
+        xref_results = self.conversion_results.get('cross_references', [])
+        if isinstance(xref_results, list):
+            all_files.extend(xref_results)
+        elif isinstance(xref_results, dict):
+            all_files.extend(xref_results.get('reference_files', []))
         
         # Add summary files
-        summary_results = self.conversion_results.get('summaries', {})
-        all_files.extend(summary_results.get('summary_files', []))
-        if summary_results.get('index_file'):
-            all_files.append(summary_results['index_file'])
+        summary_results = self.conversion_results.get('summaries', [])
+        if isinstance(summary_results, list):
+            all_files.extend(summary_results)
+        elif isinstance(summary_results, dict):
+            all_files.extend(summary_results.get('summary_files', []))
+            if summary_results.get('index_file'):
+                all_files.append(summary_results['index_file'])
         
         # Add chunk files
-        chunk_results = self.conversion_results.get('chunks', {})
-        all_files.extend(chunk_results.get('chunk_files', []))
+        chunk_results = self.conversion_results.get('chunks', [])
+        if isinstance(chunk_results, list):
+            all_files.extend(chunk_results)
+        elif isinstance(chunk_results, dict):
+            all_files.extend(chunk_results.get('chunk_files', []))
         
         # Add metadata files
         if self.conversion_results.get('index_file'):

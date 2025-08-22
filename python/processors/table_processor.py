@@ -74,7 +74,9 @@ class TableProcessor:
                     })
                     
             except Exception as e:
+                import traceback
                 print(f"Failed to process table {i + 1}: {e}")
+                traceback.print_exc()
         
         # Create tables index
         if all_tables_data:
@@ -479,41 +481,6 @@ class TableProcessor:
 - **Low token count** (<500): Include full table in prompts
 - **Medium token count** (500-2000): Summarize or filter first
 - **High token count** (>2000): Use structured queries on JSON format
-
-## Usage Examples
-
-### Python Integration
-```python
-import json
-
-# Load structured table data
-with open('table_01.json') as f:
-    table_data = json.load(f)
-
-# Access table metadata
-print(f"Table has {table_data['metadata']['rows']} rows")
-print(f"Complexity: {table_data['llm_metadata']['processing_complexity']}")
-
-# Work with structured data
-headers = table_data['data']['headers']
-rows = table_data['data']['formatted_rows']
-
-# Convert to DataFrame for analysis
-import pandas as pd
-df = pd.DataFrame(rows)
-```
-
-### LLM-Optimized Queries
-For tables marked as 'simple' or 'moderate':
-- Include full markdown in prompt
-- Ask for complete analysis
-
-For 'complex' or 'very_complex' tables:
-- Reference the JSON structure
-- Query specific columns or row ranges
-- Use the schema for targeted questions
-
-*Ready for advanced data analysis and LLM processing*
 """
         
         index_file = self.tables_dir / "README.md"
