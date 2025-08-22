@@ -12,20 +12,26 @@ This guide shows how to configure the MCP PDF Converter with GitHub Copilot.
    make setup
    ```
 
+2. Get configuration details:
+   ```bash
+   make run
+   ```
+   Copy the command and args paths shown for use in the configuration below.
+
 ## Configuration
 
 GitHub Copilot typically uses MCP configuration through VS Code or other supported editors.
 
 ### VS Code Extension Configuration
 
-If using VS Code with GitHub Copilot, add this to your settings:
+If using VS Code with GitHub Copilot, add this to your settings using the paths from `make run`:
 
 ```json
 {
   "mcp.servers": {
     "pdf-markdown": {
-      "command": "python3",
-      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
+      "command": "[COMMAND_FROM_MAKE_RUN]",
+      "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
         "OUTPUT_DIR": "./docs"
       }
@@ -34,16 +40,18 @@ If using VS Code with GitHub Copilot, add this to your settings:
 }
 ```
 
+**Note**: The `make run` command will show the complete paths specific to your system - simply copy and paste those values.
+
 ### Workspace Configuration
 
-Create `.vscode/settings.json` in your project:
+Create `.vscode/settings.json` in your project using the paths from `make run`:
 
 ```json
 {
   "mcp.servers": {
     "pdf-markdown": {
-      "command": "python3",
-      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
+      "command": "[COMMAND_FROM_MAKE_RUN]",
+      "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
         "OUTPUT_DIR": "./docs",
         "DEBUG": "false"
@@ -95,13 +103,14 @@ echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"
 - Try restarting VS Code after configuration changes
 
 **Server not responding?**
-- Test server directly: `echo '{"method": "tools/list"}' | python3 /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
-- Check server logs for errors
+- Test server directly: `cd /path/to/mcp-pdf-markdown && make run`
+- Run `make run` to get the correct paths for your system
 - Verify Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
 
 **Python dependency errors?**
 - Reinstall dependencies: `cd /path/to/mcp-pdf-markdown && make setup`
-- Check Python path: `which python3`
+- Test with: `cd /path/to/mcp-pdf-markdown && make run`
+- Verify virtual environment is working properly
 
 ## GitHub Copilot MCP Status
 

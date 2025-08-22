@@ -4,22 +4,28 @@ This guide shows how to configure the MCP PDF Converter with Claude Desktop.
 
 ## Prerequisites
 
-Setup the Python MCP server:
-```bash
-cd /path/to/mcp-pdf-markdown
-make setup
-```
+1. Setup the Python MCP server:
+   ```bash
+   cd /path/to/mcp-pdf-markdown
+   make setup
+   ```
+
+2. Get configuration details:
+   ```bash
+   make run
+   ```
+   Copy the command and args paths shown for use in the configuration below.
 
 ## Configuration
 
-Add this configuration to your Claude Desktop config file:
+Add this configuration to your Claude Desktop config file using the paths from `make run`:
 
 ```json
 {
   "mcpServers": {
     "pdf-markdown": {
-      "command": "python3",
-      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
+      "command": "[COMMAND_FROM_MAKE_RUN]",
+      "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
         "OUTPUT_DIR": "./docs"
       }
@@ -28,25 +34,11 @@ Add this configuration to your Claude Desktop config file:
 }
 ```
 
-**Replace `/path/to/mcp-pdf-markdown`** with the actual path to your cloned repository.
+**Note**: The `make run` command will show the complete paths specific to your system - simply copy and paste those values.
 
-### Using Virtual Environment (Recommended)
+### Alternative: Using System Python
 
-If you want to use the project's virtual environment:
-
-```json
-{
-  "mcpServers": {
-    "pdf-markdown": {
-      "command": "/path/to/mcp-pdf-markdown/venv/bin/python",
-      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
-      "env": {
-        "OUTPUT_DIR": "./docs"
-      }
-    }
-  }
-}
-```
+If you prefer to use system Python instead of the virtual environment, you can use `python3` as the command, but the virtual environment (shown by `make run`) is recommended for dependency isolation.
 
 ## Configuration File Location
 

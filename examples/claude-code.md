@@ -11,41 +11,45 @@ This guide shows how to configure the MCP PDF Converter with Claude Code CLI.
    make setup
    ```
 
+3. Get configuration details:
+   ```bash
+   make run
+   ```
+   This will show you the exact command and args paths to use in the next step. Copy these values for configuration.
+
 ## Configuration
 
 ### Method 1: Using Claude Code CLI (Recommended)
 
-First, get the full absolute path to your repository:
+Use the command and args from `make run` output:
 
 ```bash
-cd /path/to/mcp-pdf-markdown
-pwd  # This shows your full path, e.g., /Users/username/Documents/mcp-pdf-markdown
+claude mcp add pdf-markdown -- [COMMAND_FROM_MAKE_RUN] [ARGS_FROM_MAKE_RUN]
 ```
 
-Then add the MCP server using the full absolute path:
-
+For example:
 ```bash
 claude mcp add pdf-markdown -- /Users/username/Documents/mcp-pdf-markdown/venv/bin/python /Users/username/Documents/mcp-pdf-markdown/mcp_pdf_markdown.py
 ```
 
-**⚠️ Important**: You **must use the full absolute path** to both the Python interpreter and the script. Relative paths will fail because Claude Code runs from a different directory.
+**⚠️ Important**: Always use the exact paths shown by `make run`. These are full absolute paths that Claude Code needs to find the server.
 
 ### With Environment Variables
 
 ```bash
-claude mcp add pdf-markdown --env OUTPUT_DIR=./docs -- /path/to/mcp-pdf-markdown/venv/bin/python /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py
+claude mcp add pdf-markdown --env OUTPUT_DIR=./docs -- [COMMAND_FROM_MAKE_RUN] [ARGS_FROM_MAKE_RUN]
 ```
 
 ### Method 2: Manual Configuration
 
-Create or edit your MCP configuration file with:
+Create or edit your MCP configuration file using the paths from `make run`:
 
 ```json
 {
   "mcpServers": {
     "pdf-markdown": {
-      "command": "/path/to/mcp-pdf-markdown/venv/bin/python",
-      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
+      "command": "[COMMAND_FROM_MAKE_RUN]",
+      "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
         "OUTPUT_DIR": "./docs"
       }

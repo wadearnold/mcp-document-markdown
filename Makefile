@@ -3,8 +3,16 @@
 # Default target
 all: setup
 
-# Run the Python MCP server (runs tests first to ensure code is working)
-run: venv test
+# Run the Python MCP server
+run: venv
+	@echo "🚀 Starting Python MCP server..."
+	@echo
+	@echo "📋 Configuration for MCP clients:"
+	@echo "   Command: $(PWD)/venv/bin/python"
+	@echo "   Args: [\"$(PWD)/mcp_pdf_markdown.py\"]"
+	@echo
+	@echo "💡 If you get import errors, run 'make setup' first"
+	@echo
 	./venv/bin/python mcp_pdf_markdown.py
 
 # Run the server in development mode (same as run for Python)
@@ -70,7 +78,7 @@ check-deps: venv
 help:
 	@echo "Available targets:"
 	@echo "  make setup          - Install dependencies and run tests"
-	@echo "  make run            - Run the Python MCP server (tests first)"
+	@echo "  make run            - Run the Python MCP server"
 	@echo "  make test           - Run Python unit tests"
 	@echo "  make test-pdf       - Test PDF conversion with sample file"
 	@echo "  make check-deps     - Check if dependencies are installed"

@@ -22,16 +22,22 @@ The Model Context Protocol is an open standard that allows AI tools to connect t
    make setup    # Install dependencies and run tests
    ```
 
+2. Get configuration details:
+   ```bash
+   make run
+   ```
+   Copy the command and args paths shown for use in your MCP client configuration.
+
 ## Basic Configuration
 
-Most MCP clients use a JSON configuration format similar to:
+Most MCP clients use a JSON configuration format. Use the paths from `make run`:
 
 ```json
 {
   "mcpServers": {
     "pdf-markdown": {
-      "command": "python3",
-      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
+      "command": "[COMMAND_FROM_MAKE_RUN]",
+      "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
         "OUTPUT_DIR": "./docs",
         "DEBUG": "false"
@@ -41,14 +47,13 @@ Most MCP clients use a JSON configuration format similar to:
 }
 ```
 
-Alternatively, using the project's virtual environment:
-
+Example with actual paths:
 ```json
 {
   "mcpServers": {
     "pdf-markdown": {
-      "command": "/path/to/mcp-pdf-markdown/venv/bin/python",
-      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
+      "command": "/Users/username/Documents/mcp-pdf-markdown/venv/bin/python",
+      "args": ["/Users/username/Documents/mcp-pdf-markdown/mcp_pdf_markdown.py"],
       "env": {
         "OUTPUT_DIR": "./docs",
         "DEBUG": "false"

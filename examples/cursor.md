@@ -13,18 +13,24 @@ This guide shows how to configure the MCP PDF Converter with Cursor, the AI-powe
    make setup
    ```
 
+3. Get configuration details:
+   ```bash
+   make run
+   ```
+   Copy the command and args paths shown for use in the configuration below.
+
 ## Configuration
 
 ### Method 1: Cursor Settings
 
-Add this configuration to your Cursor settings (`Cmd/Ctrl + ,` → Search "mcp"):
+Add this configuration to your Cursor settings (`Cmd/Ctrl + ,` → Search "mcp") using the paths from `make run`:
 
 ```json
 {
   "mcp.servers": {
     "pdf-markdown": {
-      "command": "python3",
-      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
+      "command": "[COMMAND_FROM_MAKE_RUN]",
+      "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
         "OUTPUT_DIR": "./docs",
         "DEBUG": "false"
@@ -34,16 +40,18 @@ Add this configuration to your Cursor settings (`Cmd/Ctrl + ,` → Search "mcp")
 }
 ```
 
+**Note**: The `make run` command will show the complete paths specific to your system - simply copy and paste those values.
+
 ### Method 2: Workspace Configuration
 
-Create `.cursor/settings.json` in your project root:
+Create `.cursor/settings.json` in your project root using the paths from `make run`:
 
 ```json
 {
   "mcp.servers": {
     "pdf-markdown": {
-      "command": "python3",
-      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
+      "command": "[COMMAND_FROM_MAKE_RUN]",
+      "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
         "OUTPUT_DIR": "./docs",
         "PYTHON_PATH": "python3",
@@ -56,14 +64,14 @@ Create `.cursor/settings.json` in your project root:
 
 ### Method 3: Project-Specific Configuration
 
-For project-specific setup, create `.vscode/settings.json` (Cursor uses VS Code format):
+For project-specific setup, create `.vscode/settings.json` (Cursor uses VS Code format) using the paths from `make run`:
 
 ```json
 {
   "mcp.servers": {
     "pdf-markdown": {
-      "command": "python3",
-      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
+      "command": "[COMMAND_FROM_MAKE_RUN]",
+      "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
         "OUTPUT_DIR": "./docs"
       }
@@ -125,16 +133,17 @@ After conversion, Cursor will show the generated markdown files in your file exp
 - Try both user and workspace settings
 
 **Server not found?**
+- Run `make run` to get the correct paths for your system
 - Verify Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
 - Verify Python interpreter: `which python3`
-- Use absolute paths in configuration
+- Use the exact paths shown by `make run` in configuration
 
 ### Runtime Issues
 
 **Python errors?**
 - Check dependencies: `cd /path/to/mcp-pdf-markdown && make setup`
-- Verify Python path: `which python3`
-- Test server: `echo '{"method": "tools/list"}' | python3 /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
+- Test server: `cd /path/to/mcp-pdf-markdown && make run`
+- Verify virtual environment is working properly
 
 **Permission errors?**
 - Check file permissions in output directory
@@ -193,8 +202,8 @@ Then in Cursor:
 {
   "mcp.servers": {
     "pdf-markdown": {
-      "command": "python3",
-      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
+      "command": "[COMMAND_FROM_MAKE_RUN]",
+      "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
         "OUTPUT_DIR": "./converted-docs",
         "DEBUG": "true"
@@ -211,8 +220,8 @@ Then in Cursor:
 {
   "mcp.servers": {
     "pdf-markdown": {
-      "command": "python3",
-      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
+      "command": "[COMMAND_FROM_MAKE_RUN]",
+      "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
         "DEBUG": "true"
       }
@@ -226,8 +235,8 @@ Then in Cursor:
 {
   "mcp.servers": {
     "pdf-markdown": {
-      "command": "python3",
-      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
+      "command": "[COMMAND_FROM_MAKE_RUN]",
+      "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
         "DEBUG": "false"
       }
