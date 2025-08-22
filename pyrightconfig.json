@@ -1,0 +1,12 @@
+{
+    "include": [
+        "."
+    ],
+    "extraPaths": [
+        "./python"
+    ],
+    "pythonVersion": "3.8",
+    "pythonPlatform": "All",
+    "venvPath": ".",
+    "venv": "venv"
+}
