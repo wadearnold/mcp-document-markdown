@@ -22,12 +22,20 @@ Convert any PDF into structured documentation that your AI assistant can underst
 ```bash
 git clone https://github.com/wadearnold/mcp-pdf-markdown.git
 cd mcp-pdf-markdown
-make setup    # Installs dependencies
+make setup    # Installs dependencies and runs tests
 ```
 
-### 2. Configure Your AI Assistant
+### 2. Get Configuration Paths
 
-Add the MCP server to your AI assistant. Choose your setup:
+```bash
+make run    # Shows command and args paths for your system
+```
+
+Copy the displayed paths for use in step 3.
+
+### 3. Configure Your AI Assistant
+
+Add the MCP server to your AI assistant using the paths from step 2. Choose your setup:
 
 - 🔵 **[Claude Desktop](examples/claude-desktop.md)** - Anthropic's desktop app
 - ⌨️ **[Claude Code](examples/claude-code.md)** - Anthropic's CLI tool  
@@ -35,7 +43,7 @@ Add the MCP server to your AI assistant. Choose your setup:
 - 🎯 **[Cursor](examples/cursor.md)** - AI-powered code editor
 - ⚙️ **[Generic MCP Setup](examples/generic-mcp.md)** - Other MCP clients
 
-### 3. Convert Your First PDF
+### 4. Convert Your First PDF
 
 Once configured, just ask your AI assistant:
 
@@ -45,7 +53,7 @@ Convert the PDF at /path/to/my-documentation.pdf to markdown
 
 Your AI will convert the PDF and create organized reference files it can use to help you.
 
-### 4. Make Your AI Agent Use the Documentation
+### 5. Make Your AI Agent Use the Documentation
 
 After converting PDFs to markdown files, **tell your AI agent to use the new documentation as reference**:
 
@@ -285,7 +293,7 @@ make setup    # Installs dependencies and runs tests
 
 ### Run the server
 ```bash
-make run    # Runs tests then starts the Python MCP server
+make run    # Starts the Python MCP server and shows configuration paths
 ```
 
 ## License
