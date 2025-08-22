@@ -7,16 +7,10 @@ This guide shows how to configure the MCP PDF Converter with Cursor, the AI-powe
 ## Prerequisites
 
 1. Install Cursor (if not already installed)
-2. Build the MCP server:
+2. Setup the MCP server:
    ```bash
    cd /path/to/mcp-pdf-markdown
    make setup
-   make build
-   ```
-
-3. Copy the binary to your PATH:
-   ```bash
-   cp bin/mcp-pdf-markdown /usr/local/bin/
    ```
 
 ## Configuration
@@ -29,7 +23,8 @@ Add this configuration to your Cursor settings (`Cmd/Ctrl + ,` → Search "mcp")
 {
   "mcp.servers": {
     "pdf-markdown": {
-      "command": "/usr/local/bin/mcp-pdf-markdown",
+      "command": "python3",
+      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
       "env": {
         "OUTPUT_DIR": "./docs",
         "DEBUG": "false"
@@ -47,7 +42,8 @@ Create `.cursor/settings.json` in your project root:
 {
   "mcp.servers": {
     "pdf-markdown": {
-      "command": "/usr/local/bin/mcp-pdf-markdown",
+      "command": "python3",
+      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
       "env": {
         "OUTPUT_DIR": "./docs",
         "PYTHON_PATH": "python3",
@@ -66,7 +62,8 @@ For project-specific setup, create `.vscode/settings.json` (Cursor uses VS Code 
 {
   "mcp.servers": {
     "pdf-markdown": {
-      "command": "/usr/local/bin/mcp-pdf-markdown",
+      "command": "python3",
+      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
       "env": {
         "OUTPUT_DIR": "./docs"
       }
@@ -128,8 +125,8 @@ After conversion, Cursor will show the generated markdown files in your file exp
 - Try both user and workspace settings
 
 **Server not found?**
-- Verify binary exists: `ls -la /usr/local/bin/mcp-pdf-markdown`
-- Make binary executable: `chmod +x /usr/local/bin/mcp-pdf-markdown`
+- Verify Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
+- Verify Python interpreter: `which python3`
 - Use absolute paths in configuration
 
 ### Runtime Issues
@@ -137,7 +134,7 @@ After conversion, Cursor will show the generated markdown files in your file exp
 **Python errors?**
 - Check dependencies: `cd /path/to/mcp-pdf-markdown && make setup`
 - Verify Python path: `which python3`
-- Test server: `echo '{"method": "tools/list"}' | /usr/local/bin/mcp-pdf-markdown`
+- Test server: `echo '{"method": "tools/list"}' | python3 /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
 
 **Permission errors?**
 - Check file permissions in output directory
@@ -166,7 +163,7 @@ If native MCP support isn't available in your Cursor version:
 ### CLI Workflow
 ```bash
 # Convert PDF using the server
-echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"pdf_path": "./document.pdf"}}}' | /usr/local/bin/mcp-pdf-markdown
+echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"pdf_path": "./document.pdf"}}}' | python3 /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py
 
 # Then use Cursor to work with generated markdown files
 ```
@@ -180,7 +177,7 @@ Create a script that Cursor can execute:
 PDF_PATH="$1"
 OUTPUT_DIR="${2:-./docs}"
 
-echo "{\"method\": \"tools/call\", \"params\": {\"name\": \"convert_pdf\", \"arguments\": {\"pdf_path\": \"$PDF_PATH\", \"output_dir\": \"$OUTPUT_DIR\"}}}" | /usr/local/bin/mcp-pdf-markdown
+echo "{\"method\": \"tools/call\", \"params\": {\"name\": \"convert_pdf\", \"arguments\": {\"pdf_path\": \"$PDF_PATH\", \"output_dir\": \"$OUTPUT_DIR\"}}}" | python3 /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py
 ```
 
 Then in Cursor:
@@ -196,7 +193,8 @@ Then in Cursor:
 {
   "mcp.servers": {
     "pdf-markdown": {
-      "command": "/usr/local/bin/mcp-pdf-markdown",
+      "command": "python3",
+      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
       "env": {
         "OUTPUT_DIR": "./converted-docs",
         "DEBUG": "true"
@@ -213,7 +211,8 @@ Then in Cursor:
 {
   "mcp.servers": {
     "pdf-markdown": {
-      "command": "/path/to/mcp-pdf-markdown/bin/mcp-pdf-markdown",
+      "command": "python3",
+      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
       "env": {
         "DEBUG": "true"
       }
@@ -227,7 +226,8 @@ Then in Cursor:
 {
   "mcp.servers": {
     "pdf-markdown": {
-      "command": "/usr/local/bin/mcp-pdf-markdown",
+      "command": "python3",
+      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
       "env": {
         "DEBUG": "false"
       }

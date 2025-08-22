@@ -1,3 +1,15 @@
+try:
+    from ..utils.token_counter import TokenCounter
+    from ..utils.text_utils import TextUtils
+    from ..utils.file_utils import FileUtils
+except ImportError:
+    # Handle running as script vs package
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).parent.parent))
+    from utils.token_counter import TokenCounter
+    from utils.text_utils import TextUtils
+    from utils.file_utils import FileUtils
 """
 Smart chunking engine for optimal LLM context window utilization
 """
@@ -6,9 +18,6 @@ from typing import Dict, List, Any, Tuple
 from datetime import datetime
 import re
 
-from ..utils.token_counter import TokenCounter
-from ..utils.text_utils import TextUtils
-from ..utils.file_utils import FileUtils
 
 class ChunkingEngine:
     """Handles smart chunking of content for different LLM context windows"""

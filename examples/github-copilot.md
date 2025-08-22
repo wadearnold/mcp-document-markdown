@@ -6,16 +6,10 @@ This guide shows how to configure the MCP PDF Converter with GitHub Copilot.
 
 ## Prerequisites
 
-1. Build the MCP server:
+1. Setup the MCP server:
    ```bash
    cd /path/to/mcp-pdf-markdown
    make setup
-   make build
-   ```
-
-2. Copy the binary to your PATH:
-   ```bash
-   cp bin/mcp-pdf-markdown /usr/local/bin/
    ```
 
 ## Configuration
@@ -30,7 +24,8 @@ If using VS Code with GitHub Copilot, add this to your settings:
 {
   "mcp.servers": {
     "pdf-markdown": {
-      "command": "/usr/local/bin/mcp-pdf-markdown",
+      "command": "python3",
+      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
       "env": {
         "OUTPUT_DIR": "./docs"
       }
@@ -47,7 +42,8 @@ Create `.vscode/settings.json` in your project:
 {
   "mcp.servers": {
     "pdf-markdown": {
-      "command": "/usr/local/bin/mcp-pdf-markdown",
+      "command": "python3",
+      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
       "env": {
         "OUTPUT_DIR": "./docs",
         "DEBUG": "false"
@@ -86,7 +82,7 @@ If GitHub Copilot doesn't directly support MCP, you can use the server as a CLI 
 
 ```bash
 # Convert PDF directly
-echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"pdf_path": "./document.pdf"}}}' | /usr/local/bin/mcp-pdf-markdown
+echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"pdf_path": "./document.pdf"}}}' | python3 /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py
 
 # Then use Copilot to work with the generated markdown files
 ```
@@ -99,9 +95,9 @@ echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"
 - Try restarting VS Code after configuration changes
 
 **Server not responding?**
-- Test server directly: `echo '{"method": "tools/list"}' | /usr/local/bin/mcp-pdf-markdown`
+- Test server directly: `echo '{"method": "tools/list"}' | python3 /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
 - Check server logs for errors
-- Verify binary permissions: `ls -la /usr/local/bin/mcp-pdf-markdown`
+- Verify Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
 
 **Python dependency errors?**
 - Reinstall dependencies: `cd /path/to/mcp-pdf-markdown && make setup`
@@ -126,7 +122,7 @@ If MCP integration isn't available, you can still use this tool by:
 Example workflow:
 ```bash
 # Convert PDF
-make convert PDF=./document.pdf
+make run PDF=./document.pdf
 
 # Then use GitHub Copilot to analyze the markdown files in ./docs/
 ```

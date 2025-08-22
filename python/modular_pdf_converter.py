@@ -54,9 +54,9 @@ class ModularPDFConverter:
             extract_images=self.options.get('extract_images', True)
         )
         
-        self.table_processor = TableProcessor(str(self.output_dir))
+        self.table_processor = TableProcessor(str(self.output_dir), self.token_counter)
         self.chunking_engine = ChunkingEngine(str(self.output_dir), self.token_counter)
-        self.concept_mapper = ConceptMapper(str(self.output_dir))
+        self.concept_mapper = ConceptMapper(str(self.output_dir), self.token_counter)
         self.cross_referencer = CrossReferencer(str(self.output_dir))
         self.summary_generator = SummaryGenerator(str(self.output_dir), self.token_counter)
         
@@ -93,17 +93,14 @@ class ModularPDFConverter:
             # Step 3: Process tables
             print("Step 3: Processing tables...")
             if pdf_content.get('tables'):
-                table_results = self.table_processor.process_all_tables(
-                    pdf_content['tables'], 
-                    sections
-                )
+                table_results = self.table_processor.process_all_tables(pdf_content['tables'])
                 self.conversion_results['tables'] = table_results
             else:
                 self.conversion_results['tables'] = {'processed_tables': [], 'table_files': []}
             
             # Step 4: Generate concept mapping
             print("Step 4: Generating concept mapping...")
-            concept_results = self.concept_mapper.extract_and_map_concepts(sections)
+            concept_results = self.concept_mapper.generate_concept_map_and_glossary(sections)
             self.conversion_results['concepts'] = concept_results
             
             # Step 5: Resolve cross-references

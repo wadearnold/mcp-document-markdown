@@ -1,3 +1,15 @@
+try:
+    from ..utils.text_utils import TextUtils
+    from ..utils.file_utils import FileUtils
+    from ..utils.token_counter import TokenCounter
+except ImportError:
+    # Handle running as script vs package
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).parent.parent))
+    from utils.text_utils import TextUtils
+    from utils.file_utils import FileUtils
+    from utils.token_counter import TokenCounter
 """
 Concept mapping and glossary generation
 """
@@ -7,9 +19,6 @@ from datetime import datetime
 import re
 from collections import Counter, defaultdict
 
-from ..utils.text_utils import TextUtils
-from ..utils.file_utils import FileUtils
-from ..utils.token_counter import TokenCounter
 
 class ConceptMapper:
     """Handles concept map and glossary generation with relationship analysis"""

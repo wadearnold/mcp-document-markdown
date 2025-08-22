@@ -2,9 +2,23 @@
 File I/O and path utilities
 """
 import json
+import numpy as np
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
+
+class NumpyEncoder(json.JSONEncoder):
+    """JSON encoder that handles numpy types"""
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.bool_):
+            return bool(obj)
+        return super().default(obj)
 
 class FileUtils:
     """File and directory utilities"""
@@ -34,7 +48,7 @@ class FileUtils:
     def write_json(data: Any, file_path: Path, indent: int = 2) -> None:
         """Write data to JSON file with proper formatting"""
         with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=indent, ensure_ascii=False)
+            json.dump(data, f, indent=indent, ensure_ascii=False, cls=NumpyEncoder)
     
     @staticmethod
     def read_json(file_path: Path) -> Any:

@@ -16,16 +16,10 @@ The Model Context Protocol is an open standard that allows AI tools to connect t
 
 ## Prerequisites
 
-1. Build the MCP server:
+1. Setup the MCP server:
    ```bash
    cd /path/to/mcp-pdf-markdown
-   make setup    # Install dependencies
-   make build    # Build binary
-   ```
-
-2. For system-wide access, copy to PATH:
-   ```bash
-   cp bin/mcp-pdf-markdown /usr/local/bin/
+   make setup    # Install dependencies and run tests
    ```
 
 ## Basic Configuration
@@ -36,7 +30,25 @@ Most MCP clients use a JSON configuration format similar to:
 {
   "mcpServers": {
     "pdf-markdown": {
-      "command": "/path/to/mcp-pdf-markdown",
+      "command": "python3",
+      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
+      "env": {
+        "OUTPUT_DIR": "./docs",
+        "DEBUG": "false"
+      }
+    }
+  }
+}
+```
+
+Alternatively, using the project's virtual environment:
+
+```json
+{
+  "mcpServers": {
+    "pdf-markdown": {
+      "command": "/path/to/mcp-pdf-markdown/venv/bin/python",
+      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
       "env": {
         "OUTPUT_DIR": "./docs",
         "DEBUG": "false"
@@ -50,25 +62,27 @@ Most MCP clients use a JSON configuration format similar to:
 
 ### Command Options
 
-**Using built binary:**
+**Using Python with full path:**
 ```json
 {
-  "command": "/usr/local/bin/mcp-pdf-markdown"
+  "command": "python3",
+  "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"]
 }
 ```
 
-**Using absolute path with working directory:**
+**Using project virtual environment:**
 ```json
 {
-  "command": "/path/to/mcp-pdf-markdown/bin/mcp-pdf-markdown"
+  "command": "/path/to/mcp-pdf-markdown/venv/bin/python",
+  "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"]
 }
 ```
 
-**Using Go directly (development):**
+**Using Python directly from project directory:**
 ```json
 {
-  "command": "go",
-  "args": ["run", "."],
+  "command": "python3",
+  "args": ["mcp_pdf_markdown.py"],
   "cwd": "/path/to/mcp-pdf-markdown"
 }
 ```
@@ -146,7 +160,7 @@ This server uses **stdio transport**:
 
 1. **Test server directly:**
    ```bash
-   echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | /path/to/mcp-pdf-markdown/bin/mcp-pdf-markdown
+   echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | python3 /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py
    ```
 
 2. **Expected response:**
@@ -172,14 +186,16 @@ This server uses **stdio transport**:
 ## Common Issues
 
 **Server not starting:**
-- Check binary exists and is executable
+- Check Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
 - Verify dependencies installed (`make setup`)
+- Check Python interpreter: `which python3`
 - Check paths in configuration
 
 **Tool not found:**
 - Ensure proper MCP protocol handshake
 - Verify client supports MCP stdio transport
 - Check server logs for errors
+- Test server manually: `python3 mcp_pdf_markdown.py`
 
 **Python errors:**
 - Verify Python dependencies: `python3 -c "import pypdf, pdfplumber, fitz"`

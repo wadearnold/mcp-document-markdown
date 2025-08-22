@@ -1,3 +1,15 @@
+try:
+    from ..utils.token_counter import TokenCounter
+    from ..utils.text_utils import TextUtils
+    from ..utils.file_utils import FileUtils
+except ImportError:
+    # Handle running as script vs package
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).parent.parent))
+    from utils.token_counter import TokenCounter
+    from utils.text_utils import TextUtils
+    from utils.file_utils import FileUtils
 """
 Multi-level summary generation
 """
@@ -7,9 +19,6 @@ from datetime import datetime
 import re
 from collections import Counter
 
-from ..utils.token_counter import TokenCounter
-from ..utils.text_utils import TextUtils
-from ..utils.file_utils import FileUtils
 
 class SummaryGenerator:
     """Handles generation of multi-level summaries for different use cases"""

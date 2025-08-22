@@ -1,86 +1,127 @@
-# Python Scripts for PDF Processing
+# Modular PDF Converter - Python Implementation
 
-This directory contains the Python scripts used by the MCP PDF Converter server.
+This directory contains the modular Python implementation of the MCP PDF to Markdown converter.
 
-## Files
+## Architecture
 
-- **`pdf_converter.py`** - Main PDF to Markdown conversion script
-  - Combines multiple PDF processing libraries (PyMuPDF, pdfplumber, pypdf)
-  - Handles text extraction, table preservation, and image extraction
-  - Outputs structured markdown files
+The converter is built with a modular architecture for better maintainability and testing:
 
-- **`pdf_analyzer.py`** - PDF structure analysis script
-  - Analyzes PDF without converting
-  - Returns metadata, page count, and structure information
-  - Used by the `analyze_pdf_structure` MCP tool
+### Core Components
 
-## Development Workflow
+- **`modular_pdf_converter.py`** - Main orchestrator that coordinates all processing steps
+- **`pdf_analyzer.py`** - Analyzes PDF structure and metadata
+- **`pdf_to_rag.py`** - Prepares PDFs for RAG (Retrieval Augmented Generation) workflows
 
-### Editing Python Scripts
+### Utility Modules (`utils/`)
 
-1. **Edit the Python files directly** in this directory
-2. **Test your changes** without rebuilding the Go binary:
-   ```bash
-   make dev  # Runs server in development mode, loading Python from files
-   ```
+- **`token_counter.py`** - Token counting for LLM context optimization
+- **`text_utils.py`** - Text cleaning and processing utilities  
+- **`file_utils.py`** - File system operations and path management
 
-3. **Build the binary** when ready for production:
-   ```bash
-   make build  # Embeds Python scripts into the Go binary
-   ```
+### Processing Modules (`processors/`)
 
-### How It Works
+- **`pdf_extractor.py`** - Multi-library PDF content extraction
+- **`table_processor.py`** - Table detection, extraction and formatting
+- **`chunking_engine.py`** - Intelligent text chunking for optimal context windows
+- **`concept_mapper.py`** - Concept extraction and glossary generation
+- **`cross_referencer.py`** - Reference resolution and linking
+- **`summary_generator.py`** - Multi-level summary generation
 
-- **Production**: Python scripts are embedded into the Go binary at compile time using Go's `embed` package
-- **Development**: Set `PYTHON_SCRIPTS_DIR=./python` to load scripts from files instead of embedded data
-- **Benefits**: 
-  - Easy Python development with syntax highlighting
-  - No need to rebuild for every Python change during development
-  - Single binary distribution with embedded scripts
+## Testing
 
-### Testing Python Changes
+The test suite focuses on integration testing and import validation:
 
 ```bash
-# Test with direct Python execution
-python3 python/pdf_converter.py test.pdf ./output --preserve-tables
+# Run all tests
+make test
 
-# Test with development server (loads from files)
-make dev
-
-# Test with production binary (embedded scripts)
-make build && ./bin/mcp-pdf-server
+# Run tests directly
+cd python && ../venv/bin/python -m unittest discover tests -v
 ```
 
-### Python Dependencies
+### Test Structure
 
-The scripts require these Python packages:
-- `pypdf` - PDF structure and metadata
-- `pdfplumber` - Table extraction
-- `PyMuPDF` (fitz) - Text and image extraction
-- `pandas` - Data processing
-- `Pillow` - Image handling
-- `tabulate` - Table formatting
-- `markdown` - Markdown generation
+```
+tests/
+├── test_essentials.py     # Core functionality and integration tests
+└── README.md              # Testing documentation
+```
+
+## Usage
+
+### Via MCP Server
+
+The primary way to use this system is through the MCP server:
+
+```bash
+# Start the server
+make run
+
+# The server provides these tools:
+# - convert_pdf: Convert PDF to structured markdown
+# - analyze_pdf_structure: Analyze PDF metadata and structure  
+# - prepare_pdf_for_rag: Prepare PDF for vector database integration
+```
+
+### Direct Python Usage
+
+You can also use the converter directly:
+
+```bash
+# Convert a PDF
+python3 modular_pdf_converter.py input.pdf ./output/
+
+# Analyze PDF structure
+python3 pdf_analyzer.py input.pdf
+
+# Prepare for RAG
+python3 pdf_to_rag.py input.pdf --format chromadb
+```
+
+## Dependencies
+
+All dependencies are managed through `requirements.txt`:
+
+- **PDF Processing**: `pypdf`, `pdfplumber`, `PyMuPDF`
+- **Data Processing**: `pandas`, `numpy`
+- **MCP Server**: `mcp`
+- **Optional**: `tiktoken` (for accurate token counting)
 
 Install with:
 ```bash
-make install-python-deps
+make setup    # Installs dependencies and runs tests
 ```
 
-## Adding New Scripts
+## Key Features
 
-1. Create the new Python script in this directory
-2. Add an embed directive in `python_embed.go`:
-   ```go
-   //go:embed python/your_script.py
-   var yourScript string
-   ```
-3. Update `python_loader.go` if needed for development mode
-4. Use the script in your Go code
+- **Multi-library PDF extraction** for maximum compatibility
+- **Intelligent table preservation** with multiple output formats
+- **Token-aware chunking** for LLM context optimization
+- **Concept mapping** with automatic glossary generation
+- **Cross-reference resolution** for better document navigation
+- **Multi-level summarization** (executive, detailed, complete)
+- **RAG preparation** for vector database integration
 
-## Important Notes
+## Output Structure
 
-- **Do NOT delete `python_scripts.go`** until migration is complete
-- Scripts are automatically embedded during `make build`
-- Development mode requires Python scripts to be in this directory
-- Production binary doesn't need Python files at runtime
+The converter creates well-organized documentation:
+
+```
+docs/
+├── index.md                 # Main navigation
+├── summary.md               # Document overview
+├── sections/                # Content by chapter/topic
+├── concepts/glossary.md     # Term definitions
+├── summaries/               # Multi-level summaries
+├── tables/                  # Structured data
+└── images/                  # Extracted images
+```
+
+For RAG workflows:
+```
+rag_output/
+├── chunks.json              # Semantic chunks with metadata
+├── chromadb_format.json     # ChromaDB-ready format
+├── pinecone_format.json     # Pinecone-ready format
+└── import_instructions.md   # Setup guide
+```

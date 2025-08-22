@@ -23,7 +23,6 @@ Convert any PDF into structured documentation that your AI assistant can underst
 git clone https://github.com/wadearnold/mcp-pdf-markdown.git
 cd mcp-pdf-markdown
 make setup    # Installs dependencies
-make build    # Builds the server
 ```
 
 ### 2. Configure Your AI Assistant
@@ -215,8 +214,14 @@ rag_output/
 
 **Advanced Options** (optional):
 - `split_by_chapters` (default: true) - Organize by document structure
+  - Enable: *"with chapter splitting"* or *"split by chapters"*
+  - Disable: *"without chapter splitting"* or *"keep as single file"*
 - `preserve_tables` (default: true) - Keep table formatting
+  - Enable: *"preserve table formatting"* or *"keep tables structured"*
+  - Disable: *"flatten tables to text"* or *"without table formatting"*
 - `extract_images` (default: true) - Save referenced images
+  - Enable: *"extract images"* or *"save images"*
+  - Disable: *"without images"* or *"text only"*
 
 ## Examples
 
@@ -233,6 +238,15 @@ Convert /docs/api-reference.pdf to markdown and help me write code that uses the
 ### Large Document Processing
 ```
 Convert the 200-page technical specification at /specs/system-design.pdf to markdown with chapter splitting
+```
+
+### Custom Processing Options
+```
+Convert /docs/report.pdf to markdown without images and flatten tables to text
+```
+
+```
+Convert /docs/manual.pdf to markdown without chapter splitting and preserve table formatting
 ```
 
 ### RAG Setup
@@ -260,19 +274,18 @@ make setup    # Reinstall dependencies
 ## Development
 
 ### Prerequisites
-- Go 1.21+
 - Python 3.8+
 
 ### Build from source
 ```bash
 git clone https://github.com/wadearnold/mcp-pdf-markdown.git
 cd mcp-pdf-markdown
-make setup && make build
+make setup    # Installs dependencies and runs tests
 ```
 
-### Development mode
+### Run the server
 ```bash
-make dev    # Load Python scripts from files (no rebuild needed)
+make run    # Runs tests then starts the Python MCP server
 ```
 
 ## License

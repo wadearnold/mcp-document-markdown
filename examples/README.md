@@ -8,12 +8,11 @@ This directory contains step-by-step configuration guides for using the MCP PDF 
 - **[Claude Code](claude-code.md)** - Anthropic's CLI tool  
 - **[GitHub Copilot](github-copilot.md)** - GitHub's AI coding assistant
 - **[Cursor](cursor.md)** - AI-powered code editor
-- **[Docker Deployment](docker.md)** - Container-based setup for any MCP client
 - **[Generic MCP Client](generic-mcp.md)** - Configuration guide for other MCP-compatible tools
 
 ## Quick Start
 
-1. **Build the server**: Follow the build instructions in the main [README.md](../README.md)
+1. **Setup the server**: Follow the setup instructions in the main [README.md](../README.md)
 2. **Choose your client**: Select the appropriate guide from the list above
 3. **Follow the setup**: Each guide provides complete setup instructions
 4. **Start converting**: Use natural language prompts to convert PDFs
@@ -47,7 +46,7 @@ Convert /path/to/report.pdf to markdown with tables preserved and save to ./my-d
 
 ### Universal Issues
 
-1. **Server not found**: Ensure the binary exists and is executable
+1. **Server not found**: Ensure the Python script exists and dependencies are installed
 2. **Python errors**: Verify Python dependencies are installed (`make setup`)
 3. **Permission denied**: Check file permissions and directory access
 4. **Configuration not loading**: Restart your AI tool after adding configuration
@@ -60,7 +59,7 @@ Check the individual client guides for detailed troubleshooting steps specific t
 
 - Check the specific client guide for troubleshooting
 - Refer to the [generic MCP guide](generic-mcp.md) for protocol details
-- Test the server directly: `echo '{"method": "tools/list"}' | /path/to/mcp-pdf-markdown/bin/mcp-pdf-markdown`
+- Test the server directly: `make run`
 - Open an issue on GitHub if you encounter problems
 
 ## Contributing

@@ -4,17 +4,11 @@ This guide shows how to configure the MCP PDF Converter with Claude Desktop.
 
 ## Prerequisites
 
-1. Build the MCP server:
-   ```bash
-   cd /path/to/mcp-pdf-markdown
-   make setup
-   make build
-   ```
-
-2. Copy the binary to your PATH:
-   ```bash
-   cp bin/mcp-pdf-markdown /usr/local/bin/
-   ```
+Setup the Python MCP server:
+```bash
+cd /path/to/mcp-pdf-markdown
+make setup
+```
 
 ## Configuration
 
@@ -24,12 +18,30 @@ Add this configuration to your Claude Desktop config file:
 {
   "mcpServers": {
     "pdf-markdown": {
-      "command": "/usr/local/bin/mcp-pdf-markdown",
+      "command": "python3",
+      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
       "env": {
-        "OUTPUT_DIR": "./docs",
-        "PYTHON_PATH": "python3",
-        "MAX_FILE_SIZE": "100",
-        "DEBUG": "false"
+        "OUTPUT_DIR": "./docs"
+      }
+    }
+  }
+}
+```
+
+**Replace `/path/to/mcp-pdf-markdown`** with the actual path to your cloned repository.
+
+### Using Virtual Environment (Recommended)
+
+If you want to use the project's virtual environment:
+
+```json
+{
+  "mcpServers": {
+    "pdf-markdown": {
+      "command": "/path/to/mcp-pdf-markdown/venv/bin/python",
+      "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"],
+      "env": {
+        "OUTPUT_DIR": "./docs"
       }
     }
   }
@@ -67,8 +79,9 @@ Convert /path/to/report.pdf and save to ./project-docs/
 ## Troubleshooting
 
 **Server not starting?**
-- Verify the binary exists: `ls -la /usr/local/bin/mcp-pdf-markdown`
-- Check permissions: `chmod +x /usr/local/bin/mcp-pdf-markdown`
+- Verify Python path: `which python3`
+- Check script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
+- Test directly: `cd /path/to/mcp-pdf-markdown && make run`
 
 **Python errors?**
 - Verify Python dependencies: `python3 -c "import pypdf, pdfplumber, fitz"`
@@ -80,7 +93,7 @@ Convert /path/to/report.pdf and save to ./project-docs/
 
 ## How It Works
 
-- Claude Desktop automatically starts the `mcp-pdf-markdown` binary when needed
+- Claude Desktop automatically starts the Python MCP server when needed
 - Files are saved relative to your current working directory
 - You can override the output directory in your prompts
 - The server shuts down automatically when not in use

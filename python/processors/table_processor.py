@@ -1,16 +1,23 @@
+try:
+    from ..utils.file_utils import FileUtils
+    from ..utils.token_counter import TokenCounter
+except ImportError:
+    # Handle running as script vs package
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).parent.parent))
+    from utils.file_utils import FileUtils
+    from utils.token_counter import TokenCounter
 """
 Table processing and structured format conversion
 """
 import json
-import yaml
 import pandas as pd
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Union
 from datetime import datetime
 import re
 
-from ..utils.file_utils import FileUtils
-from ..utils.token_counter import TokenCounter
 
 class TableProcessor:
     """Handles table conversion and structured format generation"""

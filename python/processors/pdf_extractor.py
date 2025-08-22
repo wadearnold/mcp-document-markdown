@@ -1,3 +1,13 @@
+try:
+    from ..utils.text_utils import TextUtils
+    from ..utils.file_utils import FileUtils
+except ImportError:
+    # Handle running as script vs package
+    import sys
+    from pathlib import Path
+    sys.path.append(str(Path(__file__).parent.parent))
+    from utils.text_utils import TextUtils
+    from utils.file_utils import FileUtils
 """
 PDF text, image, and table extraction
 """
@@ -9,8 +19,6 @@ from typing import Dict, List, Any, Tuple, Optional
 import pandas as pd
 import re
 
-from ..utils.text_utils import TextUtils
-from ..utils.file_utils import FileUtils
 
 class PDFExtractor:
     """Handles PDF text, image, and table extraction using multiple libraries"""
