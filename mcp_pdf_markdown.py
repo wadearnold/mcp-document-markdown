@@ -180,22 +180,34 @@ async def handle_convert_pdf(args: Dict[str, Any]):
         result = converter.convert()
         
         if result.get("success"):
+            # Get actual file count from generated_files
+            total_files = result.get('file_count', len(result.get('generated_files', [])))
+            
             message = f"✅ Successfully converted {Path(pdf_path).name}\n"
-            message += f"📁 Output directory: {output_dir}\n"
-            message += f"📄 Files created: {len(result.get('output_files', []))}\n"
+            message += f"📁 Output directory: {output_dir}\n" 
+            message += f"📄 Total files generated: {total_files:,}\n"
             message += f"⏱️  Processing time: {result.get('processing_time_seconds', 0):.1f}s\n\n"
             
-            # Add processing stats if available
+            # Add brief final summary stats
             stats = result.get('processing_stats', {})
             if stats:
-                message += "📊 Processing Statistics:\n"
+                message += "📊 Content Summary:\n"
                 pdf_stats = stats.get('pdf_extraction', {})
                 if pdf_stats:
-                    message += f"   • Pages: {pdf_stats.get('pages', 0)}\n"
-                    message += f"   • Images: {pdf_stats.get('images', 0)}\n" 
-                    message += f"   • Tables: {pdf_stats.get('tables', 0)}\n"
+                    message += f"   • {pdf_stats.get('pages', 0)} pages processed\n"
+                    message += f"   • {pdf_stats.get('images', 0)} images extracted\n" 
+                    message += f"   • {pdf_stats.get('tables', 0)} tables structured\n"
                 if 'sections' in stats:
-                    message += f"   • Sections: {stats['sections']}\n"
+                    message += f"   • {stats['sections']} sections organized\n"
+                    
+                # Add guidance for using the generated content
+                message += f"\n💡 **Next Steps:**\n"
+                message += f"   • Review `structure-overview.md` for document navigation\n"
+                message += f"   • Use `sections/` for targeted content queries\n"
+                message += f"   • Check `chunked/` for LLM-optimized content pieces\n"
+                message += f"   • See `tables/` for structured data analysis\n"
+                message += f"\n🤖 **Train Your AI Agent:**\n"
+                message += f"   • Get agent instructions: https://github.com/wadearnold/mcp-pdf-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
             
             return [TextContent(type="text", text=message)]
         else:

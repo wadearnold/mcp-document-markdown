@@ -53,40 +53,19 @@ Convert the PDF at /path/to/my-documentation.pdf to markdown
 
 Your AI will convert the PDF and create organized reference files it can use to help you.
 
-### 5. Make Your AI Agent Use the Documentation
+### 5. Train Your AI Agent to Use the Documentation
 
-After converting PDFs to markdown files, **tell your AI agent to use the new documentation as reference**:
+After converting PDFs, **train your AI agent** to use the structured documentation effectively.
 
-#### Copy-Paste Prompt for Your Agent:
+#### 📋 Get the Latest Agent Instructions:
 
-```
-I've just converted PDF documentation into organized markdown files. Please update your working memory to reference these new docs as the definitive source for this project:
+**[→ AGENT_INSTRUCTIONS.md](https://github.com/wadearnold/mcp-pdf-markdown/blob/main/AGENT_INSTRUCTIONS.md)**
 
-📁 **New Reference Documentation Location**: `./docs/` 
-
-🔍 **Key Reference Files**:
-- `index.md` - Main navigation and overview
-- `summary.md` - Quick document summary  
-- `sections/` - Organized content by chapter/topic
-- `concepts/glossary.md` - Technical terms and definitions
-- `summaries/` - Multi-level summaries (executive, detailed, complete)
-- `cross-references/` - Links and connections between sections
-
-⚡ **Instructions**: 
-1. Use these docs as the primary reference for questions about [PROJECT/TOPIC NAME]
-2. When I ask questions, search these files first before using general knowledge
-3. Always cite specific sections when referencing information
-4. Suggest relevant sections when I'm exploring topics
-
-🎯 **Remember**: This documentation is now the definitive source for [PROJECT/TOPIC NAME]. Reference it actively and help me navigate it effectively.
-
-Please confirm you understand and will use `./docs/` as the primary reference source going forward.
-```
-
-**Customize the prompt by**:
-- Replace `[PROJECT/TOPIC NAME]` with your actual project name
-- Update the path if you used a different output directory
-- Add specific sections that are most important for your use case
+This file contains:
+- ✅ **Copy-paste prompt** for your AI agent
+- 🔧 **Customization guide** for your specific use case  
+- 📚 **Explanation of the file structure** and how to navigate it
+- 🔄 **Always up-to-date** with the latest converter features
 
 ## Two Workflows for Different Use Cases
 

@@ -155,8 +155,8 @@ class ModularPDFConverter:
             end_time = datetime.now()
             processing_time = (end_time - start_time).total_seconds()
             
-            print(f"Conversion completed in {processing_time:.2f} seconds")
-            print(f"Generated {len(self.get_all_generated_files())} files")
+            print(f"✅ Conversion completed in {processing_time:.2f} seconds")
+            print(f"📄 Generated {len(self.get_all_generated_files()):,} files total")
             
             # Final results
             final_results = {
