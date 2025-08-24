@@ -173,10 +173,13 @@ class TestEssentialFunctionality(unittest.TestCase):
             args = {'pdf_path': str(self.mock_pdf)}
             result = asyncio.run(handle_convert_pdf(args))
             
-            # Verify result structure
+            # Verify result structure - handlers return list of TextContent
             self.assertIsNotNone(result)
-            self.assertIsNotNone(result.content)
-            self.assertGreater(len(result.content), 0)
+            self.assertIsInstance(result, list)
+            self.assertGreater(len(result), 0)
+            # Check that the first item has text content
+            self.assertTrue(hasattr(result[0], 'text'))
+            self.assertIn('Successfully converted', result[0].text)
             
         except Exception as e:
             self.fail(f"MCP convert handler failed: {e}")
@@ -197,14 +200,18 @@ class TestEssentialFunctionality(unittest.TestCase):
             args = {'pdf_path': str(self.mock_pdf)}
             result = asyncio.run(handle_analyze_pdf(args))
             
-            # Verify result structure
+            # Verify result structure - handlers return list of TextContent
             self.assertIsNotNone(result)
-            self.assertIsNotNone(result.content)
+            self.assertIsInstance(result, list)
+            self.assertGreater(len(result), 0)
+            # Check that the first item has text content
+            self.assertTrue(hasattr(result[0], 'text'))
+            self.assertIn('PDF Analysis', result[0].text)
             
         except Exception as e:
             self.fail(f"MCP analyze handler failed: {e}")
     
-    @patch('mcp_pdf_markdown.PDFToRAGProcessor')
+    @patch('pdf_to_rag.PDFToRAGProcessor')
     def test_mcp_rag_handler_works(self, mock_processor_class):
         """Test that the MCP RAG handler works with mocked processor"""
         try:
@@ -219,9 +226,13 @@ class TestEssentialFunctionality(unittest.TestCase):
             args = {'pdf_path': str(self.mock_pdf)}
             result = asyncio.run(handle_prepare_rag(args))
             
-            # Verify result structure
+            # Verify result structure - handlers return list of TextContent
             self.assertIsNotNone(result)
-            self.assertIsNotNone(result.content)
+            self.assertIsInstance(result, list)
+            self.assertGreater(len(result), 0)
+            # Check that the first item has text content
+            self.assertTrue(hasattr(result[0], 'text'))
+            self.assertIn('Chunks:', result[0].text)
             
         except Exception as e:
             self.fail(f"MCP RAG handler failed: {e}")

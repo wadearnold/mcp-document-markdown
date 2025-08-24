@@ -16,9 +16,12 @@ config: venv
 run: venv
 	@echo "🧪 Testing MCP PDF-to-Markdown server (stdio mode)..."
 	@echo
-	@echo "📋 Configuration paths for Claude Code CLI:"
+	@echo "📋 MCP Server Configuration:"
 	@echo "   Command: $(PWD)/venv/bin/python"
 	@echo "   Args: $(PWD)/mcp_pdf_markdown.py"
+	@echo
+	@echo "To add this server to Claude Code, use:"
+	@echo "  claude mcp add pdf-markdown -- \"$(PWD)/venv/bin/python\" \"$(PWD)/mcp_pdf_markdown.py\""
 	@echo
 	@echo "ℹ️  This is a stdio server - Claude Code starts it on-demand"
 	@echo "💡 You don't need to keep this running. Use Ctrl+C to exit."
@@ -66,9 +69,16 @@ test-pdf: venv
 	fi
 
 # Install everything needed for development
-setup: install-python-deps test
-	@echo "✅ All tests passed!"
-	@echo "Setup complete! You can now run 'make run' to start the Python MCP server"
+setup: install-python-deps
+	@echo "Running tests..."
+	@if $(MAKE) test; then \
+		echo "✅ All tests passed!"; \
+		echo "Setup complete! You can now run 'make run' to start the Python MCP server"; \
+	else \
+		echo "⚠️  Some tests failed, but setup is complete."; \
+		echo "You can still run 'make run' to start the Python MCP server"; \
+		exit 1; \
+	fi
 
 
 # Check if all dependencies are installed
