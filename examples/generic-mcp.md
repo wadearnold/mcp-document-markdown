@@ -1,10 +1,10 @@
 # Generic MCP Client Configuration
 
-This guide shows how to configure the MCP PDF Converter with any MCP-compatible AI tool that isn't specifically covered in other guides.
+This guide shows how to configure the MCP Document Converter (PDF and Word support) with any MCP-compatible AI tool that isn't specifically covered in other guides.
 
 ## About MCP (Model Context Protocol)
 
-The Model Context Protocol is an open standard that allows AI tools to connect to external data sources and tools. This PDF converter implements MCP to provide PDF conversion capabilities to any compatible AI client.
+The Model Context Protocol is an open standard that allows AI tools to connect to external data sources and tools. This document converter implements MCP to provide PDF and Word document conversion capabilities to any compatible AI client.
 
 ## Server Information
 
@@ -12,7 +12,10 @@ The Model Context Protocol is an open standard that allows AI tools to connect t
 - **Transport**: stdio (standard input/output)
 - **Tools Provided**:
   - `convert_pdf`: Convert PDFs to structured markdown
+  - `convert_docx`: Convert Word documents to structured markdown
   - `analyze_pdf_structure`: Analyze PDF without conversion
+  - `analyze_docx_structure`: Analyze Word document without conversion
+  - `prepare_pdf_for_rag`: Prepare PDF content for vector databases
 
 ## Prerequisites
 
@@ -35,7 +38,7 @@ Most MCP clients use a JSON configuration format. Use the paths from `make run`:
 ```json
 {
   "mcpServers": {
-    "pdf-markdown": {
+    "document-markdown": {
       "command": "[COMMAND_FROM_MAKE_RUN]",
       "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {

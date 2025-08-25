@@ -1,15 +1,15 @@
-# Complete Agent Training Guide for PDF Documentation
+# Complete Agent Training Guide for Document Conversion
 
-**🚨 IMPORTANT: This is the critical step that makes your converted PDFs actually useful to AI agents!**
+**🚨 IMPORTANT: This is the critical step that makes your converted documents (PDFs, Word docs) actually useful to AI agents!**
 
-Converting a PDF creates files, but training your agent creates intelligence. Follow this guide to unlock the full power of your structured documentation.
+Converting a document creates files, but training your agent creates intelligence. Follow this guide to unlock the full power of your structured documentation.
 
 ## 🎯 Quick Start - Copy This Prompt
 
-After converting a PDF, **immediately** copy this prompt to your AI agent:
+After converting a document (PDF or Word), **immediately** copy this prompt to your AI agent:
 
 ```
-I've just converted PDF documentation into LLM-optimized markdown files. Please analyze and memorize this structured documentation for future reference.
+I've just converted document content into LLM-optimized markdown files. Please analyze and memorize this structured documentation for future reference.
 
 📁 **Documentation Location**: `./docs/[FOLDER_NAME]/`
 
