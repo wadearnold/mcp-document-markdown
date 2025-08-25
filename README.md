@@ -233,40 +233,6 @@ Generate embeddings for all the chunks in the chromadb_format.json file using Op
 ```
 
 
-## What You Actually Get
-
-The MCP server creates organized documentation your AI can navigate:
-
-```
-docs/
-├── index.md                    # Main navigation
-├── summary.md                  # Document overview  
-├── sections/                   # Content organized by topic
-│   ├── 01-introduction.md
-│   ├── 02-getting-started.md
-│   └── 03-api-reference.md
-├── concepts/                   # Technical definitions
-│   └── glossary.md            # Terms your AI can reference
-├── summaries/                  # Different detail levels
-│   ├── executive-summary.md    # High-level overview
-│   ├── detailed-summary.md     # Comprehensive summary
-│   └── complete-summary.md     # Full context
-├── tables/                     # Structured data
-│   ├── table_01.md
-│   └── table_01.json
-└── images/                     # Extracted images
-    └── diagrams/
-```
-
-**For RAG workflows**:
-```
-rag_output/
-├── chunks.json                 # Semantic chunks with metadata
-├── chromadb_format.json        # Ready for ChromaDB import
-├── pinecone_format.json        # Ready for Pinecone import
-└── import_instructions.md      # Complete setup guide
-```
-
 ## Configuration
 
 ### Tool Parameters
