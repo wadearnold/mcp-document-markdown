@@ -156,6 +156,7 @@ async def handle_convert_pdf(args: Dict[str, Any]):
     """Handle PDF to markdown conversion"""
     try:
         from modular_pdf_converter import ModularPDFConverter
+        from utils.file_utils import FileUtils
         
         pdf_path = args["pdf_path"]
         output_dir = args.get("output_dir", "./docs")
@@ -183,8 +184,12 @@ async def handle_convert_pdf(args: Dict[str, Any]):
             # Get actual file count from generated_files
             total_files = result.get('file_count', len(result.get('generated_files', [])))
             
+            # Get the actual output path (with sanitized PDF folder name)
+            pdf_folder_name = FileUtils.sanitize_folder_name(Path(pdf_path).name)
+            actual_output_path = f"{output_dir}/{pdf_folder_name}"
+            
             message = f"✅ Successfully converted {Path(pdf_path).name}\n"
-            message += f"📁 Output directory: {output_dir}\n" 
+            message += f"📁 Output directory: {actual_output_path}\n" 
             message += f"📄 Total files generated: {total_files:,}\n"
             message += f"⏱️  Processing time: {result.get('processing_time_seconds', 0):.1f}s\n\n"
             

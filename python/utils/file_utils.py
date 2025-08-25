@@ -45,6 +45,68 @@ class FileUtils:
         return safe.strip('-')
     
     @staticmethod
+    def sanitize_folder_name(filename: str) -> str:
+        """
+        Sanitize a PDF filename to create a valid Unix folder name
+        
+        Args:
+            filename: Original PDF filename (with or without .pdf extension)
+            
+        Returns:
+            Sanitized folder name suitable for Unix systems
+        """
+        import re
+        
+        # Remove .pdf extension if present
+        if filename.lower().endswith('.pdf'):
+            filename = filename[:-4]
+        
+        # Replace problematic characters with underscores
+        # Unix problematic chars: / (we also include Windows ones for compatibility)
+        filename = re.sub(r'[\\/:*?"<>|]', '_', filename)
+        
+        # Replace other special characters that might cause issues
+        # Including: $, (, ), [, ], {, }, &, #, @, !, %, ^, =, +, ;, ', `, ~
+        filename = re.sub(r'[$()[\]{}&#@!%^=+;\'\`~]', '', filename)
+        
+        # Replace dots with underscores (except for version numbers like v1.2.3)
+        # First protect version numbers
+        filename = re.sub(r'(\d)\.(\d)', r'\1_\2', filename)
+        # Then replace remaining dots
+        filename = filename.replace('.', '_')
+        
+        # Replace spaces with underscores for better Unix compatibility
+        filename = re.sub(r'\s+', '_', filename)
+        
+        # Replace underscore-hyphen or hyphen-underscore combinations first
+        filename = re.sub(r'_-|-_', '_', filename)
+        
+        # Replace multiple underscores with single underscore
+        filename = re.sub(r'_+', '_', filename)
+        
+        # Replace multiple hyphens with single hyphen
+        filename = re.sub(r'-+', '-', filename)
+        
+        # Remove leading/trailing underscores and dots
+        filename = filename.strip('._-')
+        
+        # Remove non-ASCII characters (optional, but safer for Unix systems)
+        filename = ''.join(char for char in filename if ord(char) < 128)
+        
+        # Ensure the name is not empty
+        if not filename:
+            filename = "converted_pdf"
+        
+        # Limit length to prevent filesystem issues (255 is typical limit)
+        if len(filename) > 200:
+            filename = filename[:200]
+        
+        # Convert to lowercase for consistency
+        filename = filename.lower()
+        
+        return filename
+    
+    @staticmethod
     def write_json(data: Any, file_path: Path, indent: int = 2) -> None:
         """Write data to JSON file with proper formatting"""
         with open(file_path, 'w', encoding='utf-8') as f:

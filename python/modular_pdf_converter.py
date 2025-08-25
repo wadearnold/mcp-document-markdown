@@ -38,8 +38,12 @@ class ModularPDFConverter:
             options: Conversion options and settings
         """
         self.pdf_path = Path(pdf_path)
-        self.output_dir = Path(output_dir)
+        base_output_dir = Path(output_dir)
         self.options = options or {}
+        
+        # Create a subdirectory based on the PDF filename
+        pdf_folder_name = FileUtils.sanitize_folder_name(self.pdf_path.name)
+        self.output_dir = base_output_dir / pdf_folder_name
         
         # Ensure output directory exists
         FileUtils.ensure_directory(self.output_dir)
