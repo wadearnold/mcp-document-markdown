@@ -13,6 +13,13 @@ config: venv
 	@echo "  claude mcp add pdf-markdown -- \"$(PWD)/venv/bin/python\" \"$(PWD)/mcp_pdf_markdown.py\""
 
 # Test/Debug the MCP server (NOT needed for normal operation)
+# IMPORTANT: This is NOT starting a daemon server! MCP stdio servers are spawned 
+# on-demand by Claude Code. This command is for:
+#   1. Smoke testing that the server starts without errors
+#   2. Displaying the configuration paths you need for Claude Code
+#   3. Debugging import/dependency issues before using with Claude Code
+# The server will wait for JSON-RPC input on stdin (which won't come when run manually).
+# Use Ctrl+C to exit - this is expected behavior.
 run: venv
 	@echo "🧪 Testing MCP PDF-to-Markdown server (stdio mode)..."
 	@echo
@@ -98,7 +105,8 @@ check-deps: venv
 help:
 	@echo "Available targets:"
 	@echo "  make setup          - Install dependencies and run tests"
-	@echo "  make run            - Run the Python MCP server"
+	@echo "  make config         - Show MCP server configuration for Claude Code"
+	@echo "  make run            - Test/debug the MCP server (smoke test, not a daemon)"
 	@echo "  make test           - Run Python unit tests"
 	@echo "  make test-pdf       - Test PDF conversion with sample file"
 	@echo "  make check-deps     - Check if dependencies are installed"
