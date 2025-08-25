@@ -6,7 +6,6 @@ Transform PDFs and Word documents into AI-ready documentation that makes your as
 
 - **PDF** (.pdf) - Technical specifications, API docs, research papers
 - **Microsoft Word** (.docx) - Reports, documentation, proposals
-- *More formats coming soon!*
 
 ## What This Does
 
