@@ -1,6 +1,6 @@
 # Claude Code Configuration
 
-This guide shows how to configure the MCP PDF Converter with Claude Code CLI.
+This guide shows how to configure the MCP Document Converter (PDF and Word support) with Claude Code CLI.
 
 ## Prerequisites
 
@@ -25,10 +25,10 @@ Copy the Command and Args values from `make run` output and use them like this:
 
 ```bash
 # Template (replace with your actual paths from 'make run'):
-claude mcp add pdf-markdown -- "COMMAND_PATH" "ARGS_PATH"
+claude mcp add document-markdown -- "COMMAND_PATH" "ARGS_PATH"
 
 # Real example:
-claude mcp add pdf-markdown -- "/Users/username/Documents/mcp-pdf-markdown/venv/bin/python" "/Users/username/Documents/mcp-pdf-markdown/mcp_pdf_markdown.py"
+claude mcp add document-markdown -- "/Users/username/Documents/mcp-pdf-markdown/venv/bin/python" "/Users/username/Documents/mcp-pdf-markdown/mcp_document_markdown.py"
 ```
 
 **📋 Copy-Paste Steps:**
@@ -41,7 +41,7 @@ claude mcp add pdf-markdown -- "/Users/username/Documents/mcp-pdf-markdown/venv/
 ### With Environment Variables
 
 ```bash
-claude mcp add pdf-markdown --env OUTPUT_DIR=./docs -- "COMMAND_PATH" "ARGS_PATH"
+claude mcp add document-markdown --env OUTPUT_DIR=./docs -- "COMMAND_PATH" "ARGS_PATH"
 ```
 
 ### Method 2: Manual Configuration
@@ -51,7 +51,7 @@ Create or edit your MCP configuration file using the paths from `make run`:
 ```json
 {
   "mcpServers": {
-    "pdf-markdown": {
+    "document-markdown": {
       "command": "[COMMAND_FROM_MAKE_RUN]",
       "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
@@ -69,10 +69,10 @@ Create or edit your MCP configuration file using the paths from `make run`:
 claude mcp list
 
 # Get server details
-claude mcp get pdf-markdown
+claude mcp get document-markdown
 
 # Remove the server
-claude mcp remove pdf-markdown
+claude mcp remove document-markdown
 ```
 
 ## Configuration Scopes
@@ -85,6 +85,7 @@ claude mcp remove pdf-markdown
 
 Once configured, you can use these prompts in Claude Code:
 
+**PDF Examples:**
 ```
 Convert the PDF at ./documents/manual.pdf to markdown
 ```
@@ -93,6 +94,16 @@ Convert the PDF at ./documents/manual.pdf to markdown
 Analyze the structure of ./pdfs/research-paper.pdf
 ```
 
+**Word Document Examples:**
+```
+Convert the Word document at ./documents/report.docx to markdown
+```
+
+```
+Analyze the structure of ./proposals/project-plan.docx
+```
+
+**Multi-format:**
 ```
 Convert ./reports/quarterly.pdf and save to ./analysis/
 ```
@@ -107,7 +118,7 @@ Convert ./reports/quarterly.pdf and save to ./analysis/
 ## Troubleshooting
 
 **Server not found?**
-- Verify the Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
+- Verify the Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_document_markdown.py`
 - **Always use absolute paths** - relative paths will fail
 - Check the exact path with `pwd` when in the repository directory
 

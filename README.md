@@ -1,15 +1,22 @@
-# MCP PDF to Markdown Converter
+# MCP Document to Markdown Converter
 
-Transform PDFs into AI-ready documentation that makes your assistant smarter. Extract clean, organized reference material that your AI agent can actually use.
+Transform PDFs and Word documents into AI-ready documentation that makes your assistant smarter. Extract clean, organized reference material from any document format that your AI agent can actually use.
+
+## 📄 Supported Formats
+
+- **PDF** (.pdf) - Technical specifications, API docs, research papers
+- **Microsoft Word** (.docx) - Reports, documentation, proposals
+- *More formats coming soon!*
 
 ## What This Does
 
-Transform massive, complex PDFs into AI-optimized documentation that enables intelligent agent workflows:
+Transform massive, complex documents (PDFs, Word docs) into AI-optimized documentation that enables intelligent agent workflows:
 
 ### 🎯 **The Agent Problem This Solves**
-- **Large PDFs = Agent Confusion**: 500+ page technical docs overwhelm AI context windows
-- **Raw PDF Text = Garbled Responses**: AI gets lost in unstructured PDF extraction noise
+- **Large Documents = Agent Confusion**: 500+ page technical docs overwhelm AI context windows
+- **Raw Document Text = Garbled Responses**: AI gets lost in unstructured extraction noise
 - **No Structure = No Intelligence**: Agents can't navigate, cross-reference, or cite specific sections
+- **Format Lock-in = Limited Knowledge**: Critical information trapped in PDFs, Word docs, and other formats
 
 ### 🚀 **The Intelligent Solution**
 
@@ -23,19 +30,22 @@ Transform massive, complex PDFs into AI-optimized documentation that enables int
 
 ### ⚡ **Agent Workflow Benefits**
 
-**Before**: *"I can't analyze that 500-page API specification"*  
+**Before**: *"I can't analyze that 500-page API specification PDF"*  
 **After**: *"I've analyzed the Visa Token Services API v37r25d03 documentation. Based on section 5.2.1, here's the authentication flow..."*
+
+**Before**: *"I can't read Word documents"*  
+**After**: *"I've processed your compliance report. The key requirements from section 3.4 are..."*
 
 ✅ **Intelligent Navigation**: Agents know exactly where to find information  
 ✅ **Precise Citations**: References specific files and sections, not vague summaries  
 ✅ **Context Awareness**: Understands document structure, relationships, and terminology  
-✅ **Multi-Document Intelligence**: Cross-references between multiple converted PDFs  
+✅ **Multi-Document Intelligence**: Cross-references between multiple converted documents  
 ✅ **Token Optimization**: Every file sized perfectly for agent context windows
 
 ### 📁 **What Gets Generated (Agent-Optimized Structure)**
 
 ```
-docs/your_pdf_name/
+docs/your_document_name/
 ├── structure-overview.md     # Navigation map with previews
 ├── README.md                # Quick start guide  
 ├── sections/                # Individual content sections
@@ -97,19 +107,25 @@ Add the MCP server to your AI assistant using the paths from step 2. Choose your
 - 🎯 **[Cursor](examples/cursor.md)** - AI-powered code editor
 - ⚙️ **[Generic MCP Setup](examples/generic-mcp.md)** - Other MCP clients
 
-### 4. Convert Your First PDF
+### 4. Convert Your First Document
 
 Once configured, just ask your AI assistant:
 
+**For PDFs:**
 ```
 Convert the PDF at /path/to/my-documentation.pdf to markdown
 ```
 
-Your AI will convert the PDF and create organized reference files it can use to help you.
+**For Word Documents:**
+```
+Convert the Word document at /path/to/my-report.docx to markdown
+```
+
+Your AI will convert the document and create organized reference files it can use to help you.
 
 ### 5. Train Your AI Agent to Use the Documentation
 
-After converting PDFs, **train your AI agent** to use the structured documentation effectively.
+After converting documents, **train your AI agent** to use the structured documentation effectively.
 
 #### 📋 Get the Latest Agent Instructions:
 
@@ -237,9 +253,14 @@ Generate embeddings for all the chunks in the chromadb_format.json file using Op
 
 ### Tool Parameters
 
-**Basic Conversion** (`convert_pdf`):
+#### PDF Tools
+
+**PDF Conversion** (`convert_pdf`):
 - `pdf_path` (required) - Path to your PDF
 - `output_dir` (optional) - Where to save files (default: `./docs`)
+
+**PDF Analysis** (`analyze_pdf_structure`):
+- `pdf_path` (required) - Path to PDF to analyze
 
 **RAG Preparation** (`prepare_pdf_for_rag`):
 - `pdf_path` (required) - Path to your PDF  
@@ -247,7 +268,16 @@ Generate embeddings for all the chunks in the chromadb_format.json file using Op
 - `chunk_size` - Tokens per chunk (default: 768)
 - `output_dir` - Where to save chunks (default: `./rag_output`)
 
-**Advanced Options** (optional):
+#### Word Document Tools
+
+**Word Conversion** (`convert_docx`):
+- `docx_path` (required) - Path to your Word document (.docx)
+- `output_dir` (optional) - Where to save files (default: `./docs`)
+
+**Word Analysis** (`analyze_docx_structure`):
+- `docx_path` (required) - Path to Word document to analyze
+
+**Advanced Options** (available for both PDF and Word):
 - `split_by_chapters` (default: true) - Organize by document structure
   - Enable: *"with chapter splitting"* or *"split by chapters"*
   - Disable: *"without chapter splitting"* or *"keep as single file"*
@@ -260,24 +290,50 @@ Generate embeddings for all the chunks in the chromadb_format.json file using Op
 
 ## Examples
 
-### Basic Document Reference
+### PDF Examples
+
+**Basic PDF Reference**
 ```
 Convert the user manual at /docs/user-guide.pdf to markdown, then help me understand how to set up authentication
 ```
 
-### API Documentation  
+**API Documentation**  
 ```
 Convert /docs/api-reference.pdf to markdown and help me write code that uses the user management endpoints
 ```
 
-### Large Document Processing
+**Large PDF Processing**
 ```
 Convert the 200-page technical specification at /specs/system-design.pdf to markdown with chapter splitting
 ```
 
+### Word Document Examples
+
+**Report Conversion**
+```
+Convert the compliance report at /docs/gdpr-compliance.docx to markdown
+```
+
+**Technical Documentation**
+```
+Convert /docs/architecture-design.docx to markdown and help me understand the system components
+```
+
+**Analysis Only**
+```
+Analyze the structure of /docs/proposal.docx without converting
+```
+
 ### Custom Processing Options
+
+**Without Images**
 ```
 Convert /docs/report.pdf to markdown without images and flatten tables to text
+```
+
+**Quick Analysis**
+```
+Analyze the structure of /docs/specification.pdf
 ```
 
 ```

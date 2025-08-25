@@ -7,10 +7,10 @@ all: setup
 config: venv
 	@echo "📋 MCP Server Configuration for Claude Code:"
 	@echo "   Command: $(PWD)/venv/bin/python"
-	@echo "   Args: $(PWD)/mcp_pdf_markdown.py"
+	@echo "   Args: $(PWD)/mcp_document_markdown.py"
 	@echo
 	@echo "To add this server to Claude Code, run:"
-	@echo "  claude mcp add pdf-markdown -- \"$(PWD)/venv/bin/python\" \"$(PWD)/mcp_pdf_markdown.py\""
+	@echo "  claude mcp add document-markdown -- \"$(PWD)/venv/bin/python\" \"$(PWD)/mcp_document_markdown.py\""
 
 # Test/Debug the MCP server (NOT needed for normal operation)
 # IMPORTANT: This is NOT starting a daemon server! MCP stdio servers are spawned 
@@ -21,19 +21,19 @@ config: venv
 # The server will wait for JSON-RPC input on stdin (which won't come when run manually).
 # Use Ctrl+C to exit - this is expected behavior.
 run: venv
-	@echo "🧪 Testing MCP PDF-to-Markdown server (stdio mode)..."
+	@echo "🧪 Testing MCP Document-to-Markdown server (stdio mode)..."
 	@echo
 	@echo "📋 MCP Server Configuration:"
 	@echo "   Command: $(PWD)/venv/bin/python"
-	@echo "   Args: $(PWD)/mcp_pdf_markdown.py"
+	@echo "   Args: $(PWD)/mcp_document_markdown.py"
 	@echo
 	@echo "To add this server to Claude Code, use:"
-	@echo "  claude mcp add pdf-markdown -- \"$(PWD)/venv/bin/python\" \"$(PWD)/mcp_pdf_markdown.py\""
+	@echo "  claude mcp add document-markdown -- \"$(PWD)/venv/bin/python\" \"$(PWD)/mcp_document_markdown.py\""
 	@echo
 	@echo "ℹ️  This is a stdio server - Claude Code starts it on-demand"
 	@echo "💡 You don't need to keep this running. Use Ctrl+C to exit."
 	@echo
-	./venv/bin/python mcp_pdf_markdown.py
+	./venv/bin/python mcp_document_markdown.py
 
 # Run the server in development mode (same as run for Python)
 dev: run

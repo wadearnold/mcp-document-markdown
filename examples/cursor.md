@@ -134,7 +134,7 @@ After conversion, Cursor will show the generated markdown files in your file exp
 
 **Server not found?**
 - Run `make run` to get the correct paths for your system
-- Verify Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
+- Verify Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_document_markdown.py`
 - Verify Python interpreter: `which python3`
 - Use the exact paths shown by `make run` in configuration
 
@@ -172,7 +172,7 @@ If native MCP support isn't available in your Cursor version:
 ### CLI Workflow
 ```bash
 # Convert PDF using the server
-echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"pdf_path": "./document.pdf"}}}' | python3 /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py
+echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"pdf_path": "./document.pdf"}}}' | python3 /path/to/mcp-pdf-markdown/mcp_document_markdown.py
 
 # Then use Cursor to work with generated markdown files
 ```
@@ -186,7 +186,7 @@ Create a script that Cursor can execute:
 PDF_PATH="$1"
 OUTPUT_DIR="${2:-./docs}"
 
-echo "{\"method\": \"tools/call\", \"params\": {\"name\": \"convert_pdf\", \"arguments\": {\"pdf_path\": \"$PDF_PATH\", \"output_dir\": \"$OUTPUT_DIR\"}}}" | python3 /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py
+echo "{\"method\": \"tools/call\", \"params\": {\"name\": \"convert_pdf\", \"arguments\": {\"pdf_path\": \"$PDF_PATH\", \"output_dir\": \"$OUTPUT_DIR\"}}}" | python3 /path/to/mcp-pdf-markdown/mcp_document_markdown.py
 ```
 
 Then in Cursor:

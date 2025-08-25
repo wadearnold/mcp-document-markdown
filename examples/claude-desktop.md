@@ -1,6 +1,6 @@
 # Claude Desktop Configuration
 
-This guide shows how to configure the MCP PDF Converter with Claude Desktop.
+This guide shows how to configure the MCP Document Converter (PDF and Word support) with Claude Desktop.
 
 ## Prerequisites
 
@@ -23,7 +23,7 @@ Add this configuration to your Claude Desktop config file using the paths from `
 ```json
 {
   "mcpServers": {
-    "pdf-markdown": {
+    "document-markdown": {
       "command": "[COMMAND_FROM_MAKE_RUN]",
       "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
@@ -72,7 +72,7 @@ Convert /path/to/report.pdf and save to ./project-docs/
 
 **Server not starting?**
 - Verify Python path: `which python3`
-- Check script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
+- Check script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_document_markdown.py`
 - Test directly: `cd /path/to/mcp-pdf-markdown && make run`
 
 **Python errors?**

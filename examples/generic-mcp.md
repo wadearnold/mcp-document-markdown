@@ -1,10 +1,10 @@
 # Generic MCP Client Configuration
 
-This guide shows how to configure the MCP PDF Converter with any MCP-compatible AI tool that isn't specifically covered in other guides.
+This guide shows how to configure the MCP Document Converter (PDF and Word support) with any MCP-compatible AI tool that isn't specifically covered in other guides.
 
 ## About MCP (Model Context Protocol)
 
-The Model Context Protocol is an open standard that allows AI tools to connect to external data sources and tools. This PDF converter implements MCP to provide PDF conversion capabilities to any compatible AI client.
+The Model Context Protocol is an open standard that allows AI tools to connect to external data sources and tools. This document converter implements MCP to provide PDF and Word document conversion capabilities to any compatible AI client.
 
 ## Server Information
 
@@ -12,7 +12,10 @@ The Model Context Protocol is an open standard that allows AI tools to connect t
 - **Transport**: stdio (standard input/output)
 - **Tools Provided**:
   - `convert_pdf`: Convert PDFs to structured markdown
+  - `convert_docx`: Convert Word documents to structured markdown
   - `analyze_pdf_structure`: Analyze PDF without conversion
+  - `analyze_docx_structure`: Analyze Word document without conversion
+  - `prepare_pdf_for_rag`: Prepare PDF content for vector databases
 
 ## Prerequisites
 
@@ -35,7 +38,7 @@ Most MCP clients use a JSON configuration format. Use the paths from `make run`:
 ```json
 {
   "mcpServers": {
-    "pdf-markdown": {
+    "document-markdown": {
       "command": "[COMMAND_FROM_MAKE_RUN]",
       "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
@@ -53,7 +56,7 @@ Example with actual paths:
   "mcpServers": {
     "pdf-markdown": {
       "command": "/Users/username/Documents/mcp-pdf-markdown/venv/bin/python",
-      "args": ["/Users/username/Documents/mcp-pdf-markdown/mcp_pdf_markdown.py"],
+      "args": ["/Users/username/Documents/mcp-pdf-markdown/mcp_document_markdown.py"],
       "env": {
         "OUTPUT_DIR": "./docs",
         "DEBUG": "false"
@@ -71,7 +74,7 @@ Example with actual paths:
 ```json
 {
   "command": "python3",
-  "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"]
+  "args": ["/path/to/mcp-pdf-markdown/mcp_document_markdown.py"]
 }
 ```
 
@@ -79,7 +82,7 @@ Example with actual paths:
 ```json
 {
   "command": "/path/to/mcp-pdf-markdown/venv/bin/python",
-  "args": ["/path/to/mcp-pdf-markdown/mcp_pdf_markdown.py"]
+  "args": ["/path/to/mcp-pdf-markdown/mcp_document_markdown.py"]
 }
 ```
 
@@ -87,7 +90,7 @@ Example with actual paths:
 ```json
 {
   "command": "python3",
-  "args": ["mcp_pdf_markdown.py"],
+  "args": ["mcp_document_markdown.py"],
   "cwd": "/path/to/mcp-pdf-markdown"
 }
 ```
@@ -165,7 +168,7 @@ This server uses **stdio transport**:
 
 1. **Test server directly:**
    ```bash
-   echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | python3 /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py
+   echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | python3 /path/to/mcp-pdf-markdown/mcp_document_markdown.py
    ```
 
 2. **Expected response:**
@@ -191,7 +194,7 @@ This server uses **stdio transport**:
 ## Common Issues
 
 **Server not starting:**
-- Check Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
+- Check Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_document_markdown.py`
 - Verify dependencies installed (`make setup`)
 - Check Python interpreter: `which python3`
 - Check paths in configuration
@@ -200,7 +203,7 @@ This server uses **stdio transport**:
 - Ensure proper MCP protocol handshake
 - Verify client supports MCP stdio transport
 - Check server logs for errors
-- Test server manually: `python3 mcp_pdf_markdown.py`
+- Test server manually: `python3 mcp_document_markdown.py`
 
 **Python errors:**
 - Verify Python dependencies: `python3 -c "import pypdf, pdfplumber, fitz"`

@@ -1,7 +1,8 @@
-# Core PDF processing libraries
+# Core document processing libraries
 pypdf>=3.0.0
 pdfplumber>=0.9.0
 PyMuPDF>=1.23.0
+markitdown[all]>=0.1.0  # Microsoft's document to markdown converter
 
 # Data processing and formatting
 pandas>=2.0.0
