@@ -376,12 +376,73 @@ class ModularPDFConverter:
         for i, section in enumerate(sections):
             section_md = self.create_section_markdown(section, i + 1)
             safe_title = FileUtils.safe_filename(section.get('title', f'section-{i+1}'))
-            section_file = sections_dir / f"{i+1:02d}-{safe_title}.md"
-            FileUtils.write_markdown(section_md, section_file)
-            generated_files.append(str(section_file))
+            
+            # Check if section is too large (>20k tokens)
+            token_count = self.token_counter.count_tokens(section_md)
+            if token_count > 20000:
+                # Split large section into multiple parts
+                section_parts = self.split_large_section(section_md, section.get('title', f'Section {i+1}'))
+                for part_idx, part_content in enumerate(section_parts):
+                    part_file = sections_dir / f"{i+1:02d}-{safe_title}-part{part_idx+1:02d}.md"
+                    FileUtils.write_markdown(part_content, part_file)
+                    generated_files.append(str(part_file))
+            else:
+                # Section is manageable size
+                section_file = sections_dir / f"{i+1:02d}-{safe_title}.md"
+                FileUtils.write_markdown(section_md, section_file)
+                generated_files.append(str(section_file))
         
         return generated_files
     
+    def split_large_section(self, section_md: str, section_title: str) -> List[str]:
+        """Split a large section into smaller, manageable parts"""
+        # First check if section actually needs splitting
+        total_tokens = self.token_counter.count_tokens(section_md)
+        if total_tokens <= 20000:
+            return [section_md]
+        
+        lines = section_md.split('\n')
+        parts = []
+        current_part = []
+        current_tokens = 0
+        target_tokens = 12000  # Target size per part (leave room for headers)
+        
+        # Keep the header in each part
+        header_lines = []
+        content_start = 0
+        for i, line in enumerate(lines):
+            if line.startswith('---'):
+                content_start = i + 1
+                break
+            header_lines.append(line)
+        
+        # Calculate header token count once
+        header_tokens = sum(self.token_counter.count_tokens(hl) for hl in header_lines)
+        
+        # Split content while preserving structure
+        for i in range(content_start, len(lines)):
+            line = lines[i]
+            line_tokens = self.token_counter.count_tokens(line)
+            
+            # If adding this line would exceed target, start new part
+            if current_tokens + line_tokens > target_tokens and current_part:
+                # Finish current part
+                part_header = header_lines + [f"\n**Part {len(parts)+1} of Section**\n---\n"]
+                part_content = '\n'.join(part_header + current_part)
+                parts.append(part_content)
+                current_part = []
+                current_tokens = header_tokens + 50  # Account for part header
+            
+            current_part.append(line)
+            current_tokens += line_tokens
+        
+        # Add final part
+        if current_part:
+            part_header = header_lines + [f"\n**Part {len(parts)+1} of Section**\n---\n"] 
+            part_content = '\n'.join(part_header + current_part)
+            parts.append(part_content)
+        
+        return parts if parts else [section_md]
     
     def create_structured_markdown(self, sections: List[Dict[str, Any]], 
                                  pdf_content: Dict[str, Any]) -> str:
@@ -418,7 +479,7 @@ class ModularPDFConverter:
         
         content += "\\n---\\n\\n"
         
-        # Add sections with enhanced metadata
+        # Add sections with navigation metadata only (no full content)
         for i, section in enumerate(sections):
             title = section.get('title', 'Untitled Section')
             section_content = section.get('content', '')
@@ -426,11 +487,21 @@ class ModularPDFConverter:
             token_count = section.get('token_count', 0)
             level = section.get('level', 1)
             
+            # Create preview - first 200 chars of content
+            content_preview = section_content[:200].strip()
+            if len(section_content) > 200:
+                content_preview += "..."
+            
+            safe_title = FileUtils.safe_filename(title)
+            section_file = f"sections/{i+1:02d}-{safe_title}.md"
+            
             content += f"## {i+1}. {title} {{#section-{i+1}}}\\n\\n"
             content += f"**Section Type**: {section_type}  \\n"
             content += f"**Token Count**: {token_count}  \\n"
-            content += f"**Level**: {level}  \\n\\n"
-            content += f"{section_content}\\n\\n---\\n\\n"
+            content += f"**Level**: {level}  \\n"
+            content += f"**File**: `{section_file}`  \\n\\n"
+            content += f"**Preview**: {content_preview}\\n\\n"
+            content += f"[📖 Read Full Section]({section_file})\\n\\n---\\n\\n"
         
         return content
     
@@ -483,10 +554,23 @@ class ModularPDFConverter:
         for category, files in file_categories.items():
             if files:
                 index_content += f"### {category.replace('_', ' ').title()} ({len(files)} files)\\n\\n"
-                for file_path in files:
-                    file_obj = Path(file_path)
-                    relative_path = file_obj.relative_to(self.output_dir)
-                    index_content += f"- [{file_obj.name}]({relative_path})\\n"
+                # Only list first few files to keep README manageable
+                if len(files) <= 10:
+                    for file_path in files:
+                        file_obj = Path(file_path)
+                        relative_path = file_obj.relative_to(self.output_dir)
+                        index_content += f"- [{file_obj.name}]({relative_path})\\n"
+                else:
+                    # Show first 5 and last 3 files
+                    for file_path in files[:5]:
+                        file_obj = Path(file_path)
+                        relative_path = file_obj.relative_to(self.output_dir)
+                        index_content += f"- [{file_obj.name}]({relative_path})\\n"
+                    index_content += f"- ... ({len(files)-8} more files)\\n"
+                    for file_path in files[-3:]:
+                        file_obj = Path(file_path)
+                        relative_path = file_obj.relative_to(self.output_dir)
+                        index_content += f"- [{file_obj.name}]({relative_path})\\n"
                 index_content += "\\n"
         
         # Add processing statistics
