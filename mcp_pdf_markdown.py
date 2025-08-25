@@ -292,11 +292,6 @@ async def handle_prepare_rag(args: Dict[str, Any]):
         logger.error(f"RAG preparation failed: {e}")
         raise
 
-def signal_handler(signum, frame):
-    """Handle interrupt signals gracefully"""
-    print("\n👋 Server stopped by user", file=sys.stderr)
-    sys.exit(0)
-
 async def main():
     """Main entry point"""
     logger.info("Starting MCP PDF-to-Markdown server (pdf-markdown)")
@@ -322,17 +317,21 @@ async def main():
     except asyncio.CancelledError:
         # This is expected when shutting down
         pass
+    except KeyboardInterrupt:
+        # Handle Ctrl+C gracefully
+        print("\n👋 Server stopped by user", file=sys.stderr)
+        return
 
 if __name__ == "__main__":
-    # Set up signal handlers for clean shutdown
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-    
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
         # Clean exit on Ctrl+C without stack trace
-        pass  # Already handled by signal handler
+        print("\n👋 Server stopped by user", file=sys.stderr)
+        # Force immediate exit to prevent hanging
+        import os
+        os._exit(0)
     except Exception as e:
         logger.error(f"Server error: {e}")
-        sys.exit(1)
+        import os
+        os._exit(1)
