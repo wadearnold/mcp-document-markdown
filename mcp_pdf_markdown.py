@@ -205,25 +205,25 @@ async def handle_convert_pdf(args: Dict[str, Any]):
                     message += f"   • {pdf_stats.get('tables', 0)} tables structured\n"
                 if 'sections' in stats:
                     message += f"   • {stats['sections']} sections organized\n"
-                    
-                # Add critical agent training instructions
-                message += f"\n🚨 **CRITICAL NEXT STEP - TRAIN YOUR AI AGENT:**\n"
-                message += f"   \n"
-                message += f"   Your PDF is converted, but your agent doesn't know how to use it yet!\n"
-                message += f"   \n"
-                message += f"   📋 **DO THIS NOW:**\n"
-                message += f"   1. Open: https://github.com/wadearnold/mcp-pdf-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
-                message += f"   2. Copy the training prompt from the 'Quick Start' section\n"
-                message += f"   3. Replace [FOLDER_NAME] with: {pdf_folder_name}\n"
-                message += f"   4. Paste the prompt to your AI agent immediately\n"
-                message += f"   \n"
-                message += f"   ⚠️  **Without this step, your agent won't know the documentation exists!**\n"
-                message += f"   \n"
-                message += f"   💡 **File Navigation Guide:**\n"
-                message += f"   • `structure-overview.md` - Document map and navigation\n"
-                message += f"   • `sections/` - Individual content sections  \n"
-                message += f"   • `chunked/` - LLM-optimized content pieces\n"
-                message += f"   • `tables/` - Structured data for analysis\n"
+            
+            # Add critical agent training instructions OUTSIDE the collapsible stats
+            message += f"\n🚨 **CRITICAL NEXT STEP - TRAIN YOUR AI AGENT:**\n"
+            message += f"\n"
+            message += f"Your PDF is converted, but your agent doesn't know how to use it yet!\n"
+            message += f"\n"
+            message += f"📋 **DO THIS NOW:**\n"
+            message += f"1. Open: https://github.com/wadearnold/mcp-pdf-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
+            message += f"2. Copy the training prompt from the 'Quick Start' section\n"
+            message += f"3. Replace [FOLDER_NAME] with: {pdf_folder_name}\n"
+            message += f"4. Paste the prompt to your AI agent immediately\n"
+            message += f"\n"
+            message += f"⚠️  **Without this step, your agent won't know the documentation exists!**\n"
+            message += f"\n"
+            message += f"💡 **File Navigation Guide:**\n"
+            message += f"• `structure-overview.md` - Document map and navigation\n"
+            message += f"• `sections/` - Individual content sections\n"
+            message += f"• `chunked/` - LLM-optimized content pieces\n"
+            message += f"• `tables/` - Structured data for analysis\n"
             
             return [TextContent(type="text", text=message)]
         else:
