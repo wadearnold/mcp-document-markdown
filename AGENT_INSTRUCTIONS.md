@@ -5,15 +5,25 @@ Use this prompt to train your AI agent to effectively use the structured documen
 ## 📋 Copy-Paste Prompt for Your Agent
 
 ```
-I've just converted PDF documentation into LLM-optimized markdown files. Please use this structured documentation as your primary reference:
+I've just converted PDF documentation into LLM-optimized markdown files. Please analyze and memorize this structured documentation for future reference.
 
 📁 **Documentation Location**: `./docs/` (or your chosen output directory)
+
+🎯 **IMMEDIATE ACTION REQUIRED**:
+1. **Create a summary** of this documentation set in your memory that includes:
+   - Document title and main purpose
+   - Key topics covered (list main sections)
+   - Type of content (API docs, user guide, technical spec, etc.)
+   - When to use this documentation vs. other sources
+   - Unique identifiers or naming patterns in this doc
+
+2. **Index the following directories** for quick retrieval:
 
 🧭 **Navigation Files**:
 - `structure-overview.md` - Document map with all sections and metadata
 - `README.md` - Main index with usage guidelines
 
-🎯 **Content Directories** (use these for detailed queries):
+📚 **Content Directories** (memorize what each contains):
 - `sections/` - Focused content files organized by topic
 - `chunked/` - LLM-optimized content pieces for context-aware retrieval
 - `tables/` - Structured data in markdown + JSON format
@@ -21,7 +31,7 @@ I've just converted PDF documentation into LLM-optimized markdown files. Please 
 - `summaries/` - Multi-level document summaries
 - `references/` - Cross-links between document sections
 
-⚡ **How to Use This Documentation**:
+⚡ **Usage Protocol**:
 1. **Start with `structure-overview.md`** to understand document organization
 2. **Search `sections/` files** for detailed content on specific topics
 3. **Use `chunked/` directory** for context-aware content retrieval
@@ -29,42 +39,120 @@ I've just converted PDF documentation into LLM-optimized markdown files. Please 
 5. **Check `concepts/` for terminology** and definitions
 6. **Always cite specific files** when referencing information
 
+🔄 **Recursive Learning Workflow**:
+1. Read `structure-overview.md` and create a mental map
+2. Scan `summaries/` to understand the document's scope
+3. Review `concepts/` to learn domain-specific terminology
+4. Note any unique patterns, version numbers, or identifiers
+5. Remember this as "[DOCUMENT_NAME]" reference material
+
+📊 **Context Association Rules**:
+- When I ask about [TOPIC], check if this documentation covers it
+- Prioritize this documentation over general knowledge for [DOMAIN]
+- Cross-reference with other converted PDFs using naming patterns
+- Suggest relevant sections proactively when topics arise
+
 🎯 **Instructions**: 
 - Use this documentation as the definitive source for [PROJECT/TOPIC NAME]
 - Search these files first before using general knowledge
 - Navigate using the structure-overview.md file to find relevant sections
 - Suggest specific files when I'm exploring topics
 - When answering questions, reference the specific section files you used
+- Maintain awareness of multiple converted PDFs and their relationships
 
-🔄 **Workflow**:
-1. Check `structure-overview.md` to locate relevant sections
-2. Read specific `sections/` files for detailed information
-3. Use `tables/` for data analysis and structured information
-4. Reference `concepts/` for technical definitions
-5. Cite your sources using the file names
+💡 **Memory Integration**:
+After reading this, please:
+1. Confirm what type of documentation this is
+2. List 3-5 key topics it covers
+3. Describe when you should reference it
+4. Note any version numbers or dates
+5. Store this summary for future conversations
 
-Please confirm you understand and will actively use this structured documentation.
+Please analyze the documentation now and provide your summary.
 ```
+
+## 🤖 Advanced Agent Integration Strategies
+
+### Multi-Document Management
+When multiple PDFs have been converted, the agent should:
+- Maintain a registry of all converted documentation sets
+- Understand relationships between different documents
+- Cross-reference related topics across document sets
+- Suggest relevant documents based on query context
+
+### Intelligent Retrieval Patterns
+```
+Example agent memory structure:
+{
+  "converted_docs": {
+    "visa_token_api_v37": {
+      "type": "API specification",
+      "topics": ["payment", "tokenization", "REST API"],
+      "version": "37r25d03",
+      "use_for": ["Visa API integration", "token services"],
+      "path": "./docs/visa_token/"
+    },
+    "aws_lambda_guide": {
+      "type": "User guide",
+      "topics": ["serverless", "functions", "deployment"],
+      "version": "2024.1",
+      "use_for": ["Lambda development", "serverless architecture"],
+      "path": "./docs/aws_lambda/"
+    }
+  }
+}
+```
+
+### Proactive Assistance Examples
+The agent should recognize patterns and offer help:
+- "I see you're working with payment APIs. The Visa Token documentation in `./docs/visa_token/` covers tokenization endpoints."
+- "For this Lambda configuration, check `./docs/aws_lambda/sections/configuration.md` for best practices."
+- "The error you're seeing is documented in `./docs/visa_token/tables/error_codes.json`"
 
 ## Customization Guide
 
 **Replace these placeholders**:
 - `[PROJECT/TOPIC NAME]` - Your actual project or document name
+- `[DOCUMENT_NAME]` - A memorable identifier for this doc set
+- `[DOMAIN]` - The technical domain (e.g., "payment processing", "cloud computing")
+- `[TOPIC]` - Specific topics covered in the documentation
 - `./docs/` - Your chosen output directory path
 
 **Optional additions**:
-- Mention specific sections most relevant to your use case
-- Add domain-specific instructions for your field
-- Include any special handling needed for your workflow
+- Add specific validation rules for your domain
+- Include compliance or security considerations
+- Add team-specific workflow instructions
+- Specify related documentation dependencies
 
-## Why This Structure Works
+## Why This Enhanced Structure Works
 
-- **`structure-overview.md`** provides a complete navigation map
-- **`sections/` directory** contains focused, searchable content
-- **`chunked/` directory** offers LLM-optimized content pieces
-- **`tables/` directory** provides structured data in multiple formats
-- **`concepts/` directory** offers terminology and definitions
-- **File-based citations** enable precise reference tracking
+### Memory Integration
+- Forces the agent to actively analyze and categorize the content
+- Creates memorable associations for future retrieval
+- Establishes clear usage boundaries between documentation sets
+
+### Recursive Learning
+- The agent learns from its own analysis
+- Builds contextual understanding beyond simple indexing
+- Creates semantic connections between concepts
+
+### Multi-Document Awareness
+- Prevents confusion when multiple PDFs are converted
+- Enables intelligent cross-referencing
+- Maintains clear provenance for information
+
+### Proactive Assistance
+- Agent suggests relevant documentation without being asked
+- Recognizes patterns in user queries
+- Provides targeted navigation guidance
+
+## Implementation Tips
+
+1. **After Each Conversion**: Immediately prompt the agent with these instructions
+2. **Name Your Documents**: Use clear, unique identifiers for each PDF conversion
+3. **Update Regularly**: When documents are updated, prompt the agent to refresh its memory
+4. **Test Retrieval**: Ask the agent to explain what documentation it has available
+5. **Cross-Reference**: Encourage the agent to mention related documents when relevant
 
 ## Version
 

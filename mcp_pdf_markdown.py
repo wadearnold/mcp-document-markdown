@@ -206,8 +206,10 @@ async def handle_convert_pdf(args: Dict[str, Any]):
                 message += f"   • Use `sections/` for targeted content queries\n"
                 message += f"   • Check `chunked/` for LLM-optimized content pieces\n"
                 message += f"   • See `tables/` for structured data analysis\n"
-                message += f"\n🤖 **Train Your AI Agent:**\n"
-                message += f"   • Get agent instructions: https://github.com/wadearnold/mcp-pdf-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
+                message += f"\n🤖 **IMPORTANT - Train Your AI Agent:**\n"
+                message += f"   • Copy the prompt from: https://github.com/wadearnold/mcp-pdf-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
+                message += f"   • The agent will analyze and memorize this documentation for future use\n"
+                message += f"   • This enables intelligent cross-referencing across multiple PDFs\n"
             
             return [TextContent(type="text", text=message)]
         else:
