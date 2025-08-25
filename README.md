@@ -83,8 +83,8 @@ docs/your_document_name/
 ### 1. Install the MCP Server
 
 ```bash
-git clone https://github.com/wadearnold/mcp-pdf-markdown.git
-cd mcp-pdf-markdown
+git clone https://github.com/wadearnold/mcp-document-markdown.git
+cd mcp-document-markdown
 make setup    # Installs dependencies and runs tests
 ```
 
@@ -128,7 +128,7 @@ After converting documents, **train your AI agent** to use the structured docume
 
 #### 📋 Get the Latest Agent Instructions:
 
-**[→ AGENT_INSTRUCTIONS.md](https://github.com/wadearnold/mcp-pdf-markdown/blob/main/AGENT_INSTRUCTIONS.md)**
+**[→ AGENT_INSTRUCTIONS.md](https://github.com/wadearnold/mcp-document-markdown/blob/main/AGENT_INSTRUCTIONS.md)**
 
 This file contains:
 - ✅ **Copy-paste prompt** for your AI agent
@@ -368,8 +368,8 @@ make setup    # Reinstall dependencies
 
 ### Build from source
 ```bash
-git clone https://github.com/wadearnold/mcp-pdf-markdown.git
-cd mcp-pdf-markdown
+git clone https://github.com/wadearnold/mcp-document-markdown.git
+cd mcp-document-markdown
 make setup    # Installs dependencies and runs tests
 ```
 

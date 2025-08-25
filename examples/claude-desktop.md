@@ -6,7 +6,7 @@ This guide shows how to configure the MCP Document Converter (PDF and Word suppo
 
 1. Setup the Python MCP server:
    ```bash
-   cd /path/to/mcp-pdf-markdown
+   cd /path/to/mcp-document-markdown
    make setup
    ```
 
@@ -72,12 +72,12 @@ Convert /path/to/report.pdf and save to ./project-docs/
 
 **Server not starting?**
 - Verify Python path: `which python3`
-- Check script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_document_markdown.py`
-- Test directly: `cd /path/to/mcp-pdf-markdown && make run`
+- Check script exists: `ls -la /path/to/mcp-document-markdown/mcp_document_markdown.py`
+- Test directly: `cd /path/to/mcp-document-markdown && make run`
 
 **Python errors?**
 - Verify Python dependencies: `python3 -c "import pypdf, pdfplumber, fitz"`
-- Reinstall if needed: `cd /path/to/mcp-pdf-markdown && make setup`
+- Reinstall if needed: `cd /path/to/mcp-document-markdown && make setup`
 
 **Configuration not loading?**
 - Restart Claude Desktop after adding the configuration

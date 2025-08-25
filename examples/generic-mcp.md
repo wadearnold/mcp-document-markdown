@@ -21,7 +21,7 @@ The Model Context Protocol is an open standard that allows AI tools to connect t
 
 1. Setup the MCP server:
    ```bash
-   cd /path/to/mcp-pdf-markdown
+   cd /path/to/mcp-document-markdown
    make setup    # Install dependencies and run tests
    ```
 
@@ -54,9 +54,9 @@ Example with actual paths:
 ```json
 {
   "mcpServers": {
-    "pdf-markdown": {
-      "command": "/Users/username/Documents/mcp-pdf-markdown/venv/bin/python",
-      "args": ["/Users/username/Documents/mcp-pdf-markdown/mcp_document_markdown.py"],
+    "document-markdown": {
+      "command": "/Users/username/Documents/mcp-document-markdown/venv/bin/python",
+      "args": ["/Users/username/Documents/mcp-document-markdown/mcp_document_markdown.py"],
       "env": {
         "OUTPUT_DIR": "./docs",
         "DEBUG": "false"
@@ -74,15 +74,15 @@ Example with actual paths:
 ```json
 {
   "command": "python3",
-  "args": ["/path/to/mcp-pdf-markdown/mcp_document_markdown.py"]
+  "args": ["/path/to/mcp-document-markdown/mcp_document_markdown.py"]
 }
 ```
 
 **Using project virtual environment:**
 ```json
 {
-  "command": "/path/to/mcp-pdf-markdown/venv/bin/python",
-  "args": ["/path/to/mcp-pdf-markdown/mcp_document_markdown.py"]
+  "command": "/path/to/mcp-document-markdown/venv/bin/python",
+  "args": ["/path/to/mcp-document-markdown/mcp_document_markdown.py"]
 }
 ```
 
@@ -91,7 +91,7 @@ Example with actual paths:
 {
   "command": "python3",
   "args": ["mcp_document_markdown.py"],
-  "cwd": "/path/to/mcp-pdf-markdown"
+  "cwd": "/path/to/mcp-document-markdown"
 }
 ```
 
@@ -168,7 +168,7 @@ This server uses **stdio transport**:
 
 1. **Test server directly:**
    ```bash
-   echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | python3 /path/to/mcp-pdf-markdown/mcp_document_markdown.py
+   echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}' | python3 /path/to/mcp-document-markdown/mcp_document_markdown.py
    ```
 
 2. **Expected response:**
@@ -194,7 +194,7 @@ This server uses **stdio transport**:
 ## Common Issues
 
 **Server not starting:**
-- Check Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_document_markdown.py`
+- Check Python script exists: `ls -la /path/to/mcp-document-markdown/mcp_document_markdown.py`
 - Verify dependencies installed (`make setup`)
 - Check Python interpreter: `which python3`
 - Check paths in configuration

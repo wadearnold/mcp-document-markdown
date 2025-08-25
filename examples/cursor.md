@@ -9,7 +9,7 @@ This guide shows how to configure the MCP PDF Converter with Cursor, the AI-powe
 1. Install Cursor (if not already installed)
 2. Setup the MCP server:
    ```bash
-   cd /path/to/mcp-pdf-markdown
+   cd /path/to/mcp-document-markdown
    make setup
    ```
 
@@ -28,7 +28,7 @@ Add this configuration to your Cursor settings (`Cmd/Ctrl + ,` → Search "mcp")
 ```json
 {
   "mcp.servers": {
-    "pdf-markdown": {
+    "document-markdown": {
       "command": "[COMMAND_FROM_MAKE_RUN]",
       "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
@@ -49,7 +49,7 @@ Create `.cursor/settings.json` in your project root using the paths from `make r
 ```json
 {
   "mcp.servers": {
-    "pdf-markdown": {
+    "document-markdown": {
       "command": "[COMMAND_FROM_MAKE_RUN]",
       "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
@@ -69,7 +69,7 @@ For project-specific setup, create `.vscode/settings.json` (Cursor uses VS Code 
 ```json
 {
   "mcp.servers": {
-    "pdf-markdown": {
+    "document-markdown": {
       "command": "[COMMAND_FROM_MAKE_RUN]",
       "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
@@ -134,15 +134,15 @@ After conversion, Cursor will show the generated markdown files in your file exp
 
 **Server not found?**
 - Run `make run` to get the correct paths for your system
-- Verify Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_document_markdown.py`
+- Verify Python script exists: `ls -la /path/to/mcp-document-markdown/mcp_document_markdown.py`
 - Verify Python interpreter: `which python3`
 - Use the exact paths shown by `make run` in configuration
 
 ### Runtime Issues
 
 **Python errors?**
-- Check dependencies: `cd /path/to/mcp-pdf-markdown && make setup`
-- Test server: `cd /path/to/mcp-pdf-markdown && make run`
+- Check dependencies: `cd /path/to/mcp-document-markdown && make setup`
+- Test server: `cd /path/to/mcp-document-markdown && make run`
 - Verify virtual environment is working properly
 
 **Permission errors?**
@@ -172,7 +172,7 @@ If native MCP support isn't available in your Cursor version:
 ### CLI Workflow
 ```bash
 # Convert PDF using the server
-echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"pdf_path": "./document.pdf"}}}' | python3 /path/to/mcp-pdf-markdown/mcp_document_markdown.py
+echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"pdf_path": "./document.pdf"}}}' | python3 /path/to/mcp-document-markdown/mcp_document_markdown.py
 
 # Then use Cursor to work with generated markdown files
 ```
@@ -186,7 +186,7 @@ Create a script that Cursor can execute:
 PDF_PATH="$1"
 OUTPUT_DIR="${2:-./docs}"
 
-echo "{\"method\": \"tools/call\", \"params\": {\"name\": \"convert_pdf\", \"arguments\": {\"pdf_path\": \"$PDF_PATH\", \"output_dir\": \"$OUTPUT_DIR\"}}}" | python3 /path/to/mcp-pdf-markdown/mcp_document_markdown.py
+echo "{\"method\": \"tools/call\", \"params\": {\"name\": \"convert_pdf\", \"arguments\": {\"pdf_path\": \"$PDF_PATH\", \"output_dir\": \"$OUTPUT_DIR\"}}}" | python3 /path/to/mcp-document-markdown/mcp_document_markdown.py
 ```
 
 Then in Cursor:
@@ -201,7 +201,7 @@ Then in Cursor:
 ```json
 {
   "mcp.servers": {
-    "pdf-markdown": {
+    "document-markdown": {
       "command": "[COMMAND_FROM_MAKE_RUN]",
       "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
@@ -219,7 +219,7 @@ Then in Cursor:
 ```json
 {
   "mcp.servers": {
-    "pdf-markdown": {
+    "document-markdown": {
       "command": "[COMMAND_FROM_MAKE_RUN]",
       "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {
@@ -234,7 +234,7 @@ Then in Cursor:
 ```json
 {
   "mcp.servers": {
-    "pdf-markdown": {
+    "document-markdown": {
       "command": "[COMMAND_FROM_MAKE_RUN]",
       "args": ["[ARGS_FROM_MAKE_RUN]"],
       "env": {

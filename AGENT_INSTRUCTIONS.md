@@ -241,4 +241,4 @@ Converting PDFs creates structure. Training agents creates intelligence.
 
 This instruction template is maintained alongside the MCP PDF-to-Markdown converter.
 
-**Always use the latest version**: https://github.com/wadearnold/mcp-pdf-markdown/blob/main/AGENT_INSTRUCTIONS.md
+**Always use the latest version**: https://github.com/wadearnold/mcp-document-markdown/blob/main/AGENT_INSTRUCTIONS.md
