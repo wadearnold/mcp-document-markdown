@@ -5,6 +5,7 @@ Fixed MCP PDF to Markdown Server
 import asyncio
 import json
 import sys
+import signal
 import logging
 from pathlib import Path
 from typing import Any, Dict
@@ -291,6 +292,11 @@ async def handle_prepare_rag(args: Dict[str, Any]):
         logger.error(f"RAG preparation failed: {e}")
         raise
 
+def signal_handler(signum, frame):
+    """Handle interrupt signals gracefully"""
+    print("\n👋 Server stopped by user", file=sys.stderr)
+    sys.exit(0)
+
 async def main():
     """Main entry point"""
     logger.info("Starting MCP PDF-to-Markdown server (pdf-markdown)")
@@ -305,13 +311,28 @@ async def main():
         return await original_run(*args, **kwargs)
     app.run = debug_run
     
-    async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
-        print(f"📡 Starting stdio server", file=sys.stderr, flush=True)
-        await app.run(
-            read_stream,
-            write_stream,
-            app.create_initialization_options()
-        )
+    try:
+        async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
+            print(f"📡 Starting stdio server", file=sys.stderr, flush=True)
+            await app.run(
+                read_stream,
+                write_stream,
+                app.create_initialization_options()
+            )
+    except asyncio.CancelledError:
+        # This is expected when shutting down
+        pass
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # Set up signal handlers for clean shutdown
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        # Clean exit on Ctrl+C without stack trace
+        pass  # Already handled by signal handler
+    except Exception as e:
+        logger.error(f"Server error: {e}")
+        sys.exit(1)
