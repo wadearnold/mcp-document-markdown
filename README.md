@@ -13,13 +13,13 @@ Transform massive, complex PDFs into AI-optimized documentation that enables int
 
 ### 🚀 **The Intelligent Solution**
 
-**📊 Smart Chunking**: Breaks content into LLM-optimized pieces (3.5K, 8K, 32K, 100K token variants)
-**🧠 Concept Mapping**: Extracts and defines domain-specific terminology and relationships  
-**📋 Multi-Level Summaries**: Executive, technical, and detailed summaries for different contexts
-**🗂️ Section Navigation**: Hierarchical structure with cross-references and precise citations
-**📈 Table Intelligence**: Structured JSON + markdown tables for data analysis
-**🖼️ Visual Context**: Extracts and catalogs images with descriptions
-**🔗 Cross-Reference Resolution**: Maps internal document relationships and dependencies
+- **Smart Chunking**: Breaks content into LLM-optimized pieces (3.5K, 8K, 32K, 100K token variants)
+- **Concept Mapping**: Extracts and defines domain-specific terminology and relationships  
+- **Multi-Level Summaries**: Executive, technical, and detailed summaries for different contexts
+- **Section Navigation**: Hierarchical structure with cross-references and precise citations
+- **Table Intelligence**: Structured JSON + markdown tables for data analysis
+- **Visual Context**: Extracts and catalogs images with descriptions
+- **Cross-Reference Resolution**: Maps internal document relationships and dependencies
 
 ### ⚡ **Agent Workflow Benefits**
 
