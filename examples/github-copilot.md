@@ -90,7 +90,7 @@ If GitHub Copilot doesn't directly support MCP, you can use the server as a CLI 
 
 ```bash
 # Convert PDF directly
-echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"pdf_path": "./document.pdf"}}}' | python3 /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py
+echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"pdf_path": "./document.pdf"}}}' | python3 /path/to/mcp-pdf-markdown/mcp_document_markdown.py
 
 # Then use Copilot to work with the generated markdown files
 ```
@@ -105,7 +105,7 @@ echo '{"method": "tools/call", "params": {"name": "convert_pdf", "arguments": {"
 **Server not responding?**
 - Test server directly: `cd /path/to/mcp-pdf-markdown && make run`
 - Run `make run` to get the correct paths for your system
-- Verify Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
+- Verify Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_document_markdown.py`
 
 **Python dependency errors?**
 - Reinstall dependencies: `cd /path/to/mcp-pdf-markdown && make setup`

@@ -28,7 +28,7 @@ Copy the Command and Args values from `make run` output and use them like this:
 claude mcp add document-markdown -- "COMMAND_PATH" "ARGS_PATH"
 
 # Real example:
-claude mcp add document-markdown -- "/Users/username/Documents/mcp-pdf-markdown/venv/bin/python" "/Users/username/Documents/mcp-pdf-markdown/mcp_pdf_markdown.py"
+claude mcp add document-markdown -- "/Users/username/Documents/mcp-pdf-markdown/venv/bin/python" "/Users/username/Documents/mcp-pdf-markdown/mcp_document_markdown.py"
 ```
 
 **📋 Copy-Paste Steps:**
@@ -118,7 +118,7 @@ Convert ./reports/quarterly.pdf and save to ./analysis/
 ## Troubleshooting
 
 **Server not found?**
-- Verify the Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
+- Verify the Python script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_document_markdown.py`
 - **Always use absolute paths** - relative paths will fail
 - Check the exact path with `pwd` when in the repository directory
 

@@ -14,7 +14,7 @@ With the addition of Microsoft Word support, the repository name should reflect 
 - **Proposed**: `document-markdown` ✅ (Already updated in code)
 
 ### 3. File/Module Names to Update
-- [ ] Main server file: Keep as `mcp_pdf_markdown.py` for backward compatibility OR rename to `mcp_document_markdown.py`
+- ✅ Main server file: Renamed to `mcp_document_markdown.py` for consistency
 - [ ] Configuration examples in `examples/` directory
 - [ ] References in documentation
 
@@ -42,7 +42,7 @@ With the addition of Microsoft Word support, the repository name should reflect 
 - Clear messaging about the change
 
 #### Option B: Graceful Migration (Recommended)
-- Keep `mcp_pdf_markdown.py` as the main file
+- Renamed to `mcp_document_markdown.py` for consistency
 - Server identifies as `document-markdown` internally
 - Support both old and new tool names temporarily
 - Add deprecation notices for PDF-only tools
@@ -97,7 +97,7 @@ Future Considerations:
 ## Decision Points
 
 1. **Repository Name**: Should we rename now or wait for more formats?
-2. **Main File Name**: Keep `mcp_pdf_markdown.py` or rename to `mcp_document_markdown.py`?
+2. **Main File Name**: ✅ Renamed to `mcp_document_markdown.py` for consistency
 3. **Tool Naming**: Keep separate `convert_pdf`/`convert_docx` or unified `convert_document`?
 4. **Migration Path**: How long to maintain backward compatibility?
 

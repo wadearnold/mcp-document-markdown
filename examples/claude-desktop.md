@@ -72,7 +72,7 @@ Convert /path/to/report.pdf and save to ./project-docs/
 
 **Server not starting?**
 - Verify Python path: `which python3`
-- Check script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_pdf_markdown.py`
+- Check script exists: `ls -la /path/to/mcp-pdf-markdown/mcp_document_markdown.py`
 - Test directly: `cd /path/to/mcp-pdf-markdown && make run`
 
 **Python errors?**

@@ -14,7 +14,7 @@
    - Reuses 90% of existing infrastructure (chunking, summaries, concepts, etc.)
    - Generates identical output structure to PDFs for consistency
 
-3. **MCP Server Integration** (`mcp_pdf_markdown.py`)
+3. **MCP Server Integration** (`mcp_document_markdown.py`)
    - Added `convert_docx` tool for Word document conversion
    - Added `analyze_docx_structure` tool for quick analysis
    - Updated server name to `document-markdown`

@@ -36,7 +36,7 @@ class TestEssentialFunctionality(unittest.TestCase):
         """Test that all critical system imports work - this is the most important test"""
         try:
             # Test MCP server imports
-            from mcp_pdf_markdown import handle_convert_pdf, handle_analyze_pdf, handle_prepare_rag
+            from mcp_document_markdown import handle_convert_pdf, handle_analyze_pdf, handle_prepare_rag
             
             # Test modular converter imports
             from modular_pdf_converter import ModularPDFConverter
@@ -154,7 +154,7 @@ class TestEssentialFunctionality(unittest.TestCase):
     def test_mcp_convert_handler_works(self, mock_converter_class):
         """Test that the MCP convert handler works with mocked converter"""
         try:
-            from mcp_pdf_markdown import handle_convert_pdf
+            from mcp_document_markdown import handle_convert_pdf
             
             # Set up mock
             mock_converter = Mock()
@@ -188,7 +188,7 @@ class TestEssentialFunctionality(unittest.TestCase):
     def test_mcp_analyze_handler_works(self, mock_analyze):
         """Test that the MCP analyze handler works with mocked analyzer"""
         try:
-            from mcp_pdf_markdown import handle_analyze_pdf
+            from mcp_document_markdown import handle_analyze_pdf
             
             # Set up mock
             mock_analyze.return_value = {
@@ -215,7 +215,7 @@ class TestEssentialFunctionality(unittest.TestCase):
     def test_mcp_rag_handler_works(self, mock_processor_class):
         """Test that the MCP RAG handler works with mocked processor"""
         try:
-            from mcp_pdf_markdown import handle_prepare_rag
+            from mcp_document_markdown import handle_prepare_rag
             
             # Set up mock
             mock_processor = Mock()
