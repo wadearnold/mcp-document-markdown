@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Fixed MCP PDF to Markdown Server
+MCP Document to Markdown Server
+Supports PDF and Microsoft Word documents
 """
 import asyncio
 import json
@@ -23,11 +24,11 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Initialize the MCP server
-app = Server("pdf-markdown")
+app = Server("document-markdown")
 
 @app.list_tools()
 async def list_tools():
-    """List available tools for PDF processing"""
+    """List available tools for document processing"""
     print("🔧 LIST_TOOLS CALLED - WORKING!", flush=True)
     return [
             Tool(
@@ -131,6 +132,79 @@ async def list_tools():
                     },
                     "required": ["pdf_path"]
                 }
+            ),
+            Tool(
+                name="convert_docx",
+                description="Convert Microsoft Word document to organized markdown documentation",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "docx_path": {
+                            "type": "string",
+                            "description": "Path to the Word document (.docx) to convert"
+                        },
+                        "output_dir": {
+                            "type": "string", 
+                            "description": "Directory to save the converted files (default: ./docs)",
+                            "default": "./docs"
+                        },
+                        "split_by_chapters": {
+                            "type": "boolean",
+                            "description": "Split output by document chapters/sections",
+                            "default": True
+                        },
+                        "preserve_tables": {
+                            "type": "boolean",
+                            "description": "Preserve table formatting in markdown",
+                            "default": True
+                        },
+                        "extract_images": {
+                            "type": "boolean",
+                            "description": "Extract and save images from document", 
+                            "default": True
+                        },
+                        "generate_summaries": {
+                            "type": "boolean",
+                            "description": "Generate multi-level summaries (default: true)",
+                            "default": True
+                        },
+                        "generate_concept_map": {
+                            "type": "boolean",
+                            "description": "Generate concept map and glossary (default: true)",
+                            "default": True
+                        },
+                        "resolve_cross_references": {
+                            "type": "boolean",
+                            "description": "Resolve cross-references and create links (default: true)",
+                            "default": True
+                        },
+                        "structured_tables": {
+                            "type": "boolean",
+                            "description": "Convert tables to structured JSON (default: true)",
+                            "default": True
+                        },
+                        "chunk_size_optimization": {
+                            "type": "boolean",
+                            "description": "Optimize chunks for LLM token windows (default: true)",
+                            "default": True
+                        }
+                    },
+                    "required": ["docx_path"]
+                }
+            ),
+            Tool(
+                name="analyze_docx_structure", 
+                description="Analyze Word document structure without converting",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "docx_path": {
+                            "type": "string",
+                            "description": "Path to the Word document to analyze"
+                        }
+                    },
+                    "required": ["docx_path"]
+                }
             )
         ]
 
@@ -146,6 +220,10 @@ async def call_tool(name: str, arguments: Dict[str, Any]):
             return await handle_analyze_pdf(arguments)  
         elif name == "prepare_pdf_for_rag":
             return await handle_prepare_rag(arguments)
+        elif name == "convert_docx":
+            return await handle_convert_docx(arguments)
+        elif name == "analyze_docx_structure":
+            return await handle_analyze_docx(arguments)
         else:
             raise ValueError(f"Unknown tool: {name}")
             
@@ -300,9 +378,126 @@ async def handle_prepare_rag(args: Dict[str, Any]):
         logger.error(f"RAG preparation failed: {e}")
         raise
 
+async def handle_convert_docx(args: Dict[str, Any]):
+    """Handle Word document to markdown conversion"""
+    try:
+        from modular_docx_converter import ModularDocxConverter
+        from utils.file_utils import FileUtils
+        
+        docx_path = args["docx_path"]
+        output_dir = args.get("output_dir", "./docs")
+        
+        if not Path(docx_path).exists():
+            raise FileNotFoundError(f"Word document not found: {docx_path}")
+        
+        options = {
+            "split_by_chapters": args.get("split_by_chapters", True),
+            "preserve_tables": args.get("preserve_tables", True), 
+            "extract_images": args.get("extract_images", True),
+            "generate_summaries": args.get("generate_summaries", True),
+            "generate_concept_map": args.get("generate_concept_map", True),
+            "resolve_cross_references": args.get("resolve_cross_references", True),
+            "structured_tables": args.get("structured_tables", True),
+            "chunk_size_optimization": args.get("chunk_size_optimization", True),
+        }
+        
+        logger.info(f"Converting Word document: {docx_path} to {output_dir}")
+        
+        converter = ModularDocxConverter(docx_path, output_dir, options)
+        result = converter.convert()
+        
+        if result.get("success"):
+            # Get actual file count from generated_files
+            total_files = result.get('file_count', len(result.get('generated_files', [])))
+            
+            # Get the actual output path (with sanitized folder name)
+            docx_folder_name = FileUtils.sanitize_folder_name(Path(docx_path).name)
+            actual_output_path = f"{output_dir}/{docx_folder_name}"
+            
+            message = f"✅ Successfully converted {Path(docx_path).name}\n"
+            message += f"📁 Output directory: {actual_output_path}\n" 
+            message += f"📄 Total files generated: {total_files:,}\n"
+            message += f"⏱️  Processing time: {result.get('processing_time_seconds', 0):.1f}s\n\n"
+            
+            # Add brief final summary stats
+            stats = result.get('processing_stats', {})
+            if stats:
+                message += "📊 Content Summary:\n"
+                docx_stats = stats.get('docx_extraction', {})
+                if docx_stats:
+                    message += f"   • {docx_stats.get('total_words', 0):,} words processed\n"
+                    message += f"   • {docx_stats.get('total_sections', 0)} sections found\n" 
+                    message += f"   • {docx_stats.get('total_tables', 0)} tables structured\n"
+                    message += f"   • {docx_stats.get('total_images', 0)} images referenced\n"
+                if 'sections' in stats:
+                    message += f"   • {stats['sections']} sections organized\n"
+            
+            # Add critical agent training instructions
+            message += f"\n🚨 **CRITICAL NEXT STEP - TRAIN YOUR AI AGENT:**\n"
+            message += f"\n"
+            message += f"Your Word document is converted, but your agent doesn't know how to use it yet!\n"
+            message += f"\n"
+            message += f"📋 **DO THIS NOW:**\n"
+            message += f"1. Open: https://github.com/wadearnold/mcp-pdf-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
+            message += f"2. Copy the training prompt from the 'Quick Start' section\n"
+            message += f"3. Replace [FOLDER_NAME] with: {docx_folder_name}\n"
+            message += f"4. Paste the prompt to your AI agent immediately\n"
+            message += f"\n"
+            message += f"⚠️  **Without this step, your agent won't know the documentation exists!**\n"
+            message += f"\n"
+            message += f"💡 **File Navigation Guide:**\n"
+            message += f"• `structure-overview.md` - Document map and navigation\n"
+            message += f"• `sections/` - Individual content sections\n"
+            message += f"• `chunked/` - LLM-optimized content pieces\n"
+            message += f"• `tables/` - Structured data for analysis\n"
+            
+            return [TextContent(type="text", text=message)]
+        else:
+            error_msg = f"❌ Conversion failed: {result.get('error', 'Unknown error')}"
+            return [TextContent(type="text", text=error_msg)]
+        
+    except Exception as e:
+        logger.error(f"Convert Word document failed: {e}")
+        raise
+
+async def handle_analyze_docx(args: Dict[str, Any]):
+    """Handle Word document structure analysis"""
+    try:
+        from processors.docx_extractor import DocxExtractor
+        
+        docx_path = args["docx_path"]
+        
+        if not Path(docx_path).exists():
+            raise FileNotFoundError(f"Word document not found: {docx_path}")
+            
+        logger.info(f"Analyzing Word document structure: {docx_path}")
+        
+        extractor = DocxExtractor()
+        result = extractor.extract_from_file(docx_path)
+        
+        if result['success']:
+            # Get file size
+            file_size_mb = Path(docx_path).stat().st_size / (1024 * 1024)
+            
+            message = f"📊 Word Document Analysis: {Path(docx_path).name}\n"
+            message += f"Size: {file_size_mb:.2f} MB\n"
+            message += f"Words: {result['stats'].get('total_words', 0):,}\n"
+            message += f"Sections: {result['stats'].get('total_sections', 0)}\n"
+            message += f"Tables: {result['stats'].get('total_tables', 0)}\n"
+            message += f"Images: {result['stats'].get('total_images', 0)}\n"
+            message += f"Has TOC: {result['stats'].get('has_toc', False)}"
+        else:
+            message = f"❌ Analysis failed: {result.get('error', 'Unknown error')}"
+        
+        return [TextContent(type="text", text=message)]
+        
+    except Exception as e:
+        logger.error(f"Analyze Word document failed: {e}")
+        raise
+
 async def main():
     """Main entry point"""
-    logger.info("Starting MCP PDF-to-Markdown server (pdf-markdown)")
+    logger.info("Starting MCP Document-to-Markdown server (document-markdown)")
     print(f"🐍 Python executable: {sys.executable}", file=sys.stderr, flush=True)
     print(f"📁 Working directory: {Path.cwd()}", file=sys.stderr, flush=True)
     print(f"🛤️  Python path: {sys.path[:3]}...", file=sys.stderr, flush=True)
