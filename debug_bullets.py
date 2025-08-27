@@ -6,7 +6,7 @@ import fitz
 from pathlib import Path
 
 def debug_bullets():
-    pdf_path = "VTS_chapter4.pdf"
+    pdf_path = "sample_document.pdf"
     
     with fitz.open(pdf_path) as doc:
         # Get page 4 (Token Information) where tokenType should have values

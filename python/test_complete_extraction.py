@@ -12,7 +12,7 @@ from processors.pdf_extractor_ultimate import UltimatePDFExtractor
 def test_complete_pipeline():
     """Test the ULTIMATE PDF extraction pipeline"""
     
-    pdf_path = "VTS_chapter4.pdf"  # PDF is in root directory
+    pdf_path = "sample_document.pdf"  # PDF is in root directory
     output_dir = "output_ultimate_test"
     
     print("=" * 60)

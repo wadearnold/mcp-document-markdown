@@ -11,7 +11,7 @@ This guide shows how to configure the MCP Document Converter (PDF and Word suppo
 cd /Users/wadearnold/Documents/GitHub/wadearnold/mcp-document-markdown && venv/bin/python python/<script_name>.py <args>
 
 # Example:
-cd /Users/wadearnold/Documents/GitHub/wadearnold/mcp-document-markdown && venv/bin/python python/debug_pdf_extraction.py VTS_chapter4.pdf
+cd /Users/wadearnold/Documents/GitHub/wadearnold/mcp-document-markdown && venv/bin/python python/debug_pdf_extraction.py sample_document.pdf
 ```
 
 **DO NOT try these incorrect variations:**

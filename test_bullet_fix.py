@@ -11,22 +11,22 @@ from processors.pdf_extractor_ultimate import IntelligentTextProcessor
 def test_bullet_fix():
     processor = IntelligentTextProcessor()
     
-    # Test with the exact pattern we found
-    test_text = """tokenType
-(Conditional) This is a required field in the following APIs:
+    # Test with generic patterns that could appear in any PDF
+    test_text = """fieldType
+(Required) This field accepts one of the following values:
 l
-Approve Provisioning
+ACTIVE
 l
-Approve Provisioning Stand-In Notification
+INACTIVE
 l
-Token Create Notification
-Format: It is one of the following values:
+PENDING
+Format: It is one of the following options:
 l
-SECURE_ELEMENT
+OPTION_A
 l
-HCE
+OPTION_B
 l
-CARD_ON_FILE"""
+OPTION_C"""
 
     print("=== BEFORE PROCESSING ===")
     print(test_text)

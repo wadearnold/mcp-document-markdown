@@ -161,20 +161,16 @@ class IntelligentTextProcessor:
         """Analyze content to determine if it looks like a bullet item"""
         content_lower = content.lower()
         
-        # Known API values that should be bullets
-        api_values = [
-            'secure_element', 'hce', 'card_on_file', 'ecommerce', 'qrc', 'pseudo_account',
-            'active', 'inactive', 'suspended', 'deactivated',
-            'android', 'ios', 'windows', 'blackberry', 'tizen', 'other',
-            'unknown', 'mobile_phone', 'tablet', 'watch', 'pc', 'household_device',
-            'wifi', 'cellular', 'gps', 'software', 'trusted_execution_environment',
-            'approve provisioning', 'token create notification', 'token notification',
-            'device token binding request', 'get cardholder verification methods',
-            'send passcode', 'network_set', 'consumer_set'
-        ]
+        # Generic patterns that suggest bullet content (no hardcoded values)
         
-        # Check if content starts with known API values
-        if any(content_lower.startswith(val) for val in api_values):
+        # Check for single uppercase words (likely enum values)
+        first_word = content.split()[0] if content.split() else ''
+        if first_word.isupper() and len(first_word) > 2:
+            return True
+        
+        # Check for common status/state words
+        status_patterns = ['active', 'inactive', 'enabled', 'disabled', 'yes', 'no', 'true', 'false']
+        if any(content_lower.startswith(pattern) for pattern in status_patterns):
             return True
         
         # Check for boolean values
@@ -222,11 +218,15 @@ class IntelligentTextProcessor:
     def is_section_header(self, line: str) -> bool:
         """Check if line is a section header"""
         line = line.strip()
-        headers = [
-            'Cardholder Information', 'Token Information', 'Device Information',
-            'Risk Information', 'Address', 'Expiration Date', 'Field', 'Description'
-        ]
-        return line in headers or 'Chapter' in line
+        # Generic header patterns (no hardcoded section names)
+        # Look for title-case patterns, short lines, or common header words
+        if len(line) < 60 and line.istitle():
+            return True
+        if 'Chapter' in line or 'Section' in line:
+            return True
+        # Common header words
+        header_words = ['Information', 'Data', 'Configuration', 'Settings', 'Field', 'Description']
+        return any(word in line for word in header_words)
     
     def is_field_name(self, text: str) -> bool:
         """Check if text is likely a field name"""
@@ -293,8 +293,8 @@ class SmartFieldExtractor:
     def should_skip_line(self, line: str) -> bool:
         """Check if line should be skipped"""
         skip_patterns = [
-            'Visa Token Service', 'Encrypted Payload', 'March 2025',
-            'Visa Confidential', 'Field', 'Description'
+            'Confidential', 'Proprietary', 'Copyright', 'All rights reserved',
+            'Field', 'Description', 'Page ', 'Document'
         ]
         return any(pattern in line for pattern in skip_patterns)
     
@@ -674,29 +674,35 @@ class UltimatePDFExtractor:
     
     def group_fields_by_section(self, fields: List[APIField]) -> Dict[str, List[APIField]]:
         """Group fields by logical sections"""
+        # Generic field categorization without hardcoded assumptions
         sections = {
-            'Cardholder Information': [],
-            'Token Information': [],
-            'Device Information': [],
-            'Risk Information': [],
-            'Address': [],
+            'Data Fields': [],
+            'Configuration': [],
+            'System Information': [],
+            'User Information': [],
+            'Location Data': [],
             'Other Fields': []
         }
         
-        # Categorize fields based on name patterns
+        # Categorize fields based on generic patterns
         for field in fields:
             name = field.name.lower()
             
-            if any(keyword in name for keyword in ['cardholder', 'account', 'pan', 'cvv', 'name']):
-                sections['Cardholder Information'].append(field)
-            elif any(keyword in name for keyword in ['token', 'provisioning', 'activation']):
-                sections['Token Information'].append(field)
-            elif any(keyword in name for keyword in ['device', 'os', 'location', 'manufacturer']):
-                sections['Device Information'].append(field)
-            elif any(keyword in name for keyword in ['risk', 'score', 'wallet', 'assessment']):
-                sections['Risk Information'].append(field)
-            elif any(keyword in name for keyword in ['address', 'line', 'city', 'state', 'country', 'postal']):
-                sections['Address'].append(field)
+            # System/technical fields
+            if any(keyword in name for keyword in ['id', 'key', 'code', 'number', 'version']):
+                sections['Data Fields'].append(field)
+            # Configuration fields
+            elif any(keyword in name for keyword in ['config', 'setting', 'option', 'mode', 'type']):
+                sections['Configuration'].append(field)
+            # System information
+            elif any(keyword in name for keyword in ['device', 'os', 'system', 'platform', 'manufacturer']):
+                sections['System Information'].append(field)
+            # User-related fields
+            elif any(keyword in name for keyword in ['user', 'account', 'name', 'email', 'profile']):
+                sections['User Information'].append(field)
+            # Location fields
+            elif any(keyword in name for keyword in ['address', 'location', 'city', 'state', 'country', 'postal']):
+                sections['Location Data'].append(field)
             else:
                 sections['Other Fields'].append(field)
         
@@ -775,7 +781,7 @@ class UltimatePDFExtractor:
 
 def test_ultimate_extractor():
     """Test the ultimate extractor"""
-    pdf_path = "VTS_chapter4.pdf"
+    pdf_path = "sample_document.pdf"
     output_dir = "output_ultimate"
     
     extractor = UltimatePDFExtractor(pdf_path, output_dir)
