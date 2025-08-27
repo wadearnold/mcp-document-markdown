@@ -1,0 +1,73 @@
+{
+  "generated_at": "2025-08-26T17:12:14.645706",
+  "total_sections": 5,
+  "total_chunks": 20,
+  "chunk_sizes": {
+    "small": 3500,
+    "medium": 7500,
+    "large": 30000,
+    "xlarge": 95000
+  },
+  "sections": [
+    {
+      "section_id": 1,
+      "section_title": "Section 1 (Pages 1-3)",
+      "original_tokens": 835,
+      "chunks_created": 4,
+      "chunk_files": [
+        "01-Section-1-Pages-1-3-small.md",
+        "01-Section-1-Pages-1-3-medium.md",
+        "01-Section-1-Pages-1-3-large.md",
+        "01-Section-1-Pages-1-3-xlarge.md"
+      ]
+    },
+    {
+      "section_id": 2,
+      "section_title": "Section 2 (Pages 4-6)",
+      "original_tokens": 1100,
+      "chunks_created": 4,
+      "chunk_files": [
+        "02-Section-2-Pages-4-6-small.md",
+        "02-Section-2-Pages-4-6-medium.md",
+        "02-Section-2-Pages-4-6-large.md",
+        "02-Section-2-Pages-4-6-xlarge.md"
+      ]
+    },
+    {
+      "section_id": 3,
+      "section_title": "Section 3 (Pages 7-9)",
+      "original_tokens": 1167,
+      "chunks_created": 4,
+      "chunk_files": [
+        "03-Section-3-Pages-7-9-small.md",
+        "03-Section-3-Pages-7-9-medium.md",
+        "03-Section-3-Pages-7-9-large.md",
+        "03-Section-3-Pages-7-9-xlarge.md"
+      ]
+    },
+    {
+      "section_id": 4,
+      "section_title": "Section 4 (Pages 10-12)",
+      "original_tokens": 1152,
+      "chunks_created": 4,
+      "chunk_files": [
+        "04-Section-4-Pages-10-12-small.md",
+        "04-Section-4-Pages-10-12-medium.md",
+        "04-Section-4-Pages-10-12-large.md",
+        "04-Section-4-Pages-10-12-xlarge.md"
+      ]
+    },
+    {
+      "section_id": 5,
+      "section_title": "Section 5 (Pages 13-15)",
+      "original_tokens": 992,
+      "chunks_created": 4,
+      "chunk_files": [
+        "05-Section-5-Pages-13-15-small.md",
+        "05-Section-5-Pages-13-15-medium.md",
+        "05-Section-5-Pages-13-15-large.md",
+        "05-Section-5-Pages-13-15-xlarge.md"
+      ]
+    }
+  ]
+}

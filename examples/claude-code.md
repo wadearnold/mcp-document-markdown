@@ -2,6 +2,24 @@
 
 This guide shows how to configure the MCP Document Converter (PDF and Word support) with Claude Code CLI.
 
+## Important: Python Execution in This Project
+
+**ALWAYS use this pattern to run Python scripts in this project:**
+
+```bash
+# From project root (/Users/wadearnold/Documents/GitHub/wadearnold/mcp-document-markdown):
+cd /Users/wadearnold/Documents/GitHub/wadearnold/mcp-document-markdown && venv/bin/python python/<script_name>.py <args>
+
+# Example:
+cd /Users/wadearnold/Documents/GitHub/wadearnold/mcp-document-markdown && venv/bin/python python/debug_pdf_extraction.py VTS_chapter4.pdf
+```
+
+**DO NOT try these incorrect variations:**
+- ❌ `source venv/bin/activate && python ...` (shell builtin issues)
+- ❌ `./venv/bin/python ...` (path resolution issues)  
+- ❌ `python3 ...` (wrong Python environment)
+- ❌ Changing directories then running (path confusion)
+
 ## Prerequisites
 
 1. Install Claude Code CLI (if not already installed)

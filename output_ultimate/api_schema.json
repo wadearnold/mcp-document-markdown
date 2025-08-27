@@ -1,0 +1,598 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Visa Token Service",
+  "description": "API schema extracted from VTS_chapter4.pdf",
+  "properties": {
+    "primaryAccountNumber": {
+      "description": "Primary account number (PAN) of the card that is being tokenized. cvv2 (Optional) Value associated with the PAN on the card.",
+      "x-section": "Cardholder Information",
+      "type": "number",
+      "format": "String; max length 4 characters."
+    },
+    "name": {
+      "description": "Full name on the Visa card associated with the enrolled payment instrument. 27 March 2025 Visa Confidential 56",
+      "x-section": "Cardholder Information",
+      "type": "string",
+      "format": "String; max length 256 characters."
+    },
+    "numberOfActiveTokensForPAN": {
+      "description": "Number of device tokens that are currently active for this PAN.",
+      "x-section": "Cardholder Information",
+      "type": "number",
+      "format": "Integer; max length 4 digits."
+    },
+    "numberOfInactiveTokensForPAN": {
+      "description": "Number of device tokens that are currently inactive (device tokens have not been activated) for this PAN.",
+      "x-section": "Cardholder Information",
+      "type": "number",
+      "format": "Integer; max length 4 digits."
+    },
+    "numberOfSuspendedTokensForPAN": {
+      "description": "Number of device tokens that were activated, but are suspended for payments for this PAN.",
+      "x-section": "Cardholder Information",
+      "type": "number",
+      "format": "Integer; max length 4 digits."
+    },
+    "tokenRequestorName": {
+      "description": "Token requester name. Populated when available in the following APIs:",
+      "x-section": "Cardholder Information",
+      "type": "string",
+      "enum": [
+        "Device Token Binding Request",
+        "Get Cardholder Verification Methods",
+        "Send Passcode",
+        "Token Notification"
+      ],
+      "format": "String; max length 100 characters."
+    },
+    "walletProviderAccountScore": {
+      "description": "The wallet provider account score. Score value is between1 and 5, indicating the confidence level of the account, where 5 indicates the most confidence on the account.",
+      "x-section": "Cardholder Information",
+      "type": "string",
+      "format": "String; max length 2 characters.",
+      "example": "5"
+    },
+    "accountHolderName": {
+      "description": "Account-holder’s name.",
+      "x-section": "Cardholder Information",
+      "type": "string",
+      "format": "String; max length 64 characters."
+    },
+    "walletProviderPANAge": {
+      "description": "Length of time (in days) that a PAN has been on file for a user.",
+      "x-section": "Cardholder Information",
+      "type": "string",
+      "format": "String; max length 4 characters.",
+      "example": "\"9999\""
+    },
+    "walletAccountHolderCardNameMatch": {
+      "description": "Name of the account-holder and name of cardholder matched. • Y-- Indicates the two names match. • N-- Indicates the two names do not match.",
+      "x-section": "Cardholder Information",
+      "type": "string",
+      "format": "It is one of the following values:"
+    },
+    "accountToDeviceBindingAge": {
+      "description": "Number of days this device has been used by this account. If the number of days exceeds 9999, it will stay at 9999.",
+      "x-section": "Cardholder Information",
+      "type": "number",
+      "format": "String; max length 4 characters.",
+      "example": "9999"
+    },
+    "userAccountAge": {
+      "description": "Number of days since an account for this user has existed (how long have you known this user?). Values are 0 through 9999.",
+      "x-section": "Cardholder Information",
+      "type": "number",
+      "format": "String; max length 4 characters.",
+      "example": "\"9999\""
+    },
+    "walletAccountAge": {
+      "description": "Number of days since the user created a wallet account or started using a wallet. If the number of days exceeds 256, it will stay at 256.",
+      "x-section": "Cardholder Information",
+      "type": "number",
+      "format": "String; max length 4 characters.",
+      "example": "\"256\""
+    },
+    "walletAccountEmailAddressAge": {
+      "description": "Number of days since the email address was associated with the account. If the number of days exceeds 999, it will stay at 999. Visa Token Service - Issuer API Specifications (JSON) Encrypted Payload Data Structures 27 March 2025 Visa Confidential 64",
+      "x-section": "Cardholder Information",
+      "type": "number",
+      "format": "String; max length 4 characters.",
+      "example": "\"999\""
+    },
+    "distinctCardholderNames": {
+      "description": "Number of distinct cardholder names used in provisioning from this device.",
+      "x-section": "Cardholder Information",
+      "type": "number",
+      "format": "String; max length 2 characters.",
+      "example": "\"99\""
+    },
+    "walletAccountCountry": {
+      "description": "Country of account-holder.",
+      "x-section": "Cardholder Information",
+      "type": "string",
+      "format": "String; ISO 3166-1, alpha-2; max length 2 characters.",
+      "example": "US"
+    },
+    "suspendedCardsInAccount": {
+      "description": "Number of cards suspended in the account. If the number of days exceeds 99, it will stay at 99.",
+      "x-section": "Cardholder Information",
+      "type": "number",
+      "format": "String; max length 2 characters.",
+      "example": "\"99\""
+    },
+    "daysSinceLastAccountActivity": {
+      "description": "Number of days since the last activity on account. If the number of days exceeds 9999, it will stay at 9999.",
+      "x-section": "Cardholder Information",
+      "type": "number",
+      "format": "String; max length 4 characters.",
+      "example": "\"9999\""
+    },
+    "deviceName": {
+      "description": "A readable name for the device. Ideally, the customer enters this name. It can be used to identify the device in customer support calls. characters.",
+      "x-section": "Cardholder Information",
+      "type": "string",
+      "format": "String; Base64URL-encoded; UTF-8; max length 128",
+      "example": "My Work Phone"
+    },
+    "token": {
+      "description": "The account number associated with a token. This is a required field in the following APIs:",
+      "x-section": "Token Information",
+      "type": "string",
+      "enum": [
+        "Token Create Notification",
+        "Token Notification"
+      ],
+      "format": "String; max length 19 characters."
+    },
+    "tokenType": {
+      "description": "This is a required field in the following APIs:",
+      "x-section": "Token Information",
+      "type": "string",
+      "format": "It is one of the following values:"
+    },
+    "tokenStatus": {
+      "description": "This is a required field in the following APIs:",
+      "x-section": "Token Information",
+      "type": "string",
+      "format": "It is one of the following values:"
+    },
+    "tokenExpirationDate": {
+      "description": "The date upon which the token is set to expire. This field is required in the Token Create Notification API. It is provided in the Token Notification API request if available. Visa Token Service - Issuer API Specifications (JSON) Encrypted Payload Data Structures 27 March 2025 Visa Confidential 59",
+      "x-section": "Token Information",
+      "type": "string",
+      "format": "An Expiration Date structure."
+    },
+    "tokenAssuranceMethod": {
+      "description": "Method of Issuer ID&V that has taken place at time of provisioning, device binding, or cardholder initiated verification. It is one of the following values:",
+      "x-section": "Token Information",
+      "type": "string",
+      "enum": [
+        "00 ID&V Not Performed",
+        "10 Card Issuer Account Verification",
+        "11 Card Issuer Interactive Cardholder Verification - 1 Factor",
+        "12 Card Issuer Interactive Cardholder Verification - 2 Factor",
+        "13 Card Issuer Risk Oriented Non-Interactive Cardholder"
+      ]
+    },
+    "tokenActivationDate": {
+      "description": "System date/timestamp, in GMT, of token activation into an active state. For an inactive state, this field is left empty and populated only when a token transitions to an active state. If a token is suspended, this field is populated with the new date/ timestamp of when an active state resumes.",
+      "x-section": "Token Information",
+      "type": "string",
+      "format": "String; yyyy-MM-ddTHH:mm:ss.SSSZ."
+    },
+    "tokenDeactivationDate": {
+      "description": "Date of token deactivation.",
+      "x-section": "Token Information",
+      "type": "string",
+      "format": "String; YYYY-MM-DD."
+    },
+    "lastTokenStatusUpdatedTime": {
+      "description": "Date/timestamp, in GMT, of the last token status update.",
+      "x-section": "Token Information",
+      "type": "string",
+      "format": "String; yyyy-MM-ddTHH:mm:ss.SSSZ."
+    },
+    "originalToken": {
+      "description": "Token account number. This field is populated when performing token-for-token provisioning only.",
+      "x-section": "Token Information",
+      "type": "number",
+      "format": "String; max length 19 characters."
+    },
+    "originalTokenRequestorID": {
+      "description": "Unique ID assigned to the initiator of the token request. This field is populated when performing token-for-token provisioning only. Visa Token Service - Issuer API Specifications (JSON) Encrypted Payload Data Structures 27 March 2025 Visa Confidential 60",
+      "x-section": "Token Information",
+      "type": "number",
+      "format": "Numeric; max length 11 digits."
+    },
+    "originalTokenReferenceID": {
+      "description": "Unique ID for the token associated with the PAN. This ID can be used in lieu of the token for subsequent calls, such as life cycle events. This field is populated when performing token-for- token provisioning only.",
+      "x-section": "Token Information",
+      "type": "string",
+      "format": "String; max length 32 characters."
+    },
+    "originalTokenType": {
+      "description": "Token type of the original token. This field is populated only when performing token for token provisioning and can be used only in the following APIs:",
+      "x-section": "Token Information",
+      "type": "string",
+      "format": "It is one of the following values:"
+    },
+    "originaltokenAssuranceMethod": {
+      "description": "Original token assurance method. This field is populated when performing token-for-token provisioning only. It is one of the following values:",
+      "x-section": "Token Information",
+      "type": "string",
+      "enum": [
+        "00 ID&V Not Performed",
+        "10 Card Issuer Account Verification",
+        "11 Card Issuer Interactive Cardholder Verification - 1 Factor",
+        "12 Card Issuer Interactive Cardholder Verification - 2 Factor",
+        "13 Card Issuer Risk Oriented Non-Interactive Cardholder"
+      ]
+    },
+    "provisioningAttemptsOnDevice": {
+      "description": "In24Hours Number of provisioning attempts on this device in the past 24 hours. If the number of attempts exceeds 99, it will stay at 99.",
+      "x-section": "Token Information",
+      "type": "number",
+      "format": "String; max length 2 characters.",
+      "example": "\"99\""
+    },
+    "numberOfActiveTokens": {
+      "description": "Number of active tokens on this account. If the number of tokens exceeds 99, it will stay at 99",
+      "x-section": "Token Information",
+      "type": "number",
+      "format": "String; max length 2 characters.",
+      "example": "\"99\""
+    },
+    "deviceWithActiveTokens": {
+      "description": "Number of devices for this user with the same token. If the number of tokens exceeds 99, it will stay at 99 Visa Token Service - Issuer API Specifications (JSON) Encrypted Payload Data Structures 27 March 2025 Visa Confidential 65",
+      "x-section": "Token Information",
+      "type": "number",
+      "format": "String; max length 2 characters.",
+      "example": "\"99\""
+    },
+    "activeTokensOnAllDeviceFor": {
+      "description": "Account Number of active tokens for this user, across all devices. If the number of tokens exceeds 9999, it will stay at 9999.",
+      "x-section": "Token Information",
+      "type": "number",
+      "format": "String; max length 4 characters.",
+      "example": "\"9999\""
+    },
+    "visaTokenScore": {
+      "description": "Value indicating the degree of risk associated with the token. Numeric value is 00 through 99. A value of 00 indicates no score provided by Visa.",
+      "x-section": "Token Information",
+      "type": "number",
+      "format": "String; max length 2 characters."
+    },
+    "visaTokenDecisioning": {
+      "description": "Results from the token provisioning service. • 00 - Provision and activate • 05 - Do not provision • 85 - Provision in inactive state (requires further consumer authentication prior to activation)",
+      "x-section": "Token Information",
+      "type": "string",
+      "format": "It is one of the following values:"
+    },
+    "tokenProtectionMethod": {
+      "description": "Method of token protection. • SOFTWARE • TRUSTED_EXECUTION_ENVIRONMENT • SECURE_ELEMENT • CLOUD",
+      "x-section": "Token Information",
+      "type": "string",
+      "format": "It is one of the following values:"
+    },
+    "postalCode": {
+      "description": "The postal code associated with the address. and hyphens (-) are allowed; max length 10 characters.",
+      "x-section": "Device Information",
+      "type": "number",
+      "format": "String; alphanumeric, valid for the country; whitespace"
+    },
+    "walletProviderDeviceScore": {
+      "description": "The wallet provider device score. Score value is between1 and 5, indicating the confidence level of the device, where5 indicates the most confidence.",
+      "x-section": "Device Information",
+      "type": "string",
+      "format": "String; max length 2 characters.",
+      "example": "5"
+    },
+    "deviceBluetoothMac": {
+      "description": "MAC address for Bluetooth.",
+      "x-section": "Device Information",
+      "type": "string",
+      "format": "String; max length 24 characters."
+    },
+    "deviceIMEI": {
+      "description": "Hardware ID of the device.",
+      "x-section": "Device Information",
+      "type": "string",
+      "format": "String; max length 24 characters."
+    },
+    "deviceSerialNumber": {
+      "description": "Serial number of the mobile device.",
+      "x-section": "Device Information",
+      "type": "number",
+      "format": "String; max length 24 characters."
+    },
+    "deviceTimeZone": {
+      "description": "Time-zone abbreviation.",
+      "x-section": "Device Information",
+      "type": "string",
+      "format": "String; max length 5 characters.",
+      "example": "PDT"
+    },
+    "deviceTimeZoneSetting": {
+      "description": "Device time-zone setting. • NETWORK_SET • CONSUMER_SET",
+      "x-section": "Device Information",
+      "type": "string",
+      "format": "It is one of the following values:"
+    },
+    "osID": {
+      "description": "OS ID to allow building velocity and risk rules.",
+      "x-section": "Device Information",
+      "type": "string",
+      "format": "String; max length 24 characters."
+    },
+    "deviceLostMode": {
+      "description": "Number of days. Values are up to 9999 number of days.",
+      "x-section": "Device Information",
+      "type": "number",
+      "format": "String; max length 4 characters.",
+      "example": "9999"
+    },
+    "deviceCountry": {
+      "description": "Country of device at time of provisioning.",
+      "x-section": "Device Information",
+      "type": "string",
+      "format": "String; ISO 3166-1, alpha-2; max length 2 characters.",
+      "example": "US"
+    },
+    "deviceID": {
+      "description": "For Secure Element (SE) wallet providers, this value will be the SE ID in hex binary characters transformed to a 48-character string. For Host Card Emulation (HCE) wallet providers, this field will be the Device ID as determined by the digital wallet provider (DWP). All alphanumeric and special characters are allowed for HCE DWPs. Secure Element (SE) ID represents the device ID. • For SE DWPs, this value will be the SE ID in hex binary characters transformed to a 48-character string. • For CBP DWPs, this field will be the device ID as determined by the DWP. All alphanumeric and special characters are allowed for CBP DWPs. For Card-on-File (COF) wallets, this value will not be present. For the initial Check Eligibility request on PAN enrollment, this value may not be available, however Visa will send this value if it is available.",
+      "x-section": "Device Information",
+      "type": "number",
+      "format": "String; max length 48 characters."
+    },
+    "deviceLanguageCode": {
+      "description": "This value is any ISO 639 Version 3 Language Code, for example, eng (English). This language code will be used by the issuer and Visa to retrieve the Terms and Conditions (T&C). If T&Cs are not found for the Language Code in the request, the T&Cs will return the default :anguage Code of eng (English). characters. Visa Token Service - Issuer API Specifications (JSON) Encrypted Payload Data Structures 27 March 2025 Visa Confidential 67",
+      "x-section": "Device Information",
+      "type": "object",
+      "format": "String; ISO-639 Version 3 Language Code, max length 3"
+    },
+    "deviceType": {
+      "description": "Device type. Note: The deviceType field corresponds to Field 125, Usage 2 - Dataset ID 01 - Token Device, which is described in the VisaNet Authorization-Only Online Messages - Technical Specifications. • UNKNOWN • MOBILE_PHONE, which is equivalent to value 01 in Field 125 • TABLET, which is equivalent to value 02 in Field 125 • WATCH • MOBILEPHONE_OR_TABLET, which is equivalent to value 04 in Field 125 • PC • HOUSEHOLD_DEVICE • WEARABLE_DEVICE • AUTOMOBILE_DEVICE",
+      "x-section": "Device Information",
+      "type": "string",
+      "format": "It is one of the following values:"
+    },
+    "deviceNumber": {
+      "description": "Device number.",
+      "x-section": "Device Information",
+      "type": "number",
+      "format": "String; max length 13 characters."
+    },
+    "osType": {
+      "description": "Type of operating system. • ANDROID • IOS • WINDOWS • BLACKBERRY • TIZEN • OTHER",
+      "x-section": "Device Information",
+      "type": "string",
+      "format": "It is one of the following values:"
+    },
+    "osVersion": {
+      "description": "Version of the operating system running on the device. Visa Token Service - Issuer API Specifications (JSON) Encrypted Payload Data Structures 27 March 2025 Visa Confidential 68",
+      "x-section": "Device Information",
+      "type": "object",
+      "format": "String; max length 32 characters.",
+      "example": "4.4.4"
+    },
+    "osBuildID": {
+      "description": "Operating system build identifier.",
+      "x-section": "Device Information",
+      "type": "string",
+      "format": "String; max length 32 characters.",
+      "example": "KTU84M"
+    },
+    "deviceIDType": {
+      "description": "Attribute indicating the source of the Device ID value. SecureElement, TEE, or Derived",
+      "x-section": "Device Information",
+      "type": "string",
+      "format": "String; max length 32 characters.",
+      "example": "The source for Device ID (deviceID) could be"
+    },
+    "deviceManufacturer": {
+      "description": "Manufacturer of the device.",
+      "x-section": "Device Information",
+      "type": "string",
+      "format": "String; max length 32 characters.",
+      "example": "Samsung"
+    },
+    "deviceBrand": {
+      "description": "Brand name of the device.",
+      "x-section": "Device Information",
+      "type": "string",
+      "format": "String; max length 32 characters.",
+      "example": "Galaxy"
+    },
+    "deviceModel": {
+      "description": "model of the device.",
+      "x-section": "Device Information",
+      "type": "string",
+      "format": "String; max length 32 characters.",
+      "example": "SGH-T999"
+    },
+    "deviceLocation": {
+      "description": "Obfuscated geographic location of the device. Initially, when provisioned, this contains the general location of the device. Information will be supplied with latitude/longitude rounded to the nearest whole digit.",
+      "x-section": "Device Information",
+      "type": "number",
+      "format": "String; max length 25 characters.",
+      "example": "+37/-121"
+    },
+    "deviceIndex": {
+      "description": "The index number from Visa where the deviceID is stored. This is required for token device binding.",
+      "x-section": "Device Information",
+      "type": "number",
+      "format": "Integer; max length 2 digits."
+    },
+    "deviceIPAddressV4": {
+      "description": "The IP address of the device at the time of the provisioning request, with the value represented in 255.255.255.255 format. An octet (255) may be 1-3 digits in length but cannot contain any leading zeros.",
+      "x-section": "Device Information",
+      "type": "number",
+      "format": "String; max length 15 characters."
+    },
+    "locationSource": {
+      "description": "Source used to identify consumer location. • WIFI • CELLULAR • GPS • OTHER Visa Token Service - Issuer API Specifications (JSON) Encrypted Payload Data Structures 27 March 2025 Visa Confidential 69",
+      "x-section": "Device Information",
+      "type": "object",
+      "format": "It is one of the following values:"
+    },
+    "originalDeviceID": {
+      "description": "Device ID from the original provision. This field is populated only when performing token-for-token provisioning and can be used only in the following APIs:",
+      "x-section": "Device Information",
+      "type": "string",
+      "enum": [
+        "Approve Provisioning",
+        "Approve Provisioning Stand-In Notification",
+        "Token Create Notification"
+      ],
+      "format": "String; max length 48 characters."
+    },
+    "originalDeviceType": {
+      "description": "Device type from the original provision. This field is populated only when performing token-for-token provisioning and can be used only in the following APIs: Visa Token Service - Issuer API Specifications (JSON) Encrypted Payload Data Structures 27 March 2025 Visa Confidential 70",
+      "x-section": "Device Information",
+      "type": "string",
+      "format": "It is one of the following values:"
+    },
+    "riskAssessmentScore": {
+      "description": "Values are 0 through 99. A higher value indicates a higher risk. This is calculated by the AA Risk Engine, based on the PAN’s transaction pattern (long term and short term).",
+      "x-section": "Risk Information",
+      "type": "string",
+      "format": "String; max length 2 characters."
+    },
+    "walletProviderRiskAssessment": {
+      "description": "Version If the DWP sends this information, Visa will send it to the issuer. May contain separators to indicate major and minor components, for example, periods, hyphens, slashes, and other similar characters. Visa Token Service - Issuer API Specifications (JSON) Encrypted Payload Data Structures 27 March 2025 Visa Confidential 62",
+      "x-section": "Risk Information",
+      "type": "object",
+      "format": "String; max length 10 characters."
+    },
+    "walletProviderPhoneScore": {
+      "description": "The wallet provider phone score. Score value is between1 and 5, indicating the confidence level of the phone number, where5 indicates the most confidence.",
+      "x-section": "Risk Information",
+      "type": "number",
+      "format": "String; max length 2 characters.",
+      "example": "5"
+    },
+    "walletProviderReasonCodes": {
+      "description": "Wallet provider reason codes, in a comma-separated format.",
+      "x-section": "Risk Information",
+      "type": "string",
+      "format": "String; max length 100 characters."
+    },
+    "billingAddress": {
+      "description": "Billing address associated with the payment instrument. It is required for Secure Remote Commerce.",
+      "x-section": "Address",
+      "type": "string",
+      "format": "An Address structure."
+    },
+    "Address": {
+      "description": "This structure is used by several APIs.",
+      "x-section": "Address",
+      "type": "string"
+    },
+    "city": {
+      "description": "City associated with the address. (.), single quote (‘), asterisk (*), and hyphens (-) are allowed; max length 32 characters.",
+      "x-section": "Address",
+      "type": "number",
+      "format": "String; alphanumeric; UTF-8, white space, carat (^), period"
+    },
+    "state": {
+      "description": "State or province code associated with the address.",
+      "x-section": "Address",
+      "type": "string",
+      "format": "String; ISO 3166-2; max length 2 characters.",
+      "example": "NY"
+    },
+    "country": {
+      "description": "Code for a country; default is US.",
+      "x-section": "Address",
+      "type": "string",
+      "format": "String; ISO 3166-1 alpha-2; max length 2 characters.",
+      "example": "US"
+    },
+    "Structures": {
+      "description": "",
+      "x-section": "Other Fields",
+      "type": "string"
+    },
+    "expirationDate": {
+      "description": "The expiration date of the payment instrument. This is a required field for Secure Remote Commerce and in the following APIs:",
+      "x-section": "Other Fields",
+      "type": "string",
+      "enum": [
+        "Approve Provisioning",
+        "Token Create Notification"
+      ],
+      "format": "An Expiration Date structure."
+    },
+    "highValueCustomer": {
+      "description": "If available, it will be provided in Check Eligibility. • true-- Indicates that the customer is high value. • false-- Indicates that the customer is not high value.",
+      "x-section": "Other Fields",
+      "type": "boolean",
+      "format": "It is one of the following values:"
+    },
+    "month": {
+      "description": "The month upon which the payment instrument is set to expire.",
+      "x-section": "Other Fields",
+      "type": "number",
+      "format": "String; numeric; length 2 digits.",
+      "example": "\"month\": \"09\""
+    },
+    "year": {
+      "description": "The year upon which the payment instrument is set to expire. Visa Token Service - Issuer API Specifications (JSON) Encrypted Payload Data Structures 27 March 2025 Visa Confidential 58",
+      "x-section": "Other Fields",
+      "type": "number",
+      "format": "String; numeric; length 4 digits.",
+      "example": "\"year\": \"2024\""
+    },
+    "Authentication": {
+      "description": "• 14 Card Issuer Asserted Authentication Visa Token Service - Issuer API Specifications (JSON) Encrypted Payload Data Structures 27 March 2025 Visa Confidential 61",
+      "x-section": "Other Fields",
+      "type": "object",
+      "format": "String; max length 2 characters."
+    },
+    "autoFillIndicator": {
+      "description": "Indicates whether the token is for an autofill use case. This is a required field in the following APIs: on-File) is for an autofill use case. • false -- Indicates that the token is not for an autofill use case.",
+      "x-section": "Other Fields",
+      "type": "string",
+      "enum": [
+        "Approve Provisioning",
+        "Approve Provisioning Stand-In Notification",
+        "Token Create Notification",
+        "true -- Indicates that the token (e-Commerce Enabler, or Card-"
+      ],
+      "format": "It is one of the following values:"
+    },
+    "simSerialNumber": {
+      "description": "SIM serial number of the mobile device. Visa Token Service - Issuer API Specifications (JSON) Encrypted Payload Data Structures 27 March 2025 Visa Confidential 63",
+      "x-section": "Other Fields",
+      "type": "number",
+      "format": "String; max length 24 characters."
+    },
+    "daysSinceConsumerDataLast": {
+      "description": "AccountChange Number of days since account settings were changed (in case of a password update). If the number of days exceeds 9999, it will stay at 9999.",
+      "x-section": "Other Fields",
+      "type": "number",
+      "format": "String; max length 4 characters.",
+      "example": "\"9999\""
+    },
+    "numberOfTransactionsInLast": {
+      "description": "12months Number of transactions on this account in the last 12 months. If the number of transaction exceeds 9999, it will stay at 9999.",
+      "x-section": "Other Fields",
+      "type": "number",
+      "format": "String; max length 4 characters.",
+      "example": "\"9999\""
+    },
+    "issuerSpecialConditionCodes": {
+      "description": "Supported for issuers participating in 0100 TAR. The issuer can send values for this element in the 0100 TAR response. • If the issuer sends a value in the 0100 TAR, it will be sent in this element of the Get CVM. • If no value is sent in 0100 TAR or if the issuer does not participate in TAR, this element will not be present. Visa Token Service - Issuer API Specifications (JSON) Encrypted Payload Data Structures 27 March 2025 Visa Confidential 66",
+      "x-section": "Other Fields",
+      "type": "object",
+      "format": "String; max length 100 characters."
+    }
+  },
+  "required": [
+    "primaryAccountNumber",
+    "originalTokenRequestorID",
+    "month",
+    "year"
+  ]
+}

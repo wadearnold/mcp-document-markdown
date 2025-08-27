@@ -41,7 +41,34 @@ class PDFExtractor:
             FileUtils.ensure_directory(self.images_dir)
     
     def extract_all_content(self) -> Dict[str, Any]:
-        """Extract all content from PDF using multiple approaches"""
+        """Extract all content from PDF using ULTIMATE approach"""
+        # Import the ULTIMATE extractor
+        try:
+            from .pdf_extractor_ultimate import UltimatePDFExtractor
+            
+            # Use ULTIMATE extractor for best results
+            ultimate_extractor = UltimatePDFExtractor(str(self.pdf_path), str(self.output_dir))
+            ultimate_result = ultimate_extractor.extract()
+            
+            # Convert to expected format
+            return {
+                'text': ultimate_result['markdown'],
+                'metadata': ultimate_result['metadata'],
+                'tables': [{'markdown': ultimate_result['markdown']}],
+                'fields': ultimate_result['fields'],
+                'stats': ultimate_result['stats'],
+                'quality_level': ultimate_result['stats']['quality_level'],
+                'pages': [{'page_num': i+1, 'text': ''} for i in range(ultimate_result['metadata']['pages'])],
+                'images': []
+            }
+            
+        except ImportError:
+            # Fallback to original method
+            print("ULTIMATE extractor not available, using standard extraction")
+            return self._extract_standard_method()
+    
+    def _extract_standard_method(self) -> Dict[str, Any]:
+        """Original extraction method as fallback"""
         # Try PyMuPDF first for comprehensive extraction
         fitz_content = self.extract_with_pymupdf()
         
