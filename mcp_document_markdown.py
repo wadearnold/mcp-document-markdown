@@ -33,7 +33,7 @@ async def list_tools():
     return [
             Tool(
                 name="extract_pdf_content",
-                description="Extract structured content from any PDF document (generic approach)",
+                description="Extract structured content from any PDF document (direct approach)",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -58,7 +58,7 @@ async def list_tools():
             ),
             Tool(
                 name="convert_pdf",
-                description="Convert PDF to organized markdown documentation (legacy method)",
+                description="Convert PDF to organized markdown documentation (full conversion)",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -160,7 +160,7 @@ async def list_tools():
             ),
             Tool(
                 name="convert_docx",
-                description="Convert Microsoft Word document to organized markdown documentation",
+                description="Convert Word document to organized markdown documentation (full conversion)",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -218,6 +218,31 @@ async def list_tools():
                 }
             ),
             Tool(
+                name="extract_docx_content",
+                description="Extract structured content from any Word document (direct approach)",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "docx_path": {
+                            "type": "string", 
+                            "description": "Path to the Word document to extract content from"
+                        },
+                        "config": {
+                            "type": "object",
+                            "description": "Optional configuration for customizing extraction behavior",
+                            "properties": {
+                                "preserve_formatting": {
+                                    "type": "boolean",
+                                    "description": "Preserve document formatting during extraction",
+                                    "default": True
+                                }
+                            }
+                        }
+                    },
+                    "required": ["docx_path"]
+                }
+            ),
+            Tool(
                 name="analyze_docx_structure", 
                 description="Analyze Word document structure without converting",
                 inputSchema={
@@ -226,6 +251,36 @@ async def list_tools():
                         "docx_path": {
                             "type": "string",
                             "description": "Path to the Word document to analyze"
+                        }
+                    },
+                    "required": ["docx_path"]
+                }
+            ),
+            Tool(
+                name="prepare_docx_for_rag",
+                description="Prepare Word document content for RAG workflows",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "docx_path": {
+                            "type": "string",
+                            "description": "Path to the Word document to prepare for RAG"
+                        },
+                        "vector_db_format": {
+                            "type": "string",
+                            "description": "Target vector database format",
+                            "enum": ["chromadb", "pinecone", "weaviate", "qdrant"],
+                            "default": "chromadb"
+                        },
+                        "chunk_size": {
+                            "type": "integer",
+                            "description": "Target tokens per chunk for embedding",
+                            "default": 768
+                        },
+                        "output_dir": {
+                            "type": "string",
+                            "description": "Directory to save RAG-ready files (default: ./rag_output)",
+                            "default": "./rag_output"
                         }
                     },
                     "required": ["docx_path"]
@@ -247,10 +302,14 @@ async def call_tool(name: str, arguments: Dict[str, Any]):
             return await handle_analyze_pdf(arguments)  
         elif name == "prepare_pdf_for_rag":
             return await handle_prepare_rag(arguments)
+        elif name == "extract_docx_content":
+            return await handle_extract_docx_content(arguments)
         elif name == "convert_docx":
             return await handle_convert_docx(arguments)
         elif name == "analyze_docx_structure":
             return await handle_analyze_docx(arguments)
+        elif name == "prepare_docx_for_rag":
+            return await handle_prepare_docx_rag(arguments)
         else:
             raise ValueError(f"Unknown tool: {name}")
             
@@ -600,6 +659,117 @@ async def handle_analyze_docx(args: Dict[str, Any]):
     except Exception as e:
         logger.error(f"Analyze Word document failed: {e}")
         raise
+
+async def handle_extract_docx_content(args: Dict[str, Any]):
+    """Handle direct DOCX content extraction"""
+    try:
+        from processors.docx_extractor import DocxExtractor
+        
+        docx_path = args["docx_path"]
+        config = args.get("config", {})
+        
+        if not Path(docx_path).exists():
+            raise FileNotFoundError(f"Word document not found: {docx_path}")
+        
+        logger.info(f"Extracting content from Word document: {docx_path}")
+        
+        extractor = DocxExtractor()
+        result = extractor.extract_from_file(docx_path)
+        
+        if result['success']:
+            output = []
+            output.append(f"# Word Document Content Extraction Results\n")
+            output.append(f"**File:** {docx_path}")
+            output.append(f"**Paragraphs:** {result.get('paragraph_count', 0)}")
+            output.append(f"**Tables:** {result.get('table_count', 0)}")
+            output.append(f"**Images:** {result.get('image_count', 0)}")
+            
+            # Show extracted content preview
+            if result.get('content'):
+                content_preview = result['content'][:1000] + "..." if len(result['content']) > 1000 else result['content']
+                output.append(f"\n## Content Preview\n{content_preview}")
+            
+            response_text = "\n".join(output)
+            
+            return CallToolResult(
+                content=[
+                    TextContent(
+                        type="text", 
+                        text=response_text
+                    )
+                ]
+            )
+        else:
+            return CallToolResult(
+                content=[
+                    TextContent(
+                        type="text",
+                        text=f"❌ Failed to extract content from Word document: {result.get('error', 'Unknown error')}"
+                    )
+                ]
+            )
+            
+    except Exception as e:
+        logger.error(f"Error in DOCX content extraction: {str(e)}", exc_info=True)
+        return CallToolResult(
+            content=[
+                TextContent(
+                    type="text", 
+                    text=f"❌ Error extracting Word document content: {str(e)}"
+                )
+            ]
+        )
+
+
+async def handle_prepare_docx_rag(args: Dict[str, Any]):
+    """Handle preparing DOCX content for RAG workflows"""
+    try:
+        from pdf_to_rag import prepare_document_for_rag
+        
+        docx_path = args["docx_path"]
+        vector_db_format = args.get("vector_db_format", "chromadb")
+        chunk_size = args.get("chunk_size", 768)
+        output_dir = args.get("output_dir", "./rag_output")
+        
+        if not Path(docx_path).exists():
+            raise FileNotFoundError(f"Word document not found: {docx_path}")
+        
+        logger.info(f"Preparing Word document for RAG: {docx_path}")
+        
+        result = prepare_document_for_rag(
+            docx_path,
+            output_dir, 
+            vector_db_format,
+            chunk_size
+        )
+        
+        message = f"✅ Successfully prepared {Path(docx_path).name} for RAG\n"
+        message += f"📁 Output: {output_dir}\n"
+        message += f"🔗 Vector DB Format: {vector_db_format}\n"
+        message += f"📊 Chunk Size: {chunk_size} tokens\n"
+        message += f"📄 Files generated: {result.get('files_generated', 0)}\n\n"
+        message += "Ready for import into your vector database!"
+        
+        return CallToolResult(
+            content=[
+                TextContent(
+                    type="text",
+                    text=message
+                )
+            ]
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in DOCX RAG preparation: {str(e)}", exc_info=True)
+        return CallToolResult(
+            content=[
+                TextContent(
+                    type="text",
+                    text=f"❌ Error preparing Word document for RAG: {str(e)}"
+                )
+            ]
+        )
+
 
 async def main():
     """Main entry point"""
