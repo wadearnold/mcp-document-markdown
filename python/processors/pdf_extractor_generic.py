@@ -203,46 +203,102 @@ class GenericPDFExtractor:
             'list_patterns': []
         }
         
-        # Detect tables/structured data
+        # Enhanced detection counters
         table_indicators = 0
         field_like_lines = 0
         bullet_lines = 0
+        section_hierarchy_lines = 0
+        
+        # Generic table patterns (not format-specific)
+        table_patterns = [
+            r'Table\s+\d+',                    # "Table 1", "Table 2" 
+            r'^\s*\|\s*[^|]+\s*\|',           # Pipe-separated rows
+            r'^\s*\+-+\+',                     # ASCII table borders
+            r'^\s*[A-Z][^:]+:\s*[A-Z]',       # Key: Value pairs (structured)
+            r'^\s*\d+\.\s+\w+\s+\w+',         # Numbered list items with multiple columns
+            r'^\s*[A-Z]{3,}\s+[A-Z]{3,}',     # Header-like ALL CAPS rows
+        ]
+        
+        # Generic list patterns
+        list_patterns = [
+            r'^\s*[-*•]\s+',                   # Standard bullets
+            r'^\s*\d+[.)]\s+',                 # Numbered lists
+            r'^\s*[a-z][.)]\s+',               # Lettered lists
+            r'^\s*[ivx]+[.)]\s+',              # Roman numerals
+        ]
+        
+        # Generic section hierarchy patterns
+        section_patterns = [
+            r'^\s*(\d+)\.\s*([A-Z].*)',        # "1. Introduction"
+            r'^\s*(\d+\.\d+)\s+([A-Z].*)',     # "1.1 Overview"
+            r'^\s*(Chapter|Section)\s+(\d+)',   # "Chapter 1", "Section 2"
+        ]
         
         for line in lines:
             line_stripped = line.strip()
             
-            # Look for table-like structures
+            # Enhanced table detection
             if '|' in line and line.count('|') > 2:
                 table_indicators += 1
+            
+            # Check generic table patterns
+            for pattern in table_patterns:
+                if re.search(pattern, line, re.IGNORECASE):
+                    table_indicators += 1
+                    break
+            
+            # Enhanced list detection
+            if line_stripped.startswith('•'):
+                bullet_lines += 1
+            else:
+                for pattern in list_patterns:
+                    if re.search(pattern, line):
+                        bullet_lines += 1
+                        break
+            
+            # Section hierarchy detection
+            for pattern in section_patterns:
+                if re.search(pattern, line):
+                    section_hierarchy_lines += 1
+                    structure['sections'].append(line_stripped)
+                    break
             
             # Look for field-like patterns (word: description)
             if ':' in line and len(line_stripped) < 200:
                 parts = line_stripped.split(':', 1)
                 if (len(parts) == 2 and 
                     len(parts[0]) < 50 and 
-                    parts[0].replace(' ', '').isalnum()):
+                    parts[0].replace(' ', '').replace('.', '').isalnum()):
                     field_like_lines += 1
-            
-            # Look for bullet points
-            if line_stripped.startswith('•'):
-                bullet_lines += 1
             
             # Detect potential sections (short lines, often in caps or title case)
             if (len(line_stripped) < 60 and 
                 line_stripped and 
                 (line_stripped.isupper() or line_stripped.istitle()) and
-                not line_stripped.startswith('•')):
-                structure['sections'].append(line_stripped)
+                not line_stripped.startswith('•') and
+                not any(re.search(p, line) for p in list_patterns)):
+                if line_stripped not in structure['sections']:
+                    structure['sections'].append(line_stripped)
         
-        # Classify document type based on patterns
-        if table_indicators > 5:
-            structure['document_type'] = 'tabular'
-            structure['has_tables'] = True
-        elif field_like_lines > 10:
+        # Improved classification with multiple indicators
+        total_lines = len([l for l in lines if l.strip()])
+        
+        # Calculate percentages for better classification
+        table_percentage = (table_indicators / total_lines) * 100 if total_lines > 0 else 0
+        field_percentage = (field_like_lines / total_lines) * 100 if total_lines > 0 else 0
+        list_percentage = (bullet_lines / total_lines) * 100 if total_lines > 0 else 0
+        
+        # Classify document type based on patterns and thresholds
+        if table_indicators > 3 or table_percentage > 2:  # Lowered threshold
             structure['document_type'] = 'structured_fields'
-        elif bullet_lines > 5:
+            structure['has_tables'] = True
+        elif field_like_lines > 10 or field_percentage > 5:
+            structure['document_type'] = 'structured_fields'
+        elif bullet_lines > 5 or list_percentage > 3:
             structure['document_type'] = 'list_heavy'
             structure['has_lists'] = True
+        elif section_hierarchy_lines > 3:
+            structure['document_type'] = 'structured_fields'
         else:
             structure['document_type'] = 'narrative'
         
@@ -264,24 +320,36 @@ class GenericPDFExtractor:
         return fields
     
     def _extract_structured_fields(self, text: str) -> List[ExtractedField]:
-        """Extract field-value pairs from structured text"""
+        """Extract field-value pairs from structured text with enhanced relationship mapping"""
         fields = []
         lines = text.split('\n')
         
-        for line in lines:
+        # Generic cross-reference patterns
+        cross_ref_patterns = [
+            r'(see|refer|reference)\s+([A-Z]\w+|\d+\.\d+|Table\s+\d+|Section\s+\d+)',
+            r'([A-Z]\w+\s+\d+)',  # "Table 1", "Figure 2"
+            r'(Annex|Appendix)\s+([A-Z])',
+        ]
+        
+        # Generic structured data patterns
+        definition_patterns = [
+            r'([A-Z][^:]+):\s*(.+)',           # "Field Name: Description"
+            r'([A-Z]\w+)\s+([a-z]+\s+\d+)',    # "Format type 6"
+            r'([A-Z0-9]{2,})\s*[-–]\s*(.+)',   # "CODE - Description"
+        ]
+        
+        for i, line in enumerate(lines):
             line = line.strip()
-            if ':' in line and len(line) < 500:  # Reasonable field length
+            
+            # Standard colon-separated fields
+            if ':' in line and len(line) < 500:
                 parts = line.split(':', 1)
                 if len(parts) == 2:
                     field_name = parts[0].strip()
                     field_content = parts[1].strip()
                     
                     if field_name and field_content:
-                        # Extract any requirement info
-                        requirement_match = self.requirement_pattern.search(field_content)
-                        metadata = {}
-                        if requirement_match:
-                            metadata['requirement'] = requirement_match.group(1)
+                        metadata = self._extract_field_metadata(field_content, lines, i)
                         
                         field = ExtractedField(
                             name=field_name,
@@ -290,8 +358,88 @@ class GenericPDFExtractor:
                             metadata=metadata
                         )
                         fields.append(field)
+            
+            # Enhanced pattern matching for structured data
+            for pattern in definition_patterns:
+                match = re.search(pattern, line)
+                if match and len(line) < 300:
+                    field_name = match.group(1).strip()
+                    field_content = match.group(2).strip() if match.lastindex >= 2 else line
+                    
+                    if field_name and field_content and field_name != field_content:
+                        metadata = self._extract_field_metadata(field_content, lines, i)
+                        
+                        field = ExtractedField(
+                            name=field_name,
+                            content=field_content,
+                            field_type=self._infer_field_type(field_content),
+                            metadata=metadata
+                        )
+                        fields.append(field)
+                    break
         
         return fields
+    
+    def _extract_field_metadata(self, content: str, lines: List[str], line_index: int) -> Dict[str, Any]:
+        """Extract metadata from field content and surrounding context"""
+        metadata = {}
+        
+        # Extract requirement info
+        requirement_match = self.requirement_pattern.search(content)
+        if requirement_match:
+            metadata['requirement'] = requirement_match.group(1)
+        
+        # Generic technical format patterns
+        format_patterns = [
+            (r'([a-zA-Z]+)\s*[\(\[]?(\d+)[\)\]]?', 'format_spec'),  # "string(20)", "int 4"
+            (r'(string|integer|boolean|decimal|binary)', 'data_type'),
+            (r'(required|optional|conditional|mandatory)', 'requirement'),
+            (r'(\d+)\s*[-–to]\s*(\d+)', 'range'),  # "1-255", "0 to 100"
+        ]
+        
+        for pattern, key in format_patterns:
+            match = re.search(pattern, content, re.IGNORECASE)
+            if match:
+                if key == 'format_spec':
+                    metadata['format_type'] = match.group(1)
+                    metadata['format_size'] = match.group(2)
+                elif key == 'range':
+                    metadata['min_value'] = match.group(1)
+                    metadata['max_value'] = match.group(2)
+                else:
+                    metadata[key] = match.group(1).lower()
+        
+        # Look for cross-references
+        cross_ref_patterns = [
+            r'(see|refer|reference)\s+([A-Z]\w+|\d+\.\d+|Table\s+\d+|Section\s+\d+)',
+            r'([A-Z]\w+\s+\d+)',  # "Table 1", "Figure 2"
+            r'(Annex|Appendix)\s+([A-Z])',
+        ]
+        
+        cross_refs = []
+        for pattern in cross_ref_patterns:
+            matches = re.finditer(pattern, content, re.IGNORECASE)
+            for match in matches:
+                if match.lastindex >= 2:
+                    cross_refs.append(f"{match.group(1)} {match.group(2)}")
+                else:
+                    cross_refs.append(match.group(0))
+        
+        if cross_refs:
+            metadata['cross_references'] = cross_refs
+        
+        # Check surrounding context for additional information
+        context_start = max(0, line_index - 2)
+        context_end = min(len(lines), line_index + 3)
+        context_lines = lines[context_start:context_end]
+        context = ' '.join(line.strip() for line in context_lines if line.strip())
+        
+        # Look for section context
+        section_match = re.search(r'(\d+\.\d+\s+[A-Z][^:]+)', context)
+        if section_match:
+            metadata['section'] = section_match.group(1).strip()
+        
+        return metadata
     
     def _extract_table_fields(self, text: str) -> List[ExtractedField]:
         """Extract content from table-like structures"""

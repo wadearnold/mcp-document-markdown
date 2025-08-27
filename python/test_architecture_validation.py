@@ -157,11 +157,11 @@ ssl_enabled: true
         {
             "type": "Data Schema",
             "content": """
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| id | integer | Yes | Primary key |
-| name | string | Yes | Display name |
-| active | boolean | No | Status flag |
+id: integer, Primary key (Required)
+name: string, Display name (Required)  
+active: boolean, Status flag (Optional)
+created_at: datetime, Record creation timestamp
+updated_at: datetime, Last modification timestamp
 """,
             "expected_min_fields": 3
         }

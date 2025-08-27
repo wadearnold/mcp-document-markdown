@@ -1,0 +1,150 @@
+{
+  "standard_config": {
+    "total_fields": 263,
+    "document_type": "structured_fields",
+    "bullet_count": 69,
+    "field_types": {
+      "integer": 32,
+      "boolean": 1,
+      "string": 230
+    },
+    "sections": [
+      "Interface Requirements",
+      "October 2022",
+      "Page 84",
+      "Acquirer Interface",
+      "Page 85",
+      "11.1 Language Selection",
+      "Annex B).",
+      "11.2  Standard Messages",
+      "Page 86",
+      "11.2 Standard Messages8",
+      "English.",
+      "11.2  Standard Messages",
+      "Page 87",
+      "Message",
+      "Identifier",
+      "Definition",
+      "(AMOUNT)",
+      "(AMOUNT) OK?",
+      "APPROVED",
+      "CALL YOUR BANK"
+    ],
+    "sample_fields": [
+      {
+        "name": "1994",
+        "type": "string",
+        "content": "2022 EMVCo, LLC (\u201cEMVCo\u201d). All rights reserved. Reproduction, distribution and other use of"
+      },
+      {
+        "name": "1994",
+        "type": "string",
+        "content": "2022 EMVCo, LLC (\u201cEMVCo\u201d). All rights reserved. Reproduction, distribution and other use of"
+      },
+      {
+        "name": "1994",
+        "type": "string",
+        "content": "2022 EMVCo, LLC (\u201cEMVCo\u201d). All rights reserved. Reproduction, distribution and other use of"
+      },
+      {
+        "name": "Note",
+        "type": "string",
+        "content": "Messages may be displayed simultaneously, such as \u2018Incorrect PIN\u2019 and \u2018Enter PIN\u2019."
+      },
+      {
+        "name": "Note",
+        "type": "string",
+        "content": "Messages may be displayed simultaneously, such as \u2018Incorrect PIN\u2019 and \u2018Enter PIN\u2019."
+      },
+      {
+        "name": "1994",
+        "type": "string",
+        "content": "2022 EMVCo, LLC (\u201cEMVCo\u201d). All rights reserved. Reproduction, distribution and other use of"
+      },
+      {
+        "name": "Table 8",
+        "type": "string",
+        "content": "Standard Messages"
+      },
+      {
+        "name": "Table 8",
+        "type": "string",
+        "content": "Standard Messages"
+      },
+      {
+        "name": "1994",
+        "type": "string",
+        "content": "2022 EMVCo, LLC (\u201cEMVCo\u201d). All rights reserved. Reproduction, distribution and other use of"
+      },
+      {
+        "name": "Table 8",
+        "type": "string",
+        "content": "Standard Messages, continued"
+      },
+      {
+        "name": "Table 8",
+        "type": "string",
+        "content": "Standard Messages, continued"
+      },
+      {
+        "name": "1994",
+        "type": "string",
+        "content": "2022 EMVCo, LLC (\u201cEMVCo\u201d). All rights reserved. Reproduction, distribution and other use of"
+      },
+      {
+        "name": "1994",
+        "type": "string",
+        "content": "2022 EMVCo, LLC (\u201cEMVCo\u201d). All rights reserved. Reproduction, distribution and other use of"
+      },
+      {
+        "name": "condition",
+        "type": "boolean",
+        "content": "\u2018Present if the Merchant/Terminal Identifier(s) do not implicitly refer to the"
+      },
+      {
+        "name": "indicated by a specific condition",
+        "type": "string",
+        "content": "\u2018Present if requested by the acquirer\u2019."
+      },
+      {
+        "name": "recognised through a specific condition",
+        "type": "string",
+        "content": "\u2018Present for Terminal Type = xx\u2019. For example,"
+      },
+      {
+        "name": "1994",
+        "type": "string",
+        "content": "2022 EMVCo, LLC (\u201cEMVCo\u201d). All rights reserved. Reproduction, distribution and other use of"
+      },
+      {
+        "name": "in ISO 8583",
+        "type": "string",
+        "content": "1987, though actual terminal message contents are usually specific to (each"
+      },
+      {
+        "name": "ISO 8583",
+        "type": "string",
+        "content": "1987, though actual terminal message contents are usually specific to (each"
+      },
+      {
+        "name": "ICC",
+        "type": "string",
+        "content": "related"
+      }
+    ]
+  },
+  "emv_optimized": {
+    "total_fields": 263,
+    "bullet_count": 69,
+    "emv_patterns": {
+      "tag": 4,
+      "length": 3,
+      "value": 9,
+      "data element": 110,
+      "mandatory": 1,
+      "format": 23,
+      "numeric": 2
+    },
+    "emv_specific_fields": 40
+  }
+}
