@@ -32,8 +32,33 @@ async def list_tools():
     print("🔧 LIST_TOOLS CALLED - WORKING!", flush=True)
     return [
             Tool(
+                name="extract_pdf_content",
+                description="Extract structured content from any PDF document (generic approach)",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "pdf_path": {
+                            "type": "string",
+                            "description": "Path to the PDF file to extract content from"
+                        },
+                        "config": {
+                            "type": "object",
+                            "description": "Optional configuration for customizing extraction behavior",
+                            "properties": {
+                                "bullet_indicators": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                    "description": "Custom phrases that indicate bullet lists"
+                                }
+                            }
+                        }
+                    },
+                    "required": ["pdf_path"]
+                }
+            ),
+            Tool(
                 name="convert_pdf",
-                description="Convert PDF to organized markdown documentation",
+                description="Convert PDF to organized markdown documentation (legacy method)",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -214,7 +239,9 @@ async def call_tool(name: str, arguments: Dict[str, Any]):
     try:
         logger.info(f"Tool called: {name} with args: {arguments}")
         
-        if name == "convert_pdf":
+        if name == "extract_pdf_content":
+            return await handle_extract_pdf_content(arguments)
+        elif name == "convert_pdf":
             return await handle_convert_pdf(arguments)
         elif name == "analyze_pdf_structure":
             return await handle_analyze_pdf(arguments)  
@@ -230,6 +257,85 @@ async def call_tool(name: str, arguments: Dict[str, Any]):
     except Exception as e:
         logger.error(f"Tool execution failed: {e}")
         return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+async def handle_extract_pdf_content(args: Dict[str, Any]):
+    """Handle generic PDF content extraction"""
+    try:
+        from processors.pdf_extractor_generic import extract_pdf
+        
+        pdf_path = args["pdf_path"]
+        config = args.get("config", {})
+        
+        if not Path(pdf_path).exists():
+            raise FileNotFoundError(f"PDF file not found: {pdf_path}")
+        
+        logger.info(f"Extracting content from PDF: {pdf_path}")
+        
+        # Extract using generic approach
+        results = extract_pdf(pdf_path, config)
+        
+        # Format output for MCP response
+        output = []
+        output.append(f"# PDF Content Extraction Results\n")
+        output.append(f"**File:** {pdf_path}")
+        output.append(f"**Document Type:** {results['metadata']['document_type']}")
+        output.append(f"**Total Fields:** {results['metadata']['total_fields']}")
+        output.append(f"**Total Lines:** {results['summary']['total_lines']}")
+        output.append(f"**Has Tables:** {results['metadata']['has_tables']}")
+        output.append(f"**Has Lists:** {results['metadata']['has_lists']}")
+        
+        # Field type distribution
+        output.append(f"\n## Field Type Distribution")
+        for field_type, count in results['summary']['field_types'].items():
+            output.append(f"- **{field_type}:** {count}")
+        
+        # Show extracted fields
+        output.append(f"\n## Extracted Fields ({len(results['fields'])} total)")
+        
+        for i, field in enumerate(results['fields'][:20]):  # Show first 20 fields
+            output.append(f"\n### {i+1}. {field['name']}")
+            output.append(f"**Type:** {field['type']}")
+            if field['content']:
+                # Truncate very long content
+                content = field['content'][:300] + "..." if len(field['content']) > 300 else field['content']
+                output.append(f"**Content:** {content}")
+            if field['metadata']:
+                output.append(f"**Metadata:** {field['metadata']}")
+        
+        if len(results['fields']) > 20:
+            output.append(f"\n*... and {len(results['fields']) - 20} more fields*")
+        
+        # Show sections if detected
+        if results['structure']['sections']:
+            output.append(f"\n## Detected Sections ({len(results['structure']['sections'])})")
+            for section in results['structure']['sections'][:10]:
+                output.append(f"- {section}")
+            if len(results['structure']['sections']) > 10:
+                output.append(f"- *... and {len(results['structure']['sections']) - 10} more sections*")
+        
+        response_text = "\n".join(output)
+        
+        return CallToolResult(
+            content=[
+                TextContent(
+                    type="text", 
+                    text=response_text
+                )
+            ]
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in PDF extraction: {str(e)}", exc_info=True)
+        return CallToolResult(
+            content=[
+                TextContent(
+                    type="text", 
+                    text=f"❌ Error extracting PDF content: {str(e)}"
+                )
+            ],
+            isError=True
+        )
+
 
 async def handle_convert_pdf(args: Dict[str, Any]):
     """Handle PDF to markdown conversion"""

@@ -40,10 +40,27 @@ class PDFExtractor:
         if self.extract_images:
             FileUtils.ensure_directory(self.images_dir)
     
-    def extract_all_content(self) -> Dict[str, Any]:
-        """Extract all content from PDF using ULTIMATE approach"""
-        # Import the ULTIMATE extractor
-        try:
+    def extract_all_content(self, use_generic: bool = True) -> Dict[str, Any]:
+        """Extract all content from PDF using generic or ULTIMATE approach"""
+        
+        if use_generic:
+            # Use generic extractor for any PDF type
+            from .pdf_extractor_generic import extract_pdf
+            
+            # Extract using generic approach
+            results = extract_pdf(str(self.pdf_path))
+            
+            # Convert to expected format
+            return {
+                'text': results['processed_text'],
+                'fields': results['fields'],
+                'structure': results['structure'],
+                'metadata': results['metadata'],
+                'summary': results['summary'],
+                'extraction_method': 'generic'
+            }
+        else:
+            # Fallback to ULTIMATE extractor for VTS-specific needs
             from .pdf_extractor_ultimate import UltimatePDFExtractor
             
             # Use ULTIMATE extractor for best results
