@@ -50,9 +50,24 @@ class PDFExtractor:
             # Extract using generic approach
             results = extract_pdf(str(self.pdf_path))
             
-            # Convert to expected format
+            # Convert to expected format with proper structure
+            # Parse text into pages if not provided
+            text = results['processed_text']
+            pages = []
+            if text:
+                # Split into rough pages (approximately 3000 chars per page)
+                page_size = 3000
+                for i in range(0, len(text), page_size):
+                    pages.append({
+                        'page_num': (i // page_size) + 1,
+                        'text': text[i:i+page_size]
+                    })
+            
             return {
-                'text': results['processed_text'],
+                'text': text,
+                'pages': pages if pages else [{'page_num': 1, 'text': text}],
+                'tables': [],  # Generic extractor doesn't extract tables separately yet
+                'images': [],  # Generic extractor doesn't extract images yet
                 'fields': results['fields'],
                 'structure': results['structure'],
                 'metadata': results['metadata'],
