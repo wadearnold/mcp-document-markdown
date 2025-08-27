@@ -261,7 +261,7 @@ async def call_tool(name: str, arguments: Dict[str, Any]):
 async def handle_extract_pdf_content(args: Dict[str, Any]):
     """Handle generic PDF content extraction"""
     try:
-        from processors.pdf_extractor_generic import extract_pdf
+        from processors.pdf_extractor import extract_pdf
         
         pdf_path = args["pdf_path"]
         config = args.get("config", {})

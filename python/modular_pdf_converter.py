@@ -8,7 +8,7 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 
 # Import all processor modules
-from processors.pdf_extractor import PDFExtractor
+from processors.pdf_extractor import extract_all_content
 from processors.table_processor import TableProcessor  
 from processors.chunking_engine import ChunkingEngine
 from processors.concept_mapper import ConceptMapper
@@ -51,12 +51,8 @@ class ModularPDFConverter:
         # Initialize core utilities
         self.token_counter = TokenCounter()
         
-        # Initialize processors
-        self.pdf_extractor = PDFExtractor(
-            str(self.pdf_path), 
-            str(self.output_dir),
-            extract_images=self.options.get('extract_images', True)
-        )
+        # Store options for extraction
+        self.extract_images = self.options.get('extract_images', True)
         
         self.table_processor = TableProcessor(str(self.output_dir), self.token_counter)
         self.chunking_engine = ChunkingEngine(str(self.output_dir), self.token_counter)
@@ -81,7 +77,7 @@ class ModularPDFConverter:
         try:
             # Step 1: Extract content from PDF
             print("Step 1: Extracting PDF content...")
-            pdf_content = self.pdf_extractor.extract_all_content()
+            pdf_content = extract_all_content(str(self.pdf_path), str(self.output_dir), self.extract_images)
             self.processing_stats['pdf_extraction'] = {
                 'pages': len(pdf_content.get('pages', [])),
                 'images': len(pdf_content.get('images', [])),
