@@ -418,19 +418,9 @@ class ChunkingEngine:
         
         manifest_content += f"""
 
-## Usage Guide
+## Chunk Directory
 
-### Chunk Size Guide
-- **small** (≤3.5K tokens): GPT-3.5 compatible - fast, cost-effective
-- **medium** (≤7.5K tokens): GPT-4 compatible - balanced performance
-- **large** (≤30K tokens): GPT-4-32K compatible - detailed analysis
-- **xlarge** (≤95K tokens): Claude-2 compatible - comprehensive analysis
-
-### Processing Strategy
-1. **Start with small chunks** for initial understanding and summaries
-2. **Use medium chunks** for most analysis tasks
-3. **Use large chunks** when you need more context
-4. **Use xlarge chunks** for comprehensive analysis of complex topics
+Available chunk sizes organized by token limits for different LLM context windows.
 
 ### File Naming Convention
 - `[section_id]-[title]-[size].md` - Single chunk files

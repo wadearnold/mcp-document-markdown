@@ -461,27 +461,7 @@ class TableProcessor:
             index_content += f"| [MD]({table['markdown_file']}) [JSON]({table['json_file']}) "
             index_content += f"| {llm_meta['processing_complexity']} |\n"
         
-        index_content += f"""
-
-## Processing Guidelines
-
-### For LLM Analysis
-1. **Simple tables** (≤50 cells): Process completely in single request
-2. **Moderate tables** (≤200 cells): Focus on key columns first
-3. **Complex tables** (≤1000 cells): Use filtering and sampling
-4. **Very complex tables** (>1000 cells): Process in chunks
-
-### Data Type Optimization
-- **Numeric data**: Use for statistical analysis and calculations
-- **Categorical data**: Perfect for grouping and filtering
-- **Boolean data**: Ideal for condition-based queries
-- **Text data**: Best for pattern matching and content analysis
-
-### Token Management
-- **Low token count** (<500): Include full table in prompts
-- **Medium token count** (500-2000): Summarize or filter first
-- **High token count** (>2000): Use structured queries on JSON format
-"""
+        index_content += "\n"
         
         index_file = self.tables_dir / "README.md"
         FileUtils.write_markdown(index_content, index_file)

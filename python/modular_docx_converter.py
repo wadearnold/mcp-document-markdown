@@ -13,11 +13,8 @@ from datetime import datetime
 from processors.docx_extractor import DocxExtractor
 
 # Import existing processors for post-processing
-from processors.table_processor import TableProcessor
-from processors.chunking_engine import ChunkingEngine  
-from processors.concept_mapper import ConceptMapper
-from processors.cross_referencer import CrossReferencer
-from processors.summary_generator import SummaryGenerator
+# Removed table processor for LLM-optimized embedded approach
+# Removed obsolete processors for LLM-optimized structure
 
 # Import utilities
 from utils.token_counter import TokenCounter
@@ -58,11 +55,7 @@ class ModularDocxConverter:
         # Initialize components
         self.token_counter = TokenCounter()
         self.docx_extractor = DocxExtractor()
-        self.table_processor = TableProcessor(self.output_dir, self.token_counter)
-        self.chunking_engine = ChunkingEngine(self.output_dir, self.token_counter)
-        self.concept_mapper = ConceptMapper(self.output_dir, self.token_counter)
-        self.cross_referencer = CrossReferencer(self.output_dir, self.token_counter)
-        self.summary_generator = SummaryGenerator(self.output_dir, self.token_counter)
+        # Skip processor initialization - using embedded approach for LLM optimization
         
         # Tracking
         self.generated_files = []
@@ -83,12 +76,7 @@ class ModularDocxConverter:
             self.output_dir = self.output_dir / docx_folder_name
             FileUtils.ensure_directory(self.output_dir)
             
-            # Update all processor output directories
-            self.table_processor.output_dir = self.output_dir
-            self.chunking_engine.output_dir = self.output_dir
-            self.concept_mapper.output_dir = self.output_dir
-            self.cross_referencer.output_dir = self.output_dir
-            self.summary_generator.output_dir = self.output_dir
+            # Skip processor initialization - using embedded approach for LLM optimization
             
             print(f"\n🚀 Starting Word document conversion: {self.docx_path.name}")
             print(f"📁 Output directory: {self.output_dir}")
@@ -103,57 +91,13 @@ class ModularDocxConverter:
             # Store stats
             self.processing_stats['docx_extraction'] = extraction_result['stats']
             
-            # Step 2: Process extracted content through existing pipeline
+            # Step 2: Structure content into sections
             sections = extraction_result['sections']
-            raw_text = extraction_result['raw_text']
             
-            # Step 3: Generate summaries
-            if self.options['generate_summaries']:
-                print("\n📝 Step 2: Generating multi-level summaries...")
-                summary_files = self.summary_generator.generate_all_summaries(
-                    sections, extraction_result['metadata']
-                )
-                self.generated_files.extend(summary_files)
-            
-            # Step 4: Extract and map concepts
-            if self.options['generate_concept_map']:
-                print("\n🧠 Step 3: Extracting concepts and building glossary...")
-                concept_files = self.concept_mapper.extract_concepts(sections)
-                self.generated_files.extend(concept_files)
-            
-            # Step 5: Resolve cross-references
-            if self.options['resolve_cross_references']:
-                print("\n🔗 Step 4: Resolving cross-references...")
-                ref_files = self.cross_referencer.resolve_references(sections)
-                self.generated_files.extend(ref_files)
-            
-            # Step 6: Process tables
-            if self.options['preserve_tables'] and extraction_result['tables']:
-                print(f"\n📊 Step 5: Processing {len(extraction_result['tables'])} tables...")
-                table_files = self.process_word_tables(extraction_result['tables'])
-                self.generated_files.extend(table_files)
-            
-            # Step 7: Create structured markdown sections
-            print("\n📑 Step 6: Creating structured markdown sections...")
-            section_files = self.create_word_sections(sections)
-            self.generated_files.extend(section_files)
-            
-            # Step 8: Chunk content for LLMs
-            if self.options['chunk_size_optimization']:
-                print("\n🔄 Step 7: Creating optimized chunks for LLM context windows...")
-                chunk_files = self.chunking_engine.process_sections_for_chunking(sections)
-                self.generated_files.extend(chunk_files)
-            
-            # Step 9: Handle images
-            if self.options['extract_images'] and extraction_result['images']:
-                print(f"\n🖼️ Step 8: Processing {len(extraction_result['images'])} image references...")
-                image_files = self.process_word_images(extraction_result['images'])
-                self.generated_files.extend(image_files)
-            
-            # Step 10: Create main README and navigation
-            print("\n📚 Step 9: Creating navigation and documentation...")
-            nav_files = self.create_word_navigation(sections, extraction_result)
-            self.generated_files.extend(nav_files)
+            # Step 3: Generate LLM-optimized markdown files
+            print("\n📝 Step 2: Generating LLM-optimized markdown files...")
+            markdown_files = self.generate_main_markdown_files(sections, extraction_result)
+            self.generated_files.extend(markdown_files)
             
             # Calculate processing time
             processing_time = time.time() - start_time

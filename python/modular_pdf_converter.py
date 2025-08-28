@@ -7,13 +7,8 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
-# Import all processor modules
+# Import core extraction functionality
 from processors.pdf_extractor import extract_all_content
-from processors.table_processor import TableProcessor  
-from processors.chunking_engine import ChunkingEngine
-from processors.concept_mapper import ConceptMapper
-from processors.cross_referencer import CrossReferencer
-from processors.summary_generator import SummaryGenerator
 
 # Import utilities
 from utils.token_counter import TokenCounter
@@ -54,11 +49,7 @@ class ModularPDFConverter:
         # Store options for extraction
         self.extract_images = self.options.get('extract_images', True)
         
-        self.table_processor = TableProcessor(str(self.output_dir), self.token_counter)
-        self.chunking_engine = ChunkingEngine(str(self.output_dir), self.token_counter)
-        self.concept_mapper = ConceptMapper(str(self.output_dir), self.token_counter)
-        self.cross_referencer = CrossReferencer(str(self.output_dir))
-        self.summary_generator = SummaryGenerator(str(self.output_dir), self.token_counter)
+        # Skip processor initialization - using embedded approach for LLM optimization
         
         # Conversion state
         self.conversion_results = {}
@@ -90,65 +81,23 @@ class ModularPDFConverter:
             sections = self.structure_content_into_sections(pdf_content)
             self.processing_stats['sections'] = len(sections)
             
-            # Step 3: Process tables
-            print("Step 3: Processing tables...")
-            if pdf_content.get('tables'):
-                table_results = self.table_processor.process_all_tables(pdf_content['tables'])
-                self.conversion_results['tables'] = table_results
-            else:
-                self.conversion_results['tables'] = {'processed_tables': [], 'table_files': []}
+            # Skip complex processors - tables, concepts, cross-refs now embedded in sections
+            # Skip separate chunking - handled during section generation if needed
+            self.conversion_results['tables'] = {'processed_tables': [], 'table_files': []}
+            self.conversion_results['concepts'] = {}
+            self.conversion_results['cross_references'] = {}
+            self.conversion_results['summaries'] = {}
+            self.conversion_results['chunks'] = {'chunk_files': [], 'total_chunks': 0}
             
-            # Step 4: Generate concept mapping
-            print("Step 4: Generating concept mapping...")
-            concept_results = self.concept_mapper.generate_concept_map_and_glossary(sections)
-            self.conversion_results['concepts'] = concept_results
-            
-            # Step 5: Resolve cross-references
-            print("Step 5: Resolving cross-references...")
-            if self.options.get('resolve_cross_references', True):
-                xref_results = self.cross_referencer.resolve_cross_references(
-                    sections, 
-                    concept_results
-                )
-                self.conversion_results['cross_references'] = xref_results
-            else:
-                self.conversion_results['cross_references'] = {}
-            
-            # Step 6: Generate summaries
-            print("Step 6: Generating summaries...")
-            if self.options.get('generate_summaries', True):
-                summary_results = self.summary_generator.generate_all_summaries(
-                    sections,
-                    concept_results,
-                    pdf_content.get('tables', [])
-                )
-                self.conversion_results['summaries'] = summary_results
-            else:
-                self.conversion_results['summaries'] = {}
-            
-            # Step 7: Create chunked versions
-            print("Step 7: Creating optimized chunks...")
-            if self.options.get('create_chunks', True):
-                chunk_results = self.chunking_engine.process_sections_for_chunking(sections)
-                self.conversion_results['chunks'] = {
-                    'chunk_files': chunk_results,
-                    'total_chunks': len(chunk_results)
-                }
-            else:
-                self.conversion_results['chunks'] = {'chunk_files': [], 'total_chunks': 0}
-            
-            # Step 8: Generate main markdown files
-            print("Step 8: Generating main markdown files...")
+            # Step 3: Generate LLM-optimized markdown files  
+            print("Step 3: Generating LLM-optimized markdown files...")
             markdown_files = self.generate_main_markdown_files(sections, pdf_content)
             self.conversion_results['markdown_files'] = markdown_files
             
-            # Step 9: Create master index
-            print("Step 9: Creating master index...")
-            index_file = self.create_master_index()
-            self.conversion_results['index_file'] = str(index_file)
+            # Skip master index - replaced with document map
             
-            # Step 10: Generate metadata
-            print("Step 10: Generating metadata...")
+            # Step 4: Generate metadata
+            print("Step 4: Generating metadata...")
             metadata_file = self.create_conversion_metadata(start_time)
             self.conversion_results['metadata_file'] = str(metadata_file)
             
@@ -334,7 +283,7 @@ class ModularPDFConverter:
         elif any(term in title for term in ['summary', 'conclusion', 'wrap up']):
             return 'summary'
         elif any(term in title for term in ['api', 'endpoint', 'method']):
-            return 'api_endpoint'
+            return 'api_endpoints'
         elif any(term in title for term in ['authentication', 'auth', 'login', 'security']):
             return 'authentication'
         elif any(term in title for term in ['example', 'tutorial', 'walkthrough']):
@@ -343,65 +292,93 @@ class ModularPDFConverter:
             return 'error_handling'
         elif any(term in title for term in ['reference', 'appendix', 'glossary']):
             return 'reference'
+        elif any(term in title for term in ['data', 'format', 'schema', 'structure']):
+            return 'data_formats'
+        elif any(term in title for term in ['config', 'setup', 'install']):
+            return 'configuration'
         
         # Classification based on content patterns
         elif any(term in content for term in ['http get', 'http post', 'curl', 'endpoint']):
-            return 'api_endpoint'
+            return 'api_endpoints'
         elif content.count('```') >= 2:  # Has code blocks
-            return 'code_example'
+            return 'code_examples'
         elif any(term in content for term in ['table', '|']) and content.count('|') > 5:
-            return 'data'
+            return 'data_formats'
         
         return 'content'
+    
+    def generate_semantic_filename(self, section: Dict[str, Any], section_index: int) -> str:
+        """Generate semantic filename based on section type and content"""
+        section_type = self.classify_section_type(section)
+        title = section.get('title', f'section-{section_index}')
+        
+        # Create semantic base names
+        semantic_names = {
+            'introduction': 'overview',
+            'summary': 'summary', 
+            'api_endpoints': 'api-endpoints',
+            'authentication': 'authentication',
+            'examples': 'examples',
+            'code_examples': 'code-examples',
+            'error_handling': 'error-handling',
+            'reference': 'reference',
+            'data_formats': 'data-formats',
+            'configuration': 'configuration',
+            'content': FileUtils.safe_filename(title)
+        }
+        
+        base_name = semantic_names.get(section_type, FileUtils.safe_filename(title))
+        return f"{section_index:02d}-{base_name}.md"
     
     def generate_main_markdown_files(self, sections: List[Dict[str, Any]], 
                                    pdf_content: Dict[str, Any]) -> List[str]:
         """Generate the main markdown files for LLM agents"""
         generated_files = []
         
-        # Generate structure overview (navigation and metadata for LLM agents)
-        structured_md = self.create_structured_markdown(sections, pdf_content)
-        structure_file = self.output_dir / "structure-overview.md"
-        FileUtils.write_markdown(structured_md, structure_file)
-        generated_files.append(str(structure_file))
+        # Generate README as the navigation entry point (standard convention)
+        document_map = self.create_document_map(sections, pdf_content)
+        readme_file = self.output_dir / "README.md"
+        FileUtils.write_markdown(document_map, readme_file)
+        generated_files.append(str(readme_file))
         
         # Generate individual section files (optimized for LLM processing)
         sections_dir = self.output_dir / "sections"
         FileUtils.ensure_directory(sections_dir)
         
         for i, section in enumerate(sections):
-            section_md = self.create_section_markdown(section, i + 1)
-            safe_title = FileUtils.safe_filename(section.get('title', f'section-{i+1}'))
+            section_md = self.create_section_markdown(section, i + 1, sections)
+            semantic_filename = self.generate_semantic_filename(section, i + 1)
             
-            # Check if section is too large (>20k tokens)
+            # Check if section is too large (>32k tokens - modern LLM context window)
             token_count = self.token_counter.count_tokens(section_md)
-            if token_count > 20000:
+            if token_count > 32000:
                 # Split large section into multiple parts
                 section_parts = self.split_large_section(section_md, section.get('title', f'Section {i+1}'))
                 for part_idx, part_content in enumerate(section_parts):
-                    part_file = sections_dir / f"{i+1:02d}-{safe_title}-part{part_idx+1:02d}.md"
+                    base_name = semantic_filename.replace('.md', '')
+                    part_file = sections_dir / f"{base_name}-part{part_idx+1:02d}.md"
                     FileUtils.write_markdown(part_content, part_file)
                     generated_files.append(str(part_file))
             else:
                 # Section is manageable size
-                section_file = sections_dir / f"{i+1:02d}-{safe_title}.md"
+                section_file = sections_dir / semantic_filename
                 FileUtils.write_markdown(section_md, section_file)
                 generated_files.append(str(section_file))
         
         return generated_files
     
     def split_large_section(self, section_md: str, section_title: str) -> List[str]:
-        """Split a large section into smaller, manageable parts"""
+        """Split a large section into smaller, manageable parts for modern LLMs"""
         # First check if section actually needs splitting
         total_tokens = self.token_counter.count_tokens(section_md)
-        if total_tokens <= 20000:
+        if total_tokens <= 32000:
             return [section_md]
         
         lines = section_md.split('\n')
         parts = []
         current_part = []
         current_tokens = 0
-        target_tokens = 12000  # Target size per part (leave room for headers)
+        target_tokens = 28000  # Target size per part (leave room for headers)
         
         # Keep the header in each part
         header_lines = []
@@ -440,95 +417,179 @@ class ModularPDFConverter:
         
         return parts if parts else [section_md]
     
-    def create_structured_markdown(self, sections: List[Dict[str, Any]], 
-                                 pdf_content: Dict[str, Any]) -> str:
-        """Create a structure overview document for LLM navigation"""
+    def create_document_map(self, sections: List[Dict[str, Any]], 
+                          pdf_content: Dict[str, Any]) -> str:
+        """Create a single navigation entry point for LLM agents"""
         metadata = pdf_content.get('metadata', {})
-        stats = pdf_content.get('stats', {})
         
-        content = f"""# {metadata.get('title', 'PDF Document')} - Structure Overview
+        content = f"""# {metadata.get('title', 'Document')}
 
-**Document Type**: {self.processing_stats.get('document_type', 'Unknown')}  
-**Converted**: {datetime.now().isoformat()}  
-**Source**: {self.pdf_path.name}  
-**Processing Method**: Modular PDF Converter  
+Document navigation and section directory.
 
-## Document Statistics
+## Document Summary
 
-- **Pages**: {stats.get('total_pages', 'Unknown')}
-- **Sections**: {len(sections)}
-- **Images**: {stats.get('total_images', 0)}
-- **Tables**: {stats.get('total_tables', 0)}
-- **Total Characters**: {stats.get('total_chars', 0):,}
+{self.generate_consolidated_summary(sections, metadata)}
 
-## Table of Contents
+## Section Navigation
 
 """
         
-        # Add table of contents
+        # Add clean navigation with semantic filenames and purposes
         for i, section in enumerate(sections):
             title = section.get('title', 'Untitled Section')
-            section_type = section.get('section_type', 'content')
-            token_count = section.get('token_count', 0)
+            section_type = self.classify_section_type(section)
+            filename = self.generate_semantic_filename(section, i + 1)
             
-            content += f"{i+1}. [{title}](#section-{i+1}) ({section_type}, {token_count} tokens)\\n"
-        
-        content += "\\n---\\n\\n"
-        
-        # Add sections with navigation metadata only (no full content)
-        for i, section in enumerate(sections):
-            title = section.get('title', 'Untitled Section')
-            section_content = section.get('content', '')
-            section_type = section.get('section_type', 'content')
-            token_count = section.get('token_count', 0)
-            level = section.get('level', 1)
+            # Add purpose description for better LLM understanding
+            purpose_descriptions = {
+                'introduction': 'System overview and getting started information',
+                'authentication': 'Security and authentication requirements', 
+                'api_endpoints': 'API methods, endpoints, and request specifications',
+                'examples': 'Implementation examples and code samples',
+                'error_handling': 'Error codes and troubleshooting procedures',
+                'data_formats': 'Data structures and format specifications',
+                'configuration': 'Setup and configuration procedures',
+                'reference': 'Reference material and lookup tables'
+            }
             
-            # Create preview - first 200 chars of content
-            content_preview = section_content[:200].strip()
-            if len(section_content) > 200:
-                content_preview += "..."
-            
-            safe_title = FileUtils.safe_filename(title)
-            section_file = f"sections/{i+1:02d}-{safe_title}.md"
-            
-            content += f"## {i+1}. {title} {{#section-{i+1}}}\\n\\n"
-            content += f"**Section Type**: {section_type}  \\n"
-            content += f"**Token Count**: {token_count}  \\n"
-            content += f"**Level**: {level}  \\n"
-            content += f"**File**: `{section_file}`  \\n\\n"
-            content += f"**Preview**: {content_preview}\\n\\n"
-            content += f"[📖 Read Full Section]({section_file})\\n\\n---\\n\\n"
+            purpose = purpose_descriptions.get(section_type, 'Content section')
+            content += f"- [{title}](sections/{filename}) - {purpose}\n"
         
         return content
     
-    def create_section_markdown(self, section: Dict[str, Any], section_num: int) -> str:
-        """Create markdown for an individual section"""
+    def generate_consolidated_summary(self, sections: List[Dict[str, Any]], metadata: Dict[str, Any]) -> str:
+        """Generate a single comprehensive summary for LLM understanding"""
+        
+        # Analyze section types to understand document structure
+        section_types = {}
+        key_topics = []
+        
+        for section in sections:
+            section_type = self.classify_section_type(section)
+            section_types[section_type] = section_types.get(section_type, 0) + 1
+            
+            # Extract key topics from titles
+            title = section.get('title', '').lower()
+            if any(keyword in title for keyword in ['api', 'authentication', 'configuration', 'error', 'data', 'format']):
+                key_topics.append(section.get('title', ''))
+        
+        # Build summary
+        summary_parts = []
+        
+        # Document type and purpose
+        if 'api_endpoints' in section_types:
+            summary_parts.append("API documentation covering endpoints, authentication, and implementation details.")
+        elif 'configuration' in section_types:
+            summary_parts.append("Configuration and setup documentation with installation procedures.")
+        elif 'data_formats' in section_types:
+            summary_parts.append("Technical specification documenting data structures and formats.")
+        else:
+            summary_parts.append(f"Technical documentation with {len(sections)} sections.")
+        
+        # Key content areas
+        if section_types:
+            content_areas = []
+            if 'authentication' in section_types:
+                content_areas.append("authentication requirements")
+            if 'api_endpoints' in section_types:
+                content_areas.append("API endpoints and methods")
+            if 'examples' in section_types:
+                content_areas.append("implementation examples")
+            if 'error_handling' in section_types:
+                content_areas.append("error handling procedures")
+            if 'data_formats' in section_types:
+                content_areas.append("data format specifications")
+            
+            if content_areas:
+                summary_parts.append(f"Key areas include: {', '.join(content_areas)}.")
+        
+        return ' '.join(summary_parts)
+    
+    def create_section_markdown(self, section: Dict[str, Any], section_num: int, all_sections: List[Dict[str, Any]] = None) -> str:
+        """Create focused, single-purpose markdown for an individual section"""
         title = section.get('title', f'Section {section_num}')
         content = section.get('content', '')
-        section_type = section.get('section_type', 'content')
-        token_count = section.get('token_count', 0)
-        level = section.get('level', 1)
-        pages = section.get('pages', [])
+        section_type = self.classify_section_type(section)
         
-        markdown = f"""# {title}
-
-**Section**: {section_num}  
-**Type**: {section_type}  
-**Level**: {level}  
-**Token Count**: {token_count}  
-**Generated**: {datetime.now().isoformat()}
-"""
+        # Clean, focused header with just the essential information
+        markdown = f"# {title}\n\n"
         
-        if pages:
-            markdown += f"**Source Pages**: {', '.join(map(str, pages))}  \\n"
+        # Add section purpose/scope if it can be determined
+        purpose_descriptions = {
+            'introduction': 'Overview and introduction to the system',
+            'authentication': 'Authentication methods and security requirements', 
+            'api_endpoints': 'API endpoints and request/response specifications',
+            'examples': 'Usage examples and implementation patterns',
+            'error_handling': 'Error codes, troubleshooting, and debugging information',
+            'data_formats': 'Data structures, schemas, and format specifications',
+            'configuration': 'Setup, configuration, and installation instructions',
+            'reference': 'Reference material and appendices'
+        }
         
-        markdown += f"""
----
-
-{content}
-"""
+        if section_type in purpose_descriptions:
+            markdown += f"{purpose_descriptions[section_type]}\n\n---\n\n"
+        
+        # Main content without metadata clutter
+        markdown += content
+        
+        # Add explicit cross-references if we have access to all sections
+        if all_sections:
+            related_refs = self.generate_cross_references(section, section_num, all_sections)
+            if related_refs:
+                markdown += f"\n\n---\n\n## Related Sections\n\n{related_refs}"
         
         return markdown
+    
+    def generate_cross_references(self, current_section: Dict[str, Any], section_num: int, all_sections: List[Dict[str, Any]]) -> str:
+        """Generate explicit cross-reference links between related sections"""
+        current_type = self.classify_section_type(current_section)
+        current_title = current_section.get('title', '').lower()
+        current_content = current_section.get('content', '').lower()
+        
+        related_sections = []
+        
+        # Define relationship patterns
+        relationships = {
+            'introduction': ['authentication', 'api_endpoints', 'configuration'],
+            'authentication': ['api_endpoints', 'error_handling', 'examples'],
+            'api_endpoints': ['authentication', 'data_formats', 'error_handling', 'examples'],
+            'examples': ['api_endpoints', 'authentication', 'data_formats'],
+            'error_handling': ['api_endpoints', 'authentication'],
+            'data_formats': ['api_endpoints', 'examples'],
+            'configuration': ['authentication', 'examples']
+        }
+        
+        # Find related sections based on type relationships
+        target_types = relationships.get(current_type, [])
+        
+        for i, section in enumerate(all_sections):
+            if i + 1 == section_num:  # Skip current section
+                continue
+                
+            section_type = self.classify_section_type(section)
+            section_title = section.get('title', f'Section {i+1}')
+            
+            # Check if this section type is related to current section
+            if section_type in target_types:
+                filename = self.generate_semantic_filename(section, i + 1)
+                related_sections.append(f"- [{section_title}]({filename}) - {section_type.replace('_', ' ').title()}")
+        
+        # Also check for content-based relationships (mentions, references)
+        for i, section in enumerate(all_sections):
+            if i + 1 == section_num:  # Skip current section
+                continue
+                
+            section_content = section.get('content', '').lower()
+            section_title = section.get('title', f'Section {i+1}')
+            
+            # Check if current section mentions this section or vice versa
+            if (current_title in section_content or 
+                section_title.lower() in current_content):
+                filename = self.generate_semantic_filename(section, i + 1)
+                if f"[{section_title}]({filename})" not in '\n'.join(related_sections):
+                    related_sections.append(f"- [{section_title}]({filename}) - Referenced content")
+        
+        return '\n'.join(related_sections) if related_sections else ""
     
     def create_master_index(self) -> Path:
         """Create a master index of all generated files"""

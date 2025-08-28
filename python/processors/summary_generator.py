@@ -845,19 +845,7 @@ This document provides an index of all generated summaries.
             
             index_content += f"- [{summary_type.title()} Summary]({relative_path}) - {description}\n"
         
-        index_content += f"""
-
-## Usage Guidelines
-
-- **Executive Summary**: Best for quick overview and decision-making
-- **Detailed Summary**: Good for understanding document structure
-- **Complete Summary**: Use when you need full context and comprehensive coverage
-- **Technical Summary**: Focus on implementation details and technical concepts
-- **API Summary**: Essential for developers integrating with APIs
-- **Security Summary**: Important for security reviews and compliance
-- **Integration Summary**: Start here for implementation and getting started
-
-"""
+        index_content += "\n\n"
         
         index_file = self.summaries_dir / "README.md"
         FileUtils.write_markdown(index_content, index_file)
