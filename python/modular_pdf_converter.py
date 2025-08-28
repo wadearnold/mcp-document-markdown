@@ -96,10 +96,7 @@ class ModularPDFConverter:
             
             # Skip master index - replaced with document map
             
-            # Step 4: Generate metadata
-            print("Step 4: Generating metadata...")
-            metadata_file = self.create_conversion_metadata(start_time)
-            self.conversion_results['metadata_file'] = str(metadata_file)
+            # Skip metadata generation - not needed for LLM-optimized content
             
             end_time = datetime.now()
             processing_time = (end_time - start_time).total_seconds()

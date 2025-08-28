@@ -390,12 +390,15 @@ async def handle_convert_pdf(args: Dict[str, Any]):
                     message += f"   • {stats['sections']} sections organized\n"
             
             
-            # Simple file navigation for agents
+            # Agent navigation for LLM-optimized structure
             message += f"\n💡 **File Navigation:**\n"
-            message += f"• `structure-overview.md` - Document map and navigation\n"
-            message += f"• `sections/` - Individual content sections\n"
-            message += f"• `chunked/` - LLM-optimized content pieces\n"
-            message += f"• `tables/` - Structured data for analysis\n"
+            message += f"• `README.md` - Document overview and section directory\n"
+            message += f"• `sections/` - Semantic sections with embedded tables and cross-references\n"
+            
+            # Critical next step for AI agent training
+            message += f"\n🤖 **Next: Train Your AI Agent**\n"
+            message += f"Visit https://github.com/wadearnold/mcp-document-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
+            message += f"Copy the training prompt and replace [FOLDER_NAME] with: {actual_output_path.name}\n"
             
             return [TextContent(type="text", text=message)]
         else:
@@ -528,12 +531,15 @@ async def handle_convert_docx(args: Dict[str, Any]):
             
             # Add critical agent training instructions
             
-            # Simple file navigation for agents
+            # Agent navigation for LLM-optimized structure
             message += f"\n💡 **File Navigation:**\n"
-            message += f"• `structure-overview.md` - Document map and navigation\n"
-            message += f"• `sections/` - Individual content sections\n"
-            message += f"• `chunked/` - LLM-optimized content pieces\n"
-            message += f"• `tables/` - Structured data for analysis\n"
+            message += f"• `README.md` - Document overview and section directory\n"
+            message += f"• `sections/` - Semantic sections with embedded tables and cross-references\n"
+            
+            # Critical next step for AI agent training
+            message += f"\n🤖 **Next: Train Your AI Agent**\n"
+            message += f"Visit https://github.com/wadearnold/mcp-document-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
+            message += f"Copy the training prompt and replace [FOLDER_NAME] with: {actual_output_path.name}\n"
             
             return [TextContent(type="text", text=message)]
         else:
