@@ -17,23 +17,16 @@ Transform massive, complex documents (PDFs, Word docs) into AI-optimized documen
 - **No Structure = No Intelligence**: Agents can't navigate, cross-reference, or cite specific sections
 - **Format Lock-in = Limited Knowledge**: Critical information trapped in PDFs, Word docs, and other formats
 
-### 🚀 **The Intelligent Solution**
+### 🚀 **The LLM-Optimized Solution**
 
-- **Smart Chunking**: Breaks content into LLM-optimized pieces (3.5K, 8K, 32K, 100K token variants)
-- **Concept Mapping**: Extracts and defines domain-specific terminology and relationships  
-- **Multi-Level Summaries**: Executive, technical, and detailed summaries for different contexts
-- **Section Navigation**: Hierarchical structure with cross-references and precise citations
-- **Table Intelligence**: Structured JSON + markdown tables for data analysis
-- **Visual Context**: Extracts and catalogs images with descriptions
-- **Cross-Reference Resolution**: Maps internal document relationships and dependencies
+- **Semantic Navigation**: Predictable file naming (`01-overview.md`, `02-authentication.md`) eliminates guesswork
+- **Single Entry Point**: Standard `README.md` provides comprehensive document overview and navigation
+- **Embedded Intelligence**: Tables, concepts, and cross-references integrated within relevant sections
+- **Modern Token Windows**: 32K token sections optimized for current LLM capabilities
+- **Focused Content**: Each section covers exactly one concept with clear purpose and cross-links
+- **Agent-Only Format**: Clean markdown without human instructions or decorative formatting
 
-### ⚡ **Agent Workflow Benefits**
-
-**Before**: *"I can't analyze that 500-page API specification PDF"*  
-**After**: *"I've analyzed the Payment Services API v2.1 documentation. Based on section 5.2.1, here's the authentication flow..."*
-
-**Before**: *"I can't read Word documents"*  
-**After**: *"I've processed your compliance report. The key requirements from section 3.4 are..."*
+### ⚡ **Agent Workflow Results**
 
 ✅ **Intelligent Navigation**: Agents know exactly where to find information  
 ✅ **Precise Citations**: References specific files and sections, not vague summaries  
@@ -41,40 +34,27 @@ Transform massive, complex documents (PDFs, Word docs) into AI-optimized documen
 ✅ **Multi-Document Intelligence**: Cross-references between multiple converted documents  
 ✅ **Token Optimization**: Every file sized perfectly for agent context windows
 
-### 📁 **What Gets Generated (Agent-Optimized Structure)**
+### 📁 **What Gets Generated (LLM-Optimized Structure)**
 
 ```
 docs/your_document_name/
-├── structure-overview.md     # Navigation map with previews
-├── README.md                # Quick start guide  
-├── sections/                # Individual content sections
-│   ├── 01-introduction.md   
-│   ├── 02-authentication.md
-│   └── ...
-├── chunked/                 # Token-optimized pieces
-│   ├── small/               # 3.5K tokens (GPT-3.5)
-│   ├── medium/              # 8K tokens (GPT-4)  
-│   ├── large/               # 32K tokens (GPT-4-32K)
-│   └── xlarge/              # 100K tokens (Claude-2)
-├── summaries/               # Multi-level summaries
-│   ├── executive-summary.md
-│   ├── technical-summary.md
-│   └── detailed-summary.md
-├── concepts/                # Domain intelligence
-│   ├── glossary.md         # Key terms & definitions
-│   ├── concept-map.md      # Relationships & dependencies
-│   └── terminology.json    # Structured terminology
-├── tables/                  # Structured data
-│   ├── table-001.md        # Human-readable
-│   ├── table-001.json      # Machine-readable
-│   └── tables-index.md     # All tables catalog
-├── references/              # Cross-reference intelligence
-│   ├── internal-links.md   # Document cross-references
-│   └── external-refs.md    # External links & citations
-└── images/                  # Visual context
-    ├── extracted-images/    # Actual image files
-    └── image-catalog.md     # Descriptions & context
+├── README.md                # Navigation entry point with integrated summary
+└── sections/                # Focused, single-purpose content sections  
+    ├── 01-overview.md       # System introduction and getting started
+    ├── 02-authentication.md # Security and authentication requirements
+    ├── 03-api-endpoints.md  # API methods and request specifications  
+    ├── 04-error-handling.md # Error codes and troubleshooting
+    ├── 05-data-formats.md   # Data structures and format specifications
+    └── 06-examples.md       # Implementation examples and patterns
 ```
+
+**Key Optimizations for AI Agents:**
+- **Standard Entry Point**: `README.md` follows universal convention agents expect
+- **Semantic Filenames**: Predictable names like `02-authentication.md` vs generic `section2.md` 
+- **Focused Content**: Each file covers exactly one concept with clear purpose
+- **Embedded Structure**: Tables, cross-references, and concepts integrated within sections
+- **Modern Token Limits**: 32K token sections match current LLM context windows
+- **Agent-Only Content**: No human instructions or decorative formatting
 
 **Result**: Your agent gets a complete knowledge base, not just converted text.
 
@@ -154,15 +134,12 @@ This file contains:
 **Problem**: "I need insights from 20+ academic papers, each 50+ pages long"
 **Solution**: Agent synthesizes findings, identifies conflicting conclusions, and provides comprehensive analysis with precise source attribution.
 
-### 🎯 **The Agent Intelligence Difference**
+### 🎯 **What Your Agent Gets**
 
-| **Without This Tool** | **With Agent Training** |
-|---|---|
-| *"I can't read PDFs"* | *"Based on section 4.2.1 of the API docs..."* |
-| Generic, vague responses | Specific, cited, actionable answers |
-| No cross-referencing | Intelligent multi-document analysis |
-| Token limit errors | Perfect context window utilization |
-| Manual PDF wrestling | Automated, structured intelligence |
+- **Specific, Cited Responses**: *"Based on section 4.2.1 of the API docs, here's the authentication flow..."*
+- **Intelligent Multi-Document Analysis**: Cross-references between multiple converted documents  
+- **Perfect Context Windows**: Every section sized for optimal LLM performance
+- **Structured Intelligence**: No more wrestling with raw PDF text
 
 ## Two Workflows for Different Use Cases
 
@@ -276,16 +253,9 @@ Generate embeddings for all the chunks in the chromadb_format.json file using Op
 **Word Analysis** (`analyze_docx_structure`):
 - `docx_path` (required) - Path to Word document to analyze
 
-**Advanced Options** (available for both PDF and Word):
-- `split_by_chapters` (default: true) - Organize by document structure
-  - Enable: *"with chapter splitting"* or *"split by chapters"*
-  - Disable: *"without chapter splitting"* or *"keep as single file"*
-- `preserve_tables` (default: true) - Keep table formatting
-  - Enable: *"preserve table formatting"* or *"keep tables structured"*
-  - Disable: *"flatten tables to text"* or *"without table formatting"*
-- `extract_images` (default: true) - Save referenced images
-  - Enable: *"extract images"* or *"save images"*
-  - Disable: *"without images"* or *"text only"*
+**Optional Parameters** (available for both PDF and Word):
+- `preserve_tables` (default: true) - Embed tables as both markdown and JSON within sections
+- `extract_images` (default: true) - Extract and reference images within relevant sections
 
 ## Examples
 
@@ -323,20 +293,16 @@ Convert /docs/architecture-design.docx to markdown and help me understand the sy
 Analyze the structure of /docs/proposal.docx without converting
 ```
 
-### Custom Processing Options
+### Analysis Options
 
-**Without Images**
-```
-Convert /docs/report.pdf to markdown without images and flatten tables to text
-```
-
-**Quick Analysis**
+**Structure Analysis**
 ```
 Analyze the structure of /docs/specification.pdf
 ```
 
-```
-Convert /docs/manual.pdf to markdown without chapter splitting and preserve table formatting
+**Custom Output Location**
+```  
+Convert /docs/manual.pdf to markdown with LLM-optimized semantic structure
 ```
 
 ### RAG Setup
@@ -357,9 +323,9 @@ make setup    # Reinstall dependencies
 - Ensure PDF is text-based (not scanned images)
 
 **AI not using the docs?**
-- Use the copy-paste prompt above to remind your AI about the new reference files
-- Reference specific files by name: "Check the getting-started.md file"
-- Ask your AI to "update your working memory" with the new documentation location
+- Direct your AI to start with README.md for document navigation
+- Reference semantic filenames: "Check 02-authentication.md for security details"
+- Use the AGENT_INSTRUCTIONS.md for comprehensive training prompts
 
 ## Development
 

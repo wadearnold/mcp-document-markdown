@@ -58,7 +58,7 @@ async def list_tools():
             ),
             Tool(
                 name="convert_pdf",
-                description="Convert PDF to organized markdown documentation (full conversion)",
+                description="Convert PDF to LLM-optimized markdown with semantic navigation structure",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -71,44 +71,14 @@ async def list_tools():
                             "description": "Directory to save the converted files (default: ./docs)",
                             "default": "./docs"
                         },
-                        "split_by_chapters": {
-                            "type": "boolean",
-                            "description": "Split output by document chapters/sections",
-                            "default": True
-                        },
                         "preserve_tables": {
                             "type": "boolean",
-                            "description": "Preserve table formatting in markdown",
+                            "description": "Embed tables within sections as both markdown and JSON",
                             "default": True
                         },
                         "extract_images": {
-                            "type": "boolean",
-                            "description": "Extract and save images from PDF", 
-                            "default": True
-                        },
-                        "generate_summaries": {
-                            "type": "boolean",
-                            "description": "Generate multi-level summaries (default: true)",
-                            "default": True
-                        },
-                        "generate_concept_map": {
-                            "type": "boolean",
-                            "description": "Generate concept map and glossary (default: true)",
-                            "default": True
-                        },
-                        "resolve_cross_references": {
-                            "type": "boolean",
-                            "description": "Resolve cross-references and create links (default: true)",
-                            "default": True
-                        },
-                        "structured_tables": {
-                            "type": "boolean",
-                            "description": "Convert tables to structured JSON (default: true)",
-                            "default": True
-                        },
-                        "chunk_size_optimization": {
-                            "type": "boolean",
-                            "description": "Optimize chunks for LLM token windows (default: true)",
+                            "type": "boolean", 
+                            "description": "Extract and reference images within relevant sections",
                             "default": True
                         }
                     },
@@ -160,7 +130,7 @@ async def list_tools():
             ),
             Tool(
                 name="convert_docx",
-                description="Convert Word document to organized markdown documentation (full conversion)",
+                description="Convert Word document to LLM-optimized markdown with semantic navigation structure",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -173,44 +143,14 @@ async def list_tools():
                             "description": "Directory to save the converted files (default: ./docs)",
                             "default": "./docs"
                         },
-                        "split_by_chapters": {
-                            "type": "boolean",
-                            "description": "Split output by document chapters/sections",
-                            "default": True
-                        },
                         "preserve_tables": {
                             "type": "boolean",
-                            "description": "Preserve table formatting in markdown",
+                            "description": "Embed tables within sections as both markdown and JSON",
                             "default": True
                         },
                         "extract_images": {
                             "type": "boolean",
-                            "description": "Extract and save images from document", 
-                            "default": True
-                        },
-                        "generate_summaries": {
-                            "type": "boolean",
-                            "description": "Generate multi-level summaries (default: true)",
-                            "default": True
-                        },
-                        "generate_concept_map": {
-                            "type": "boolean",
-                            "description": "Generate concept map and glossary (default: true)",
-                            "default": True
-                        },
-                        "resolve_cross_references": {
-                            "type": "boolean",
-                            "description": "Resolve cross-references and create links (default: true)",
-                            "default": True
-                        },
-                        "structured_tables": {
-                            "type": "boolean",
-                            "description": "Convert tables to structured JSON (default: true)",
-                            "default": True
-                        },
-                        "chunk_size_optimization": {
-                            "type": "boolean",
-                            "description": "Optimize chunks for LLM token windows (default: true)",
+                            "description": "Extract and reference images within relevant sections",
                             "default": True
                         }
                     },
@@ -389,7 +329,7 @@ async def handle_extract_pdf_content(args: Dict[str, Any]):
             content=[
                 TextContent(
                     type="text", 
-                    text=f"❌ Error extracting PDF content: {str(e)}"
+                    text=f" Error extracting PDF content: {str(e)}"
                 )
             ],
             isError=True
@@ -435,7 +375,7 @@ async def handle_convert_pdf(args: Dict[str, Any]):
             message = f"✅ Successfully converted {Path(pdf_path).name}\n"
             message += f"📁 Output directory: {actual_output_path}\n" 
             message += f"📄 Total files generated: {total_files:,}\n"
-            message += f"⏱️  Processing time: {result.get('processing_time_seconds', 0):.1f}s\n\n"
+            message += f"⏱️ Processing time: {result.get('processing_time_seconds', 0):.1f}s\n\n"
             
             # Add brief final summary stats
             stats = result.get('processing_stats', {})
@@ -449,20 +389,9 @@ async def handle_convert_pdf(args: Dict[str, Any]):
                 if 'sections' in stats:
                     message += f"   • {stats['sections']} sections organized\n"
             
-            # Add critical agent training instructions OUTSIDE the collapsible stats
-            message += f"\n🚨 **CRITICAL NEXT STEP - TRAIN YOUR AI AGENT:**\n"
-            message += f"\n"
-            message += f"Your PDF is converted, but your agent doesn't know how to use it yet!\n"
-            message += f"\n"
-            message += f"📋 **DO THIS NOW:**\n"
-            message += f"1. Open: https://github.com/wadearnold/mcp-document-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
-            message += f"2. Copy the training prompt from the 'Quick Start' section\n"
-            message += f"3. Replace [FOLDER_NAME] with: {pdf_folder_name}\n"
-            message += f"4. Paste the prompt to your AI agent immediately\n"
-            message += f"\n"
-            message += f"⚠️  **Without this step, your agent won't know the documentation exists!**\n"
-            message += f"\n"
-            message += f"💡 **File Navigation Guide:**\n"
+            
+            # Simple file navigation for agents
+            message += f"\n💡 **File Navigation:**\n"
             message += f"• `structure-overview.md` - Document map and navigation\n"
             message += f"• `sections/` - Individual content sections\n"
             message += f"• `chunked/` - LLM-optimized content pieces\n"
@@ -494,7 +423,7 @@ async def handle_analyze_pdf(args: Dict[str, Any]):
         # Get file size
         file_size_mb = Path(pdf_path).stat().st_size / (1024 * 1024)
         
-        message = f"📊 PDF Analysis: {Path(pdf_path).name}\n"
+        message = f" 📊 PDF Analysis: {Path(pdf_path).name}\n"
         message += f"Pages: {analysis.get('pages', 'unknown')}\n"
         message += f"Size: {file_size_mb:.2f} MB\n"
         message += f"Has TOC: {analysis.get('has_toc', False)}\n"
@@ -531,7 +460,7 @@ async def handle_prepare_rag(args: Dict[str, Any]):
         
         chunk_count = processor.process()
         
-        message = f"🎯 RAG Preparation Complete\n"
+        message = f" 🎯 RAG Preparation Complete\n"
         message += f"PDF: {Path(pdf_path).name}\n" 
         message += f"Format: {vector_db_format}\n"
         message += f"Chunks: {chunk_count}\n"
@@ -582,7 +511,7 @@ async def handle_convert_docx(args: Dict[str, Any]):
             message = f"✅ Successfully converted {Path(docx_path).name}\n"
             message += f"📁 Output directory: {actual_output_path}\n" 
             message += f"📄 Total files generated: {total_files:,}\n"
-            message += f"⏱️  Processing time: {result.get('processing_time_seconds', 0):.1f}s\n\n"
+            message += f"⏱️ Processing time: {result.get('processing_time_seconds', 0):.1f}s\n\n"
             
             # Add brief final summary stats
             stats = result.get('processing_stats', {})
@@ -598,19 +527,9 @@ async def handle_convert_docx(args: Dict[str, Any]):
                     message += f"   • {stats['sections']} sections organized\n"
             
             # Add critical agent training instructions
-            message += f"\n🚨 **CRITICAL NEXT STEP - TRAIN YOUR AI AGENT:**\n"
-            message += f"\n"
-            message += f"Your Word document is converted, but your agent doesn't know how to use it yet!\n"
-            message += f"\n"
-            message += f"📋 **DO THIS NOW:**\n"
-            message += f"1. Open: https://github.com/wadearnold/mcp-document-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
-            message += f"2. Copy the training prompt from the 'Quick Start' section\n"
-            message += f"3. Replace [FOLDER_NAME] with: {docx_folder_name}\n"
-            message += f"4. Paste the prompt to your AI agent immediately\n"
-            message += f"\n"
-            message += f"⚠️  **Without this step, your agent won't know the documentation exists!**\n"
-            message += f"\n"
-            message += f"💡 **File Navigation Guide:**\n"
+            
+            # Simple file navigation for agents
+            message += f"\n💡 **File Navigation:**\n"
             message += f"• `structure-overview.md` - Document map and navigation\n"
             message += f"• `sections/` - Individual content sections\n"
             message += f"• `chunked/` - LLM-optimized content pieces\n"
@@ -644,7 +563,7 @@ async def handle_analyze_docx(args: Dict[str, Any]):
             # Get file size
             file_size_mb = Path(docx_path).stat().st_size / (1024 * 1024)
             
-            message = f"📊 Word Document Analysis: {Path(docx_path).name}\n"
+            message = f" 📊 Word Document Analysis: {Path(docx_path).name}\n"
             message += f"Size: {file_size_mb:.2f} MB\n"
             message += f"Words: {result['stats'].get('total_words', 0):,}\n"
             message += f"Sections: {result['stats'].get('total_sections', 0)}\n"
@@ -652,7 +571,7 @@ async def handle_analyze_docx(args: Dict[str, Any]):
             message += f"Images: {result['stats'].get('total_images', 0)}\n"
             message += f"Has TOC: {result['stats'].get('has_toc', False)}"
         else:
-            message = f"❌ Analysis failed: {result.get('error', 'Unknown error')}"
+            message = f" Analysis failed: {result.get('error', 'Unknown error')}"
         
         return [TextContent(type="text", text=message)]
         
@@ -704,7 +623,7 @@ async def handle_extract_docx_content(args: Dict[str, Any]):
                 content=[
                     TextContent(
                         type="text",
-                        text=f"❌ Failed to extract content from Word document: {result.get('error', 'Unknown error')}"
+                        text=f" Failed to extract content from Word document: {result.get('error', 'Unknown error')}"
                     )
                 ]
             )
@@ -715,7 +634,7 @@ async def handle_extract_docx_content(args: Dict[str, Any]):
             content=[
                 TextContent(
                     type="text", 
-                    text=f"❌ Error extracting Word document content: {str(e)}"
+                    text=f" Error extracting Word document content: {str(e)}"
                 )
             ]
         )
@@ -743,11 +662,11 @@ async def handle_prepare_docx_rag(args: Dict[str, Any]):
             chunk_size
         )
         
-        message = f"✅ Successfully prepared {Path(docx_path).name} for RAG\n"
-        message += f"📁 Output: {output_dir}\n"
-        message += f"🔗 Vector DB Format: {vector_db_format}\n"
-        message += f"📊 Chunk Size: {chunk_size} tokens\n"
-        message += f"📄 Files generated: {result.get('files_generated', 0)}\n\n"
+        message = f" Successfully prepared {Path(docx_path).name} for RAG\n"
+        message += f" Output: {output_dir}\n"
+        message += f" 🔗 Vector DB Format: {vector_db_format}\n"
+        message += f" Chunk Size: {chunk_size} tokens\n"
+        message += f" Files generated: {result.get('files_generated', 0)}\n\n"
         message += "Ready for import into your vector database!"
         
         return CallToolResult(
@@ -765,7 +684,7 @@ async def handle_prepare_docx_rag(args: Dict[str, Any]):
             content=[
                 TextContent(
                     type="text",
-                    text=f"❌ Error preparing Word document for RAG: {str(e)}"
+                    text=f" Error preparing Word document for RAG: {str(e)}"
                 )
             ]
         )
@@ -775,7 +694,7 @@ async def main():
     """Main entry point"""
     logger.info("Starting MCP Document-to-Markdown server (document-markdown)")
     print(f"🐍 Python executable: {sys.executable}", file=sys.stderr, flush=True)
-    print(f"📁 Working directory: {Path.cwd()}", file=sys.stderr, flush=True)
+    print(f" Working directory: {Path.cwd()}", file=sys.stderr, flush=True)
     print(f"🛤️  Python path: {sys.path[:3]}...", file=sys.stderr, flush=True)
     
     # Add debugging for request handling
