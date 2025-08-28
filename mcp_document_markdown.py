@@ -68,8 +68,7 @@ async def list_tools():
                         },
                         "output_dir": {
                             "type": "string", 
-                            "description": "Directory to save the converted files (default: ./docs)",
-                            "default": "./docs"
+                            "description": "Directory to save the converted files (default: ./docs)"
                         },
                         "preserve_tables": {
                             "type": "boolean",
@@ -121,8 +120,7 @@ async def list_tools():
                         },
                         "output_dir": {
                             "type": "string",
-                            "description": "Directory to save RAG-prepared files",
-                            "default": "./rag_output"
+                            "description": "Directory to save RAG-prepared files (default: ./rag_output)"
                         }
                     },
                     "required": ["pdf_path"]
@@ -140,8 +138,7 @@ async def list_tools():
                         },
                         "output_dir": {
                             "type": "string", 
-                            "description": "Directory to save the converted files (default: ./docs)",
-                            "default": "./docs"
+                            "description": "Directory to save the converted files (default: ./docs)"
                         },
                         "preserve_tables": {
                             "type": "boolean",
@@ -219,8 +216,7 @@ async def list_tools():
                         },
                         "output_dir": {
                             "type": "string",
-                            "description": "Directory to save RAG-ready files (default: ./rag_output)",
-                            "default": "./rag_output"
+                            "description": "Directory to save RAG-ready files (default: ./rag_output)"
                         }
                     },
                     "required": ["docx_path"]
@@ -398,7 +394,7 @@ async def handle_convert_pdf(args: Dict[str, Any]):
             # Critical next step for AI agent training
             message += f"\n🤖 **Next: Train Your AI Agent**\n"
             message += f"Visit https://github.com/wadearnold/mcp-document-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
-            message += f"Copy the training prompt and replace [FOLDER_NAME] with: {Path(actual_output_path).name}\n"
+            message += f"Copy the training prompt and replace [FOLDER_NAME] with: {actual_output_path}\n"
             
             return [TextContent(type="text", text=message)]
         else:
@@ -539,7 +535,7 @@ async def handle_convert_docx(args: Dict[str, Any]):
             # Critical next step for AI agent training
             message += f"\n🤖 **Next: Train Your AI Agent**\n"
             message += f"Visit https://github.com/wadearnold/mcp-document-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
-            message += f"Copy the training prompt and replace [FOLDER_NAME] with: {Path(actual_output_path).name}\n"
+            message += f"Copy the training prompt and replace [FOLDER_NAME] with: {actual_output_path}\n"
             
             return [TextContent(type="text", text=message)]
         else:
