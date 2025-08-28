@@ -398,7 +398,7 @@ async def handle_convert_pdf(args: Dict[str, Any]):
             # Critical next step for AI agent training
             message += f"\n🤖 **Next: Train Your AI Agent**\n"
             message += f"Visit https://github.com/wadearnold/mcp-document-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
-            message += f"Copy the training prompt and replace [FOLDER_NAME] with: {actual_output_path.name}\n"
+            message += f"Copy the training prompt and replace [FOLDER_NAME] with: {Path(actual_output_path).name}\n"
             
             return [TextContent(type="text", text=message)]
         else:
@@ -539,7 +539,7 @@ async def handle_convert_docx(args: Dict[str, Any]):
             # Critical next step for AI agent training
             message += f"\n🤖 **Next: Train Your AI Agent**\n"
             message += f"Visit https://github.com/wadearnold/mcp-document-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
-            message += f"Copy the training prompt and replace [FOLDER_NAME] with: {actual_output_path.name}\n"
+            message += f"Copy the training prompt and replace [FOLDER_NAME] with: {Path(actual_output_path).name}\n"
             
             return [TextContent(type="text", text=message)]
         else:
