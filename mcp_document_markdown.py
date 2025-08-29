@@ -368,33 +368,31 @@ async def handle_convert_pdf(args: Dict[str, Any]):
             pdf_folder_name = FileUtils.sanitize_folder_name(Path(pdf_path).name)
             actual_output_path = f"{output_dir}/{pdf_folder_name}"
             
-            message = f"✅ Successfully converted {Path(pdf_path).name}\n"
-            message += f"📁 Output directory: {actual_output_path}\n" 
-            message += f"📄 Total files generated: {total_files:,}\n"
-            message += f"⏱️ Processing time: {result.get('processing_time_seconds', 0):.1f}s\n\n"
+            # Lead with agent training - this is the critical action
+            message = f"🤖 **AGENT TRAINING REQUIRED**\n"
+            message += f"Visit: https://github.com/wadearnold/mcp-document-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
+            message += f"Replace [FOLDER_NAME] with: {actual_output_path}\n\n"
             
-            # Add brief final summary stats
+            message += f"✅ Conversion complete: {Path(pdf_path).name}\n"
+            message += f"📁 Location: {actual_output_path}\n" 
+            message += f"📄 Files: {total_files:,} generated\n"
+            message += f"⏱️ Time: {result.get('processing_time_seconds', 0):.1f}s\n\n"
+            
+            # LLM-optimized structure for agent use
+            message += f"**Agent Navigation Structure:**\n"
+            message += f"• `{actual_output_path}/README.md` - Document map\n"
+            message += f"• `{actual_output_path}/sections/` - Content sections\n\n"
+            
+            # Brief stats for agent context
             stats = result.get('processing_stats', {})
             if stats:
-                message += "📊 Content Summary:\n"
                 pdf_stats = stats.get('pdf_extraction', {})
                 if pdf_stats:
-                    message += f"   • {pdf_stats.get('pages', 0)} pages processed\n"
-                    message += f"   • {pdf_stats.get('images', 0)} images extracted\n" 
-                    message += f"   • {pdf_stats.get('tables', 0)} tables structured\n"
-                if 'sections' in stats:
-                    message += f"   • {stats['sections']} sections organized\n"
+                    pages = pdf_stats.get('pages', 0)
+                    sections = stats.get('sections', 0)
+                    message += f"Processed: {pages} pages → {sections} sections\n"
             
-            
-            # Agent navigation for LLM-optimized structure
-            message += f"\n💡 **File Navigation:**\n"
-            message += f"• `README.md` - Document overview and section directory\n"
-            message += f"• `sections/` - Semantic sections with embedded tables and cross-references\n"
-            
-            # Critical next step for AI agent training
-            message += f"\n🤖 **Next: Train Your AI Agent**\n"
-            message += f"Visit https://github.com/wadearnold/mcp-document-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
-            message += f"Copy the training prompt and replace [FOLDER_NAME] with: {actual_output_path}\n"
+            message += f"\n⚠️ This content is optimized for AI agent consumption, not human reading."
             
             return [TextContent(type="text", text=message)]
         else:
@@ -507,35 +505,31 @@ async def handle_convert_docx(args: Dict[str, Any]):
             docx_folder_name = FileUtils.sanitize_folder_name(Path(docx_path).name)
             actual_output_path = f"{output_dir}/{docx_folder_name}"
             
-            message = f"✅ Successfully converted {Path(docx_path).name}\n"
-            message += f"📁 Output directory: {actual_output_path}\n" 
-            message += f"📄 Total files generated: {total_files:,}\n"
-            message += f"⏱️ Processing time: {result.get('processing_time_seconds', 0):.1f}s\n\n"
+            # Lead with agent training - this is the critical action
+            message = f"🤖 **AGENT TRAINING REQUIRED**\n"
+            message += f"Visit: https://github.com/wadearnold/mcp-document-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
+            message += f"Replace [FOLDER_NAME] with: {actual_output_path}\n\n"
             
-            # Add brief final summary stats
+            message += f"✅ Conversion complete: {Path(docx_path).name}\n"
+            message += f"📁 Location: {actual_output_path}\n" 
+            message += f"📄 Files: {total_files:,} generated\n"
+            message += f"⏱️ Time: {result.get('processing_time_seconds', 0):.1f}s\n\n"
+            
+            # LLM-optimized structure for agent use
+            message += f"**Agent Navigation Structure:**\n"
+            message += f"• `{actual_output_path}/README.md` - Document map\n"
+            message += f"• `{actual_output_path}/sections/` - Content sections\n\n"
+            
+            # Brief stats for agent context
             stats = result.get('processing_stats', {})
             if stats:
-                message += "📊 Content Summary:\n"
                 docx_stats = stats.get('docx_extraction', {})
                 if docx_stats:
-                    message += f"   • {docx_stats.get('total_words', 0):,} words processed\n"
-                    message += f"   • {docx_stats.get('total_sections', 0)} sections found\n" 
-                    message += f"   • {docx_stats.get('total_tables', 0)} tables structured\n"
-                    message += f"   • {docx_stats.get('total_images', 0)} images referenced\n"
-                if 'sections' in stats:
-                    message += f"   • {stats['sections']} sections organized\n"
+                    words = docx_stats.get('total_words', 0)
+                    sections = stats.get('sections', 0)
+                    message += f"Processed: {words:,} words → {sections} sections\n"
             
-            # Add critical agent training instructions
-            
-            # Agent navigation for LLM-optimized structure
-            message += f"\n💡 **File Navigation:**\n"
-            message += f"• `README.md` - Document overview and section directory\n"
-            message += f"• `sections/` - Semantic sections with embedded tables and cross-references\n"
-            
-            # Critical next step for AI agent training
-            message += f"\n🤖 **Next: Train Your AI Agent**\n"
-            message += f"Visit https://github.com/wadearnold/mcp-document-markdown/blob/main/AGENT_INSTRUCTIONS.md\n"
-            message += f"Copy the training prompt and replace [FOLDER_NAME] with: {actual_output_path}\n"
+            message += f"\n⚠️ This content is optimized for AI agent consumption, not human reading."
             
             return [TextContent(type="text", text=message)]
         else:
